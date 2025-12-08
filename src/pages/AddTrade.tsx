@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useTrades } from '@/hooks/useTrades';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -27,6 +28,7 @@ import {
   Sparkles,
   Search,
   Image as ImageIcon,
+  Loader2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { ASSET_CATEGORIES, ALL_ASSETS } from '@/data/assets';
@@ -60,7 +62,9 @@ const TAGS = [
 
 const AddTrade: React.FC = () => {
   const { t, language } = useLanguage();
+  const { addTrade } = useTrades();
   const locale = language === 'fr' ? fr : enUS;
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [date, setDate] = useState<Date>(new Date());
   const [direction, setDirection] = useState<'buy' | 'sell'>('buy');
@@ -145,26 +149,89 @@ const AddTrade: React.FC = () => {
     return score;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const qualityScore = calculateQualityScore();
+    
     const finalAsset = customAsset || formData.asset;
-    const finalTimeframe = customTimeframe || formData.timeframe;
     const finalSetup = customSetup || formData.setup;
     
-    console.log({
-      ...formData,
-      asset: finalAsset,
-      timeframe: finalTimeframe,
-      setup: finalSetup,
-      date,
-      direction,
-      tags: selectedTags,
-      images,
-      qualityScore,
-    });
+    if (!finalAsset) {
+      toast.error('Veuillez sélectionner un actif');
+      return;
+    }
     
-    toast.success(`Trade enregistré! Score de qualité: ${qualityScore}/100`);
+    if (!formData.entryPrice) {
+      toast.error('Veuillez entrer un prix d\'entrée');
+      return;
+    }
+    
+    if (!formData.lotSize) {
+      toast.error('Veuillez entrer une taille de lot');
+      return;
+    }
+    
+    setIsSubmitting(true);
+    
+    try {
+      const pnl = parseFloat(formData.pnl) || null;
+      let result: 'win' | 'loss' | 'breakeven' | 'pending' | null = null;
+      
+      if (pnl !== null) {
+        if (pnl > 0) result = 'win';
+        else if (pnl < 0) result = 'loss';
+        else result = 'breakeven';
+      } else {
+        result = 'pending';
+      }
+      
+      await addTrade.mutateAsync({
+        asset: finalAsset,
+        direction: direction === 'buy' ? 'long' : 'short',
+        entry_price: parseFloat(formData.entryPrice),
+        exit_price: pnl !== null ? parseFloat(formData.entryPrice) + (pnl / (parseFloat(formData.lotSize) * 100000)) : null,
+        stop_loss: formData.stopLoss ? parseFloat(formData.stopLoss) : null,
+        take_profit: formData.takeProfit ? parseFloat(formData.takeProfit) : null,
+        lot_size: parseFloat(formData.lotSize),
+        setup: finalSetup || null,
+        custom_setup: customSetup || null,
+        result,
+        profit_loss: pnl,
+        notes: formData.notes || null,
+        emotions: formData.emotion || null,
+        images: images.length > 0 ? images : null,
+        trade_date: date.toISOString(),
+      });
+      
+      toast.success('Trade enregistré avec succès!');
+      
+      // Reset form
+      setFormData({
+        asset: '',
+        setup: '',
+        timeframe: '',
+        entryPrice: '',
+        stopLoss: '',
+        takeProfit: '',
+        lotSize: '',
+        pnl: '',
+        risk: '',
+        emotion: '',
+        notes: '',
+      });
+      setDirection('buy');
+      setSelectedTags([]);
+      setImages([]);
+      setCustomAsset('');
+      setCustomSetup('');
+      setCustomTimeframe('');
+      setDate(new Date());
+      
+    } catch (error) {
+      console.error('Error saving trade:', error);
+      toast.error('Erreur lors de l\'enregistrement du trade');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -554,12 +621,16 @@ const AddTrade: React.FC = () => {
 
         {/* Submit */}
         <div className="flex justify-end gap-4">
-          <Button type="button" variant="outline">
+          <Button type="button" variant="outline" disabled={isSubmitting}>
             {t('cancel')}
           </Button>
-          <Button type="submit" className="gap-2 bg-gradient-primary hover:opacity-90">
-            <Save className="w-4 h-4" />
-            {t('saveTrade')}
+          <Button type="submit" className="gap-2 bg-gradient-primary hover:opacity-90" disabled={isSubmitting}>
+            {isSubmitting ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Save className="w-4 h-4" />
+            )}
+            {isSubmitting ? 'Enregistrement...' : t('saveTrade')}
           </Button>
         </div>
       </form>
