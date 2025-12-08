@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,51 +11,14 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
-import { Calculator as CalcIcon, ArrowRight, AlertTriangle, CheckCircle, Send } from 'lucide-react';
+import { Calculator as CalcIcon, ArrowRight, AlertTriangle, CheckCircle, Send, Search, TrendingUp, TrendingDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
-
-const ASSET_CATEGORIES = {
-  'Forex Majors': ['EUR/USD', 'GBP/USD', 'USD/JPY', 'USD/CHF', 'AUD/USD', 'USD/CAD', 'NZD/USD'],
-  'Forex Crosses': ['EUR/GBP', 'EUR/JPY', 'GBP/JPY', 'EUR/CHF', 'EUR/AUD', 'AUD/JPY', 'GBP/CHF'],
-  'Métaux': ['XAU/USD', 'XAG/USD'],
-  'Indices': ['US30', 'US100', 'US500', 'GER40', 'UK100', 'JPN225'],
-  'Crypto': ['BTC/USD', 'ETH/USD', 'SOL/USD', 'XRP/USD', 'BNB/USD'],
-  'Énergies': ['USOIL', 'UKOIL', 'NATGAS'],
-};
-
-// Pip values for different assets (simplified)
-const PIP_VALUES: { [key: string]: number } = {
-  // Forex (standard lot = 100,000 units)
-  'EUR/USD': 10, 'GBP/USD': 10, 'AUD/USD': 10, 'NZD/USD': 10, 'USD/CAD': 10,
-  'USD/CHF': 10, 'USD/JPY': 1000, // JPY pairs have different pip calculation
-  'EUR/GBP': 10, 'EUR/JPY': 1000, 'GBP/JPY': 1000, 'EUR/CHF': 10, 'EUR/AUD': 10,
-  'AUD/JPY': 1000, 'GBP/CHF': 10,
-  // Gold (1 lot = 100 oz)
-  'XAU/USD': 100,
-  // Silver (1 lot = 5000 oz)
-  'XAG/USD': 50,
-  // Indices (point value varies)
-  'US30': 10, 'US100': 10, 'US500': 10, 'GER40': 10, 'UK100': 10, 'JPN225': 100,
-  // Crypto (varies by broker)
-  'BTC/USD': 1, 'ETH/USD': 1, 'SOL/USD': 1, 'XRP/USD': 1, 'BNB/USD': 1,
-  // Energies
-  'USOIL': 10, 'UKOIL': 10, 'NATGAS': 10,
-};
-
-// Decimal places for price display
-const DECIMALS: { [key: string]: number } = {
-  'EUR/USD': 5, 'GBP/USD': 5, 'AUD/USD': 5, 'NZD/USD': 5, 'USD/CAD': 5,
-  'USD/CHF': 5, 'USD/JPY': 3, 'EUR/GBP': 5, 'EUR/JPY': 3, 'GBP/JPY': 3,
-  'EUR/CHF': 5, 'EUR/AUD': 5, 'AUD/JPY': 3, 'GBP/CHF': 5,
-  'XAU/USD': 2, 'XAG/USD': 3,
-  'US30': 0, 'US100': 0, 'US500': 1, 'GER40': 0, 'UK100': 0, 'JPN225': 0,
-  'BTC/USD': 0, 'ETH/USD': 1, 'SOL/USD': 2, 'XRP/USD': 4, 'BNB/USD': 1,
-  'USOIL': 2, 'UKOIL': 2, 'NATGAS': 3,
-};
+import { ASSET_CATEGORIES, PIP_VALUES, DECIMALS, getPipSize, getAssetCategory } from '@/data/assets';
 
 const Calculator: React.FC = () => {
   const { t } = useLanguage();
+  const [assetSearch, setAssetSearch] = useState('');
 
   const [formData, setFormData] = useState({
     capital: '',
@@ -71,12 +34,32 @@ const Calculator: React.FC = () => {
     slPips: number;
     tpPips: number;
     lotSize: number;
+    lotSizeMini: number;
+    lotSizeMicro: number;
     rrRatio: number;
     slValue: number;
     tpValue: number;
+    direction: 'buy' | 'sell';
   } | null>(null);
 
   const [warnings, setWarnings] = useState<string[]>([]);
+
+  // Filter assets based on search
+  const filteredAssets = useMemo(() => {
+    if (!assetSearch) return ASSET_CATEGORIES;
+    const searchLower = assetSearch.toLowerCase();
+    const result: { [key: string]: string[] } = {};
+    
+    for (const [category, assets] of Object.entries(ASSET_CATEGORIES)) {
+      const filtered = assets.filter(asset => 
+        asset.toLowerCase().includes(searchLower)
+      );
+      if (filtered.length > 0) {
+        result[category] = filtered;
+      }
+    }
+    return result;
+  }, [assetSearch]);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -95,17 +78,42 @@ const Calculator: React.FC = () => {
       return;
     }
 
-    const pipValue = PIP_VALUES[asset] || 10;
-    const decimals = DECIMALS[asset] || 5;
-    const pipSize = asset.includes('JPY') ? 0.01 : Math.pow(10, -decimals);
-
-    // Calculate values
-    const riskAmount = (capital * riskPercent) / 100;
+    // Determine direction based on entry vs SL
+    const direction: 'buy' | 'sell' = entryPrice > stopLoss ? 'buy' : 'sell';
+    
+    // Get asset-specific values
+    const pipSize = getPipSize(asset);
+    const category = getAssetCategory(asset);
+    
+    // Calculate SL distance in pips/points
     const slDistance = Math.abs(entryPrice - stopLoss);
     const slPips = slDistance / pipSize;
     
-    // Lot size calculation
+    // Risk amount in currency
+    const riskAmount = (capital * riskPercent) / 100;
+    
+    // Get pip value for this asset (or default)
+    let pipValue = PIP_VALUES[asset] || 10;
+    
+    // Adjust pip value based on asset type
+    if (category.includes('Forex') && !asset.includes('JPY')) {
+      pipValue = 10; // Standard forex pip value per lot
+    } else if (asset.includes('JPY')) {
+      pipValue = 1000 / 100; // JPY pip value adjusted
+    } else if (asset === 'XAU/USD') {
+      pipValue = 1; // Gold: $1 per 0.01 movement per lot
+    } else if (asset === 'XAG/USD') {
+      pipValue = 50; // Silver
+    } else if (category.includes('Indices')) {
+      pipValue = 1; // Indices: typically $1 per point
+    } else if (category.includes('Crypto')) {
+      pipValue = 1; // Crypto: value depends on lot size
+    }
+    
+    // Lot size calculation: LotSize = RiskMoney / (SL_pips * pip_value)
     const lotSize = riskAmount / (slPips * pipValue);
+    const lotSizeMini = lotSize * 10;
+    const lotSizeMicro = lotSize * 100;
     
     // TP calculations
     let tpPips = 0;
@@ -122,13 +130,22 @@ const Calculator: React.FC = () => {
     // Generate warnings
     const newWarnings: string[] = [];
     if (riskPercent > 2) {
-      newWarnings.push('Risque > 2% : Position agressive');
+      newWarnings.push('⚠️ Risque > 2% : Position agressive');
     }
-    if (slPips < 10) {
-      newWarnings.push('SL très serré : Trade risqué');
+    if (riskPercent > 5) {
+      newWarnings.push('🚨 Risque > 5% : Très dangereux!');
+    }
+    if (slPips < 5 && category.includes('Forex')) {
+      newWarnings.push('⚠️ SL très serré (< 5 pips) : Trade risqué');
+    }
+    if (slPips < 10 && category.includes('Forex')) {
+      newWarnings.push('💡 SL serré : Attention au spread');
     }
     if (rrRatio < 1 && rrRatio > 0) {
-      newWarnings.push('R:R < 1:1 : Ratio défavorable');
+      newWarnings.push('⚠️ R:R < 1:1 : Ratio défavorable');
+    }
+    if (lotSize > 10) {
+      newWarnings.push('🚨 Lot size > 10 : Vérifiez votre calcul');
     }
 
     setWarnings(newWarnings);
@@ -137,16 +154,19 @@ const Calculator: React.FC = () => {
       slPips: Math.round(slPips * 10) / 10,
       tpPips: Math.round(tpPips * 10) / 10,
       lotSize: Math.round(lotSize * 100) / 100,
+      lotSizeMini: Math.round(lotSizeMini * 100) / 100,
+      lotSizeMicro: Math.round(lotSizeMicro * 100) / 100,
       rrRatio: Math.round(rrRatio * 100) / 100,
       slValue: Math.round(slValue * 100) / 100,
       tpValue: Math.round(tpValue * 100) / 100,
+      direction,
     });
 
     toast.success('Calcul effectué!');
   };
 
   return (
-    <div className="py-4 max-w-4xl mx-auto">
+    <div className="py-4 max-w-5xl mx-auto">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
@@ -168,6 +188,20 @@ const Calculator: React.FC = () => {
           <h3 className="font-display font-semibold text-foreground">Paramètres</h3>
 
           <div className="space-y-4">
+            {/* Asset Search */}
+            <div className="space-y-2">
+              <Label>Rechercher un actif</Label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="Rechercher..."
+                  value={assetSearch}
+                  onChange={(e) => setAssetSearch(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+            </div>
+
             <div className="space-y-2">
               <Label>{t('asset')}</Label>
               <Select value={formData.asset} onValueChange={(v) => handleInputChange('asset', v)}>
@@ -175,9 +209,9 @@ const Calculator: React.FC = () => {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="bg-popover border-border max-h-80">
-                  {Object.entries(ASSET_CATEGORIES).map(([category, assets]) => (
+                  {Object.entries(filteredAssets).map(([category, assets]) => (
                     <div key={category}>
-                      <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
+                      <div className="px-2 py-1.5 text-xs font-semibold text-primary bg-primary/10">
                         {category}
                       </div>
                       {assets.map(asset => (
@@ -187,6 +221,9 @@ const Calculator: React.FC = () => {
                   ))}
                 </SelectContent>
               </Select>
+              <p className="text-xs text-muted-foreground">
+                Catégorie: {getAssetCategory(formData.asset)}
+              </p>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -200,13 +237,16 @@ const Calculator: React.FC = () => {
                 />
               </div>
               <div className="space-y-2">
-                <Label>{t('riskPercent')}</Label>
+                <Label>{t('riskPercent')} (%)</Label>
                 <Input
                   type="number"
                   step="0.1"
                   placeholder="1.0"
                   value={formData.riskPercent}
                   onChange={(e) => handleInputChange('riskPercent', e.target.value)}
+                  className={cn(
+                    parseFloat(formData.riskPercent) > 2 && "border-loss/50"
+                  )}
                 />
               </div>
             </div>
@@ -224,7 +264,10 @@ const Calculator: React.FC = () => {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>{t('stopLoss')}</Label>
+                <Label className="flex items-center gap-2">
+                  {t('stopLoss')}
+                  <span className="text-xs text-loss">(obligatoire)</span>
+                </Label>
                 <Input
                   type="number"
                   step="any"
@@ -235,7 +278,10 @@ const Calculator: React.FC = () => {
                 />
               </div>
               <div className="space-y-2">
-                <Label>{t('takeProfit')} (optionnel)</Label>
+                <Label className="flex items-center gap-2">
+                  {t('takeProfit')}
+                  <span className="text-xs text-muted-foreground">(optionnel)</span>
+                </Label>
                 <Input
                   type="number"
                   step="any"
@@ -255,13 +301,33 @@ const Calculator: React.FC = () => {
             <CalcIcon className="w-4 h-4" />
             {t('calculate')}
           </Button>
+
+          {/* Formulas Info */}
+          <div className="p-4 bg-secondary/30 rounded-lg text-xs text-muted-foreground space-y-1">
+            <p className="font-semibold text-foreground">Formules utilisées:</p>
+            <p>• Risque ($) = Capital × (Risque% / 100)</p>
+            <p>• SL (pips) = |Prix Entrée - SL| / Pip Size</p>
+            <p>• Lot = Risque ($) / (SL pips × Pip Value)</p>
+            <p>• R:R = TP pips / SL pips</p>
+          </div>
         </div>
 
         {/* Results Section */}
         <div className="space-y-6">
           {results && (
             <div className="glass-card p-6 animate-fade-in">
-              <h3 className="font-display font-semibold text-foreground mb-6">Résultats</h3>
+              <h3 className="font-display font-semibold text-foreground mb-6 flex items-center gap-2">
+                Résultats
+                {results.direction === 'buy' ? (
+                  <span className="flex items-center gap-1 text-sm text-profit">
+                    <TrendingUp className="w-4 h-4" /> BUY
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-1 text-sm text-loss">
+                    <TrendingDown className="w-4 h-4" /> SELL
+                  </span>
+                )}
+              </h3>
 
               {/* Main Result - Lot Size */}
               <div className="text-center p-6 rounded-xl bg-primary/10 border border-primary/30 mb-6">
@@ -274,6 +340,10 @@ const Calculator: React.FC = () => {
                 <p className="text-sm text-muted-foreground mt-2">
                   Standard Lots
                 </p>
+                <div className="flex justify-center gap-4 mt-4 text-sm">
+                  <span className="text-muted-foreground">Mini: <span className="text-foreground font-medium">{results.lotSizeMini}</span></span>
+                  <span className="text-muted-foreground">Micro: <span className="text-foreground font-medium">{results.lotSizeMicro}</span></span>
+                </div>
               </div>
 
               {/* Detailed Results */}
@@ -295,15 +365,36 @@ const Calculator: React.FC = () => {
                 </div>
                 <div className="p-4 rounded-lg bg-loss/10 border border-loss/20">
                   <p className="text-xs text-muted-foreground">{t('slPoints')}</p>
-                  <p className="font-display text-xl font-bold text-loss">{results.slPips}</p>
-                  <p className="text-xs text-muted-foreground mt-1">${results.slValue}</p>
+                  <p className="font-display text-xl font-bold text-loss">{results.slPips} pips</p>
+                  <p className="text-xs text-muted-foreground mt-1">Perte max: ${results.slValue}</p>
                 </div>
                 <div className="p-4 rounded-lg bg-profit/10 border border-profit/20">
                   <p className="text-xs text-muted-foreground">{t('tpPoints')}</p>
-                  <p className="font-display text-xl font-bold text-profit">{results.tpPips || '-'}</p>
-                  <p className="text-xs text-muted-foreground mt-1">${results.tpValue || 0}</p>
+                  <p className="font-display text-xl font-bold text-profit">{results.tpPips || '-'} pips</p>
+                  <p className="text-xs text-muted-foreground mt-1">Gain potentiel: ${results.tpValue || 0}</p>
                 </div>
               </div>
+
+              {/* Visual SL/TP */}
+              {results.tpPips > 0 && (
+                <div className="mt-6 p-4 bg-secondary/30 rounded-lg">
+                  <p className="text-xs text-muted-foreground mb-3 text-center">Visualisation</p>
+                  <div className="relative h-8 rounded-full bg-gradient-to-r from-loss via-secondary to-profit overflow-hidden">
+                    <div 
+                      className="absolute top-0 bottom-0 w-1 bg-foreground"
+                      style={{ 
+                        left: `${(results.slPips / (results.slPips + results.tpPips)) * 100}%` 
+                      }}
+                    />
+                    <div className="absolute top-0 left-0 bottom-0 flex items-center px-2 text-xs text-loss-foreground font-medium">
+                      SL
+                    </div>
+                    <div className="absolute top-0 right-0 bottom-0 flex items-center px-2 text-xs text-profit-foreground font-medium">
+                      TP
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Send to Trade */}
               <Link to="/add-trade">
@@ -327,8 +418,7 @@ const Calculator: React.FC = () => {
               </div>
               <ul className="space-y-2">
                 {warnings.map((warning, index) => (
-                  <li key={index} className="text-sm text-muted-foreground flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-loss" />
+                  <li key={index} className="text-sm text-muted-foreground flex items-start gap-2">
                     {warning}
                   </li>
                 ))}
@@ -354,6 +444,10 @@ const Calculator: React.FC = () => {
               <li className="flex items-center gap-2">
                 <div className="w-1.5 h-1.5 rounded-full bg-profit" />
                 Toujours placer un Stop Loss
+              </li>
+              <li className="flex items-center gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-profit" />
+                Tenez compte du spread dans votre SL
               </li>
             </ul>
           </div>

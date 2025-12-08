@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,29 +25,20 @@ import {
   TrendingDown,
   Save,
   Sparkles,
+  Search,
+  Image as ImageIcon,
 } from 'lucide-react';
 import { toast } from 'sonner';
-
-const ASSETS = [
-  // Forex Majors
-  'EUR/USD', 'GBP/USD', 'USD/JPY', 'USD/CHF', 'AUD/USD', 'USD/CAD', 'NZD/USD',
-  // Forex Crosses
-  'EUR/GBP', 'EUR/JPY', 'GBP/JPY', 'EUR/CHF', 'EUR/AUD', 'GBP/CHF', 'AUD/JPY',
-  // Crypto
-  'BTC/USD', 'ETH/USD', 'XRP/USD', 'SOL/USD', 'BNB/USD', 'ADA/USD', 'DOGE/USD',
-  // Indices
-  'US30', 'US100', 'US500', 'GER40', 'UK100', 'JPN225', 'FRA40',
-  // Commodities
-  'XAU/USD', 'XAG/USD', 'USOIL', 'UKOIL', 'NATGAS',
-];
+import { ASSET_CATEGORIES, ALL_ASSETS } from '@/data/assets';
 
 const SETUPS = [
   'Breakout', 'Pullback', 'Reversal', 'Range', 'Trend Following',
   'Support/Resistance', 'Fibonacci', 'Moving Average', 'RSI Divergence',
   'MACD Cross', 'Supply & Demand', 'Order Block', 'Fair Value Gap',
+  'Liquidity Sweep', 'Change of Character', 'Break of Structure',
 ];
 
-const TIMEFRAMES = ['M1', 'M5', 'M15', 'M30', 'H1', 'H4', 'D1', 'W1', 'MN'];
+const TIMEFRAMES = ['M1', 'M5', 'M15', 'M30', 'M45', 'H1', 'H2', 'H3', 'H4', 'D1', 'W1', 'MN'];
 
 const EMOTIONS = [
   { value: 'calm', label: 'Calme', emoji: '😌' },
@@ -56,12 +47,15 @@ const EMOTIONS = [
   { value: 'impulsive', label: 'Impulsif', emoji: '⚡' },
   { value: 'fearful', label: 'Craintif', emoji: '😨' },
   { value: 'greedy', label: 'Avide', emoji: '🤑' },
+  { value: 'patient', label: 'Patient', emoji: '🧘' },
+  { value: 'focused', label: 'Concentré', emoji: '🎯' },
 ];
 
 const TAGS = [
   'A+ Setup', 'High Probability', 'Plan Respecté', 'Break-even',
   'FOMO', 'Revenge Trading', 'Overtrading', 'Early Entry',
   'Late Entry', 'Perfect Execution', 'News Event', 'Session Open',
+  'Session Close', 'Trend Trade', 'Counter-Trend', 'Scalp',
 ];
 
 const AddTrade: React.FC = () => {
@@ -71,6 +65,11 @@ const AddTrade: React.FC = () => {
   const [date, setDate] = useState<Date>(new Date());
   const [direction, setDirection] = useState<'buy' | 'sell'>('buy');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [assetSearch, setAssetSearch] = useState('');
+  const [customAsset, setCustomAsset] = useState('');
+  const [images, setImages] = useState<string[]>([]);
+  const [customTimeframe, setCustomTimeframe] = useState('');
+  
   const [formData, setFormData] = useState({
     asset: '',
     setup: '',
@@ -85,6 +84,23 @@ const AddTrade: React.FC = () => {
     notes: '',
   });
 
+  // Filter assets based on search
+  const filteredAssets = useMemo(() => {
+    if (!assetSearch) return ASSET_CATEGORIES;
+    const searchLower = assetSearch.toLowerCase();
+    const result: { [key: string]: string[] } = {};
+    
+    for (const [category, assets] of Object.entries(ASSET_CATEGORIES)) {
+      const filtered = assets.filter(asset => 
+        asset.toLowerCase().includes(searchLower)
+      );
+      if (filtered.length > 0) {
+        result[category] = filtered;
+      }
+    }
+    return result;
+  }, [assetSearch]);
+
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
@@ -93,6 +109,28 @@ const AddTrade: React.FC = () => {
     setSelectedTags(prev =>
       prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]
     );
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+
+    if (images.length + files.length > 4) {
+      toast.error('Maximum 4 images autorisées');
+      return;
+    }
+
+    Array.from(files).forEach(file => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        setImages(prev => [...prev, reader.result as string]);
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const removeImage = (index: number) => {
+    setImages(prev => prev.filter((_, i) => i !== index));
   };
 
   const calculateQualityScore = () => {
@@ -109,6 +147,20 @@ const AddTrade: React.FC = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const qualityScore = calculateQualityScore();
+    const finalAsset = customAsset || formData.asset;
+    const finalTimeframe = customTimeframe || formData.timeframe;
+    
+    console.log({
+      ...formData,
+      asset: finalAsset,
+      timeframe: finalTimeframe,
+      date,
+      direction,
+      tags: selectedTags,
+      images,
+      qualityScore,
+    });
+    
     toast.success(`Trade enregistré! Score de qualité: ${qualityScore}/100`);
   };
 
@@ -194,22 +246,69 @@ const AddTrade: React.FC = () => {
               </div>
             </div>
 
-            {/* Asset */}
+            {/* Time */}
+            <div className="space-y-2">
+              <Label>Heure</Label>
+              <Input type="time" defaultValue={format(new Date(), 'HH:mm')} />
+            </div>
+          </div>
+        </div>
+
+        {/* Asset Selection with Search */}
+        <div className="glass-card p-6 space-y-4 animate-fade-in" style={{ animationDelay: '50ms' }}>
+          <h3 className="font-display font-semibold text-foreground">Sélection de l'Actif</h3>
+          
+          <div className="space-y-4">
+            {/* Search Bar */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Rechercher un actif..."
+                value={assetSearch}
+                onChange={(e) => setAssetSearch(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+
+            {/* Asset Select */}
             <div className="space-y-2">
               <Label>{t('asset')}</Label>
               <Select
                 value={formData.asset}
-                onValueChange={(v) => handleInputChange('asset', v)}
+                onValueChange={(v) => {
+                  handleInputChange('asset', v);
+                  setCustomAsset('');
+                }}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Sélectionner un actif" />
                 </SelectTrigger>
-                <SelectContent className="bg-popover border-border max-h-60">
-                  {ASSETS.map(asset => (
-                    <SelectItem key={asset} value={asset}>{asset}</SelectItem>
+                <SelectContent className="bg-popover border-border max-h-80">
+                  {Object.entries(filteredAssets).map(([category, assets]) => (
+                    <div key={category}>
+                      <div className="px-2 py-1.5 text-xs font-semibold text-primary bg-primary/10">
+                        {category}
+                      </div>
+                      {assets.map(asset => (
+                        <SelectItem key={asset} value={asset}>{asset}</SelectItem>
+                      ))}
+                    </div>
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+
+            {/* Custom Asset Input */}
+            <div className="space-y-2">
+              <Label>Ou saisir un actif personnalisé</Label>
+              <Input
+                placeholder="Ex: CUSTOM/USD"
+                value={customAsset}
+                onChange={(e) => {
+                  setCustomAsset(e.target.value);
+                  if (e.target.value) handleInputChange('asset', '');
+                }}
+              />
             </div>
           </div>
         </div>
@@ -237,6 +336,7 @@ const AddTrade: React.FC = () => {
                 placeholder="1.0800"
                 value={formData.stopLoss}
                 onChange={(e) => handleInputChange('stopLoss', e.target.value)}
+                className="border-loss/30 focus:border-loss"
               />
             </div>
             <div className="space-y-2">
@@ -247,6 +347,7 @@ const AddTrade: React.FC = () => {
                 placeholder="1.0950"
                 value={formData.takeProfit}
                 onChange={(e) => handleInputChange('takeProfit', e.target.value)}
+                className="border-profit/30 focus:border-profit"
               />
             </div>
             <div className="space-y-2">
@@ -295,7 +396,7 @@ const AddTrade: React.FC = () => {
                 <SelectTrigger>
                   <SelectValue placeholder="Sélectionner" />
                 </SelectTrigger>
-                <SelectContent className="bg-popover border-border">
+                <SelectContent className="bg-popover border-border max-h-60">
                   {SETUPS.map(setup => (
                     <SelectItem key={setup} value={setup}>{setup}</SelectItem>
                   ))}
@@ -304,19 +405,33 @@ const AddTrade: React.FC = () => {
             </div>
             <div className="space-y-2">
               <Label>{t('timeframe')}</Label>
-              <Select
-                value={formData.timeframe}
-                onValueChange={(v) => handleInputChange('timeframe', v)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Sélectionner" />
-                </SelectTrigger>
-                <SelectContent className="bg-popover border-border">
-                  {TIMEFRAMES.map(tf => (
-                    <SelectItem key={tf} value={tf}>{tf}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex gap-2">
+                <Select
+                  value={formData.timeframe}
+                  onValueChange={(v) => {
+                    handleInputChange('timeframe', v);
+                    setCustomTimeframe('');
+                  }}
+                >
+                  <SelectTrigger className="flex-1">
+                    <SelectValue placeholder="TF" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-popover border-border">
+                    {TIMEFRAMES.map(tf => (
+                      <SelectItem key={tf} value={tf}>{tf}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Input
+                  placeholder="Autre"
+                  className="w-20"
+                  value={customTimeframe}
+                  onChange={(e) => {
+                    setCustomTimeframe(e.target.value);
+                    if (e.target.value) handleInputChange('timeframe', '');
+                  }}
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -382,13 +497,41 @@ const AddTrade: React.FC = () => {
           </div>
 
           <div className="space-y-2">
-            <Label>{t('images')} (max 4)</Label>
-            <div className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-primary/50 transition-colors cursor-pointer">
-              <Upload className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
-              <p className="text-sm text-muted-foreground">
-                Glissez vos captures ou cliquez pour sélectionner
-              </p>
-            </div>
+            <Label>{t('images')} ({images.length}/4)</Label>
+            
+            {/* Image Preview Grid */}
+            {images.length > 0 && (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                {images.map((img, index) => (
+                  <div key={index} className="relative aspect-video rounded-lg overflow-hidden border border-border">
+                    <img src={img} alt={`Capture ${index + 1}`} className="w-full h-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => removeImage(index)}
+                      className="absolute top-2 right-2 p-1 rounded-full bg-loss/80 text-loss-foreground hover:bg-loss transition-colors"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {images.length < 4 && (
+              <label className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-primary/50 transition-colors cursor-pointer block">
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handleImageUpload}
+                  className="hidden"
+                />
+                <ImageIcon className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+                <p className="text-sm text-muted-foreground">
+                  Cliquez ou glissez vos captures d'écran (max 4)
+                </p>
+              </label>
+            )}
           </div>
         </div>
 
