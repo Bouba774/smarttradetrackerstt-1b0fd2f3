@@ -24,6 +24,8 @@ import {
   BookOpen,
   Calculator,
   Trophy,
+  User,
+  Settings,
   X,
 } from 'lucide-react';
 
@@ -43,6 +45,8 @@ const AppSidebar: React.FC = () => {
     { path: '/journal', icon: BookOpen, label: t('journal') },
     { path: '/calculator', icon: Calculator, label: t('calculator') },
     { path: '/challenges', icon: Trophy, label: t('challenges') },
+    { path: '/profile', icon: User, label: t('profile') },
+    { path: '/settings', icon: Settings, label: t('settings') },
   ];
 
   const handleNavClick = () => {
