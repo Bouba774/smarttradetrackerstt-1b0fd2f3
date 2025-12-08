@@ -11,6 +11,7 @@ import {
   Trash2,
   Calendar,
   Clock,
+  Download,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -20,40 +21,15 @@ interface Recording {
   date: string;
   duration: number;
   url: string;
-  thumbnail?: string;
+  blob?: Blob;
 }
 
-// Mock recordings - to be replaced with real data
-const MOCK_RECORDINGS: Recording[] = [
-  {
-    id: '1',
-    type: 'video',
-    date: '2024-12-08',
-    duration: 45,
-    url: '',
-    thumbnail: '',
-  },
-  {
-    id: '2',
-    type: 'audio',
-    date: '2024-12-07',
-    duration: 30,
-    url: '',
-  },
-  {
-    id: '3',
-    type: 'video',
-    date: '2024-12-06',
-    duration: 58,
-    url: '',
-    thumbnail: '',
-  },
-];
+const STORAGE_KEY = 'smart-trade-tracker-recordings';
 
 const VideoJournal: React.FC = () => {
   const { language } = useLanguage();
   
-  const [recordings, setRecordings] = useState<Recording[]>(MOCK_RECORDINGS);
+  const [recordings, setRecordings] = useState<Recording[]>([]);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingType, setRecordingType] = useState<'video' | 'audio' | null>(null);
   const [recordingTime, setRecordingTime] = useState(0);
@@ -62,11 +38,28 @@ const VideoJournal: React.FC = () => {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const videoPreviewRef = useRef<HTMLVideoElement>(null);
+  const playbackVideoRef = useRef<HTMLVideoElement>(null);
+  const playbackAudioRef = useRef<HTMLAudioElement>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const chunksRef = useRef<Blob[]>([]);
 
   const MAX_DURATION = 60; // 60 seconds max
 
+  // Load recordings from localStorage on mount
+  useEffect(() => {
+    const savedRecordings = localStorage.getItem(STORAGE_KEY);
+    if (savedRecordings) {
+      try {
+        const parsed = JSON.parse(savedRecordings);
+        // Note: blob URLs won't persist, but the metadata will
+        setRecordings(parsed.map((r: Recording) => ({ ...r, url: '' })));
+      } catch (e) {
+        console.error('Error loading recordings:', e);
+      }
+    }
+  }, []);
+
+  // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (timerRef.current) {
@@ -75,13 +68,29 @@ const VideoJournal: React.FC = () => {
       if (streamRef.current) {
         streamRef.current.getTracks().forEach(track => track.stop());
       }
+      // Revoke all blob URLs
+      recordings.forEach(r => {
+        if (r.url) URL.revokeObjectURL(r.url);
+      });
     };
-  }, []);
+  }, [recordings]);
+
+  const saveRecordingsMetadata = (newRecordings: Recording[]) => {
+    // Save only metadata, not blob URLs
+    const metadata = newRecordings.map(r => ({
+      id: r.id,
+      type: r.type,
+      date: r.date,
+      duration: r.duration,
+      url: '',
+    }));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(metadata));
+  };
 
   const startRecording = async (type: 'video' | 'audio') => {
     try {
       const constraints = type === 'video'
-        ? { video: true, audio: true }
+        ? { video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } }, audio: true }
         : { audio: true };
 
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
@@ -92,7 +101,11 @@ const VideoJournal: React.FC = () => {
         videoPreviewRef.current.play();
       }
 
-      const mediaRecorder = new MediaRecorder(stream);
+      const mimeType = type === 'video' 
+        ? (MediaRecorder.isTypeSupported('video/webm;codecs=vp9') ? 'video/webm;codecs=vp9' : 'video/webm')
+        : (MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4');
+
+      const mediaRecorder = new MediaRecorder(stream, { mimeType });
       mediaRecorderRef.current = mediaRecorder;
       chunksRef.current = [];
 
@@ -114,9 +127,15 @@ const VideoJournal: React.FC = () => {
           date: new Date().toISOString().split('T')[0],
           duration: recordingTime,
           url,
+          blob,
         };
 
-        setRecordings(prev => [newRecording, ...prev]);
+        setRecordings(prev => {
+          const updated = [newRecording, ...prev];
+          saveRecordingsMetadata(updated);
+          return updated;
+        });
+        
         toast.success(
           language === 'fr'
             ? 'Enregistrement sauvegardé!'
@@ -124,7 +143,7 @@ const VideoJournal: React.FC = () => {
         );
       };
 
-      mediaRecorder.start();
+      mediaRecorder.start(1000); // Collect data every second
       setIsRecording(true);
       setRecordingType(type);
       setRecordingTime(0);
@@ -143,8 +162,8 @@ const VideoJournal: React.FC = () => {
       console.error('Error starting recording:', error);
       toast.error(
         language === 'fr'
-          ? 'Erreur d\'accès à la caméra/micro'
-          : 'Error accessing camera/microphone'
+          ? 'Erreur d\'accès à la caméra/micro. Veuillez autoriser l\'accès.'
+          : 'Error accessing camera/microphone. Please allow access.'
       );
     }
   };
@@ -171,7 +190,21 @@ const VideoJournal: React.FC = () => {
   };
 
   const deleteRecording = (id: string) => {
-    setRecordings(prev => prev.filter(r => r.id !== id));
+    const recording = recordings.find(r => r.id === id);
+    if (recording?.url) {
+      URL.revokeObjectURL(recording.url);
+    }
+    
+    setRecordings(prev => {
+      const updated = prev.filter(r => r.id !== id);
+      saveRecordingsMetadata(updated);
+      return updated;
+    });
+    
+    if (playingId === id) {
+      setPlayingId(null);
+    }
+    
     toast.success(
       language === 'fr'
         ? 'Enregistrement supprimé'
@@ -179,8 +212,46 @@ const VideoJournal: React.FC = () => {
     );
   };
 
-  const togglePlayback = (id: string) => {
-    setPlayingId(prev => prev === id ? null : id);
+  const togglePlayback = (recording: Recording) => {
+    if (playingId === recording.id) {
+      // Stop playback
+      if (playbackVideoRef.current) {
+        playbackVideoRef.current.pause();
+      }
+      if (playbackAudioRef.current) {
+        playbackAudioRef.current.pause();
+      }
+      setPlayingId(null);
+    } else {
+      // Start playback
+      if (!recording.url) {
+        toast.error(
+          language === 'fr'
+            ? 'Fichier non disponible (session expirée)'
+            : 'File not available (session expired)'
+        );
+        return;
+      }
+      setPlayingId(recording.id);
+    }
+  };
+
+  const downloadRecording = (recording: Recording) => {
+    if (!recording.url) {
+      toast.error(
+        language === 'fr'
+          ? 'Fichier non disponible'
+          : 'File not available'
+      );
+      return;
+    }
+    
+    const a = document.createElement('a');
+    a.href = recording.url;
+    a.download = `${recording.type}-${recording.date}-${recording.id}.webm`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
   };
 
   const formatDuration = (seconds: number) => {
@@ -195,6 +266,8 @@ const VideoJournal: React.FC = () => {
       { weekday: 'short', day: 'numeric', month: 'short' }
     );
   };
+
+  const currentPlayingRecording = recordings.find(r => r.id === playingId);
 
   return (
     <div className="py-4 max-w-4xl mx-auto space-y-6">
@@ -221,13 +294,19 @@ const VideoJournal: React.FC = () => {
 
         {/* Video Preview */}
         {recordingType === 'video' && (
-          <div className="mb-6 rounded-lg overflow-hidden bg-black aspect-video max-w-md mx-auto">
+          <div className="mb-6 rounded-lg overflow-hidden bg-black aspect-video max-w-md mx-auto relative">
             <video
               ref={videoPreviewRef}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover mirror"
               muted
               playsInline
+              style={{ transform: 'scaleX(-1)' }}
             />
+            {/* Recording indicator */}
+            <div className="absolute top-4 left-4 flex items-center gap-2 px-3 py-1 rounded-full bg-loss/80">
+              <div className="w-2 h-2 rounded-full bg-white animate-pulse" />
+              <span className="text-xs text-white font-medium">REC</span>
+            </div>
           </div>
         )}
 
@@ -309,6 +388,48 @@ const VideoJournal: React.FC = () => {
         )}
       </div>
 
+      {/* Playback Modal */}
+      {currentPlayingRecording && (
+        <div className="glass-card p-6 animate-fade-in">
+          <h3 className="font-display font-semibold text-foreground mb-4">
+            {language === 'fr' ? 'Lecture en cours' : 'Now Playing'}
+          </h3>
+          
+          {currentPlayingRecording.type === 'video' ? (
+            <div className="rounded-lg overflow-hidden bg-black aspect-video max-w-lg mx-auto">
+              <video
+                ref={playbackVideoRef}
+                src={currentPlayingRecording.url}
+                className="w-full h-full object-contain"
+                controls
+                autoPlay
+                onEnded={() => setPlayingId(null)}
+              />
+            </div>
+          ) : (
+            <div className="max-w-lg mx-auto">
+              <audio
+                ref={playbackAudioRef}
+                src={currentPlayingRecording.url}
+                className="w-full"
+                controls
+                autoPlay
+                onEnded={() => setPlayingId(null)}
+              />
+            </div>
+          )}
+          
+          <div className="flex justify-center mt-4">
+            <Button
+              variant="outline"
+              onClick={() => setPlayingId(null)}
+            >
+              {language === 'fr' ? 'Fermer' : 'Close'}
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Recordings List */}
       <div className="glass-card p-6 animate-fade-in" style={{ animationDelay: '100ms' }}>
         <h3 className="font-display font-semibold text-foreground mb-6">
@@ -322,6 +443,11 @@ const VideoJournal: React.FC = () => {
           <div className="text-center py-12 text-muted-foreground">
             <Video className="w-12 h-12 mx-auto mb-4 opacity-50" />
             <p>{language === 'fr' ? 'Aucun enregistrement' : 'No recordings yet'}</p>
+            <p className="text-sm mt-2">
+              {language === 'fr' 
+                ? 'Commencez à enregistrer vos réflexions de trading'
+                : 'Start recording your trading reflections'}
+            </p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -330,12 +456,13 @@ const VideoJournal: React.FC = () => {
                 key={recording.id}
                 className={cn(
                   "flex items-center gap-4 p-4 rounded-lg bg-secondary/30 hover:bg-secondary/50 transition-colors animate-fade-in",
+                  playingId === recording.id && "ring-2 ring-primary"
                 )}
                 style={{ animationDelay: `${index * 50}ms` }}
               >
                 {/* Icon */}
                 <div className={cn(
-                  "w-12 h-12 rounded-lg flex items-center justify-center",
+                  "w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0",
                   recording.type === 'video' ? "bg-primary/20" : "bg-profit/20"
                 )}>
                   {recording.type === 'video' ? (
@@ -346,8 +473,8 @@ const VideoJournal: React.FC = () => {
                 </div>
 
                 {/* Info */}
-                <div className="flex-1">
-                  <p className="font-medium text-foreground">
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-foreground truncate">
                     {recording.type === 'video'
                       ? (language === 'fr' ? 'Vidéo' : 'Video')
                       : 'Audio'}
@@ -365,18 +492,28 @@ const VideoJournal: React.FC = () => {
                 </div>
 
                 {/* Actions */}
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1">
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => togglePlayback(recording.id)}
+                    onClick={() => togglePlayback(recording)}
                     className="hover:bg-primary/20"
+                    disabled={!recording.url}
                   >
                     {playingId === recording.id ? (
                       <Pause className="w-5 h-5 text-primary" />
                     ) : (
                       <Play className="w-5 h-5 text-primary" />
                     )}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => downloadRecording(recording)}
+                    className="hover:bg-profit/20 text-muted-foreground hover:text-profit"
+                    disabled={!recording.url}
+                  >
+                    <Download className="w-5 h-5" />
                   </Button>
                   <Button
                     variant="ghost"
@@ -403,6 +540,7 @@ const VideoJournal: React.FC = () => {
           <p>• {language === 'fr' ? 'Mentionnez les leçons apprises du jour' : 'Mention the lessons learned today'}</p>
           <p>• {language === 'fr' ? 'Notez les erreurs à éviter pour demain' : 'Note the mistakes to avoid for tomorrow'}</p>
           <p>• {language === 'fr' ? 'Durée maximale: 60 secondes par enregistrement' : 'Maximum duration: 60 seconds per recording'}</p>
+          <p>• {language === 'fr' ? 'Les enregistrements sont stockés localement dans cette session' : 'Recordings are stored locally in this session'}</p>
         </div>
       </div>
     </div>
