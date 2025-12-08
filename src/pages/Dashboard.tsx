@@ -140,17 +140,33 @@ const Dashboard: React.FC = () => {
     tradeQuality: 71,
   };
 
+  // Mock user profile - will be replaced with real data
+  const userProfile = {
+    nickname: 'Alex',
+    level: 'Master Trader',
+    levelNumber: 6,
+  };
+
   return (
     <div className="space-y-6 py-4">
-      {/* Page Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="font-display text-2xl md:text-3xl font-bold text-foreground">
-            {t('dashboard')}
-          </h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            Vue d'ensemble de vos performances de trading
-          </p>
+      {/* Welcome Message */}
+      <div className="glass-card p-6 animate-fade-in bg-gradient-to-r from-primary/10 to-profit/10 border-primary/30">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="font-display text-2xl md:text-3xl font-bold text-foreground">
+              {t('welcome')} {userProfile.nickname} 👋
+            </h1>
+            <p className="text-primary font-display font-semibold mt-1 neon-text">
+              {userProfile.level} (Niveau {userProfile.levelNumber})
+            </p>
+          </div>
+          <div className="hidden md:flex items-center gap-3 px-4 py-2 rounded-lg bg-primary/20 border border-primary/30">
+            <span className="text-2xl">🏆</span>
+            <div>
+              <p className="text-xs text-muted-foreground">Niveau actuel</p>
+              <p className="font-display font-bold text-primary">{userProfile.levelNumber}</p>
+            </div>
+          </div>
         </div>
       </div>
 

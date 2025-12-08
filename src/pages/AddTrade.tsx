@@ -31,7 +31,7 @@ import {
 import { toast } from 'sonner';
 import { ASSET_CATEGORIES, ALL_ASSETS } from '@/data/assets';
 
-const SETUPS = [
+const DEFAULT_SETUPS = [
   'Breakout', 'Pullback', 'Reversal', 'Range', 'Trend Following',
   'Support/Resistance', 'Fibonacci', 'Moving Average', 'RSI Divergence',
   'MACD Cross', 'Supply & Demand', 'Order Block', 'Fair Value Gap',
@@ -69,6 +69,7 @@ const AddTrade: React.FC = () => {
   const [customAsset, setCustomAsset] = useState('');
   const [images, setImages] = useState<string[]>([]);
   const [customTimeframe, setCustomTimeframe] = useState('');
+  const [customSetup, setCustomSetup] = useState('');
   
   const [formData, setFormData] = useState({
     asset: '',
@@ -149,11 +150,13 @@ const AddTrade: React.FC = () => {
     const qualityScore = calculateQualityScore();
     const finalAsset = customAsset || formData.asset;
     const finalTimeframe = customTimeframe || formData.timeframe;
+    const finalSetup = customSetup || formData.setup;
     
     console.log({
       ...formData,
       asset: finalAsset,
       timeframe: finalTimeframe,
+      setup: finalSetup,
       date,
       direction,
       tags: selectedTags,
@@ -389,19 +392,33 @@ const AddTrade: React.FC = () => {
             </div>
             <div className="space-y-2">
               <Label>{t('setup')}</Label>
-              <Select
-                value={formData.setup}
-                onValueChange={(v) => handleInputChange('setup', v)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Sélectionner" />
-                </SelectTrigger>
-                <SelectContent className="bg-popover border-border max-h-60">
-                  {SETUPS.map(setup => (
-                    <SelectItem key={setup} value={setup}>{setup}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex gap-2">
+                <Select
+                  value={formData.setup}
+                  onValueChange={(v) => {
+                    handleInputChange('setup', v);
+                    setCustomSetup('');
+                  }}
+                >
+                  <SelectTrigger className="flex-1">
+                    <SelectValue placeholder="Sélectionner" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-popover border-border max-h-60">
+                    {DEFAULT_SETUPS.map(setup => (
+                      <SelectItem key={setup} value={setup}>{setup}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Input
+                  placeholder="Personnalisé"
+                  className="w-28"
+                  value={customSetup}
+                  onChange={(e) => {
+                    setCustomSetup(e.target.value);
+                    if (e.target.value) handleInputChange('setup', '');
+                  }}
+                />
+              </div>
             </div>
             <div className="space-y-2">
               <Label>{t('timeframe')}</Label>

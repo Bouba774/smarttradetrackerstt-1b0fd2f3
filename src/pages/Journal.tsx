@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
@@ -18,10 +19,21 @@ import {
   Play,
   Pause,
   Save,
+  Plus,
+  Trash2,
+  Edit2,
+  Check,
+  X,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
-const DEFAULT_CHECKLIST = [
+interface ChecklistItem {
+  id: string;
+  label: string;
+  checked: boolean;
+}
+
+const DEFAULT_CHECKLIST: ChecklistItem[] = [
   { id: '1', label: 'Analyse technique complète', checked: false },
   { id: '2', label: 'Vérification du calendrier économique', checked: false },
   { id: '3', label: 'Plan de trading défini', checked: false },
@@ -33,24 +45,85 @@ const DEFAULT_CHECKLIST = [
 const Journal: React.FC = () => {
   const { t } = useLanguage();
 
-  const [checklist, setChecklist] = useState(DEFAULT_CHECKLIST);
+  const [checklist, setChecklist] = useState<ChecklistItem[]>(() => {
+    const saved = localStorage.getItem('premarket-checklist');
+    return saved ? JSON.parse(saved) : DEFAULT_CHECKLIST;
+  });
   const [objectives, setObjectives] = useState('');
   const [lessons, setLessons] = useState('');
   const [mistakes, setMistakes] = useState('');
   const [strengths, setStrengths] = useState('');
   const [rating, setRating] = useState(0);
   const [isRecording, setIsRecording] = useState(false);
+  
+  // Editing states
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingLabel, setEditingLabel] = useState('');
+  const [newItemLabel, setNewItemLabel] = useState('');
+  const [isAddingNew, setIsAddingNew] = useState(false);
+
+  const saveChecklist = (newChecklist: ChecklistItem[]) => {
+    setChecklist(newChecklist);
+    localStorage.setItem('premarket-checklist', JSON.stringify(newChecklist));
+  };
 
   const toggleChecklistItem = (id: string) => {
-    setChecklist(prev =>
-      prev.map(item =>
-        item.id === id ? { ...item, checked: !item.checked } : item
-      )
+    const updated = checklist.map(item =>
+      item.id === id ? { ...item, checked: !item.checked } : item
     );
+    saveChecklist(updated);
+  };
+
+  const startEditing = (item: ChecklistItem) => {
+    setEditingId(item.id);
+    setEditingLabel(item.label);
+  };
+
+  const saveEdit = () => {
+    if (!editingLabel.trim()) {
+      toast.error('Le libellé ne peut pas être vide');
+      return;
+    }
+    const updated = checklist.map(item =>
+      item.id === editingId ? { ...item, label: editingLabel.trim() } : item
+    );
+    saveChecklist(updated);
+    setEditingId(null);
+    setEditingLabel('');
+    toast.success('Élément modifié');
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditingLabel('');
+  };
+
+  const deleteItem = (id: string) => {
+    const updated = checklist.filter(item => item.id !== id);
+    saveChecklist(updated);
+    toast.success('Élément supprimé');
+  };
+
+  const addNewItem = () => {
+    if (!newItemLabel.trim()) {
+      toast.error('Le libellé ne peut pas être vide');
+      return;
+    }
+    const newItem: ChecklistItem = {
+      id: Date.now().toString(),
+      label: newItemLabel.trim(),
+      checked: false,
+    };
+    saveChecklist([...checklist, newItem]);
+    setNewItemLabel('');
+    setIsAddingNew(false);
+    toast.success('Élément ajouté');
   };
 
   const completedItems = checklist.filter(item => item.checked).length;
-  const completionPercentage = Math.round((completedItems / checklist.length) * 100);
+  const completionPercentage = checklist.length > 0 
+    ? Math.round((completedItems / checklist.length) * 100) 
+    : 0;
 
   const handleSave = () => {
     toast.success('Journal enregistré avec succès!');
@@ -101,27 +174,107 @@ const Journal: React.FC = () => {
               <div
                 key={item.id}
                 className={cn(
-                  "flex items-center gap-3 p-3 rounded-lg transition-all cursor-pointer",
-                  item.checked ? "bg-profit/10 border border-profit/30" : "bg-secondary/30 hover:bg-secondary/50"
+                  "flex items-center gap-3 p-3 rounded-lg transition-all",
+                  item.checked ? "bg-profit/10 border border-profit/30" : "bg-secondary/30"
                 )}
-                onClick={() => toggleChecklistItem(item.id)}
               >
-                <Checkbox
-                  checked={item.checked}
-                  onCheckedChange={() => toggleChecklistItem(item.id)}
-                  className={cn(
-                    "border-2",
-                    item.checked ? "border-profit bg-profit data-[state=checked]:bg-profit" : "border-muted-foreground"
-                  )}
-                />
-                <span className={cn(
-                  "text-sm",
-                  item.checked ? "text-profit line-through" : "text-foreground"
-                )}>
-                  {item.label}
-                </span>
+                {editingId === item.id ? (
+                  <div className="flex-1 flex items-center gap-2">
+                    <Input
+                      value={editingLabel}
+                      onChange={(e) => setEditingLabel(e.target.value)}
+                      className="flex-1 h-8"
+                      autoFocus
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') saveEdit();
+                        if (e.key === 'Escape') cancelEdit();
+                      }}
+                    />
+                    <Button size="icon" variant="ghost" className="h-8 w-8" onClick={saveEdit}>
+                      <Check className="w-4 h-4 text-profit" />
+                    </Button>
+                    <Button size="icon" variant="ghost" className="h-8 w-8" onClick={cancelEdit}>
+                      <X className="w-4 h-4 text-loss" />
+                    </Button>
+                  </div>
+                ) : (
+                  <>
+                    <Checkbox
+                      checked={item.checked}
+                      onCheckedChange={() => toggleChecklistItem(item.id)}
+                      className={cn(
+                        "border-2",
+                        item.checked ? "border-profit bg-profit data-[state=checked]:bg-profit" : "border-muted-foreground"
+                      )}
+                    />
+                    <span
+                      className={cn(
+                        "text-sm flex-1 cursor-pointer",
+                        item.checked ? "text-profit line-through" : "text-foreground"
+                      )}
+                      onClick={() => toggleChecklistItem(item.id)}
+                    >
+                      {item.label}
+                    </span>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-7 w-7 opacity-50 hover:opacity-100"
+                      onClick={() => startEditing(item)}
+                    >
+                      <Edit2 className="w-3 h-3" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-7 w-7 opacity-50 hover:opacity-100 text-loss"
+                      onClick={() => deleteItem(item.id)}
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </Button>
+                  </>
+                )}
               </div>
             ))}
+            
+            {/* Add new item */}
+            {isAddingNew ? (
+              <div className="flex items-center gap-2 p-3 rounded-lg bg-secondary/30">
+                <Input
+                  value={newItemLabel}
+                  onChange={(e) => setNewItemLabel(e.target.value)}
+                  placeholder="Nouvel élément..."
+                  className="flex-1 h-8"
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') addNewItem();
+                    if (e.key === 'Escape') {
+                      setIsAddingNew(false);
+                      setNewItemLabel('');
+                    }
+                  }}
+                />
+                <Button size="icon" variant="ghost" className="h-8 w-8" onClick={addNewItem}>
+                  <Check className="w-4 h-4 text-profit" />
+                </Button>
+                <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => {
+                  setIsAddingNew(false);
+                  setNewItemLabel('');
+                }}>
+                  <X className="w-4 h-4 text-loss" />
+                </Button>
+              </div>
+            ) : (
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full gap-2 mt-2"
+                onClick={() => setIsAddingNew(true)}
+              >
+                <Plus className="w-4 h-4" />
+                Ajouter un élément
+              </Button>
+            )}
           </div>
         </div>
 

@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import Layout from "@/components/layout/Layout";
+import AIChatBot from "@/components/AIChatBot";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import AddTrade from "./pages/AddTrade";
@@ -48,6 +49,7 @@ const App = () => (
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </Layout>
+            <AIChatBot />
           </BrowserRouter>
         </TooltipProvider>
       </LanguageProvider>

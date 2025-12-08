@@ -35,16 +35,16 @@ const AppSidebar: React.FC = () => {
   const collapsed = state === 'collapsed';
 
   const navItems = [
-    { path: '/dashboard', icon: LayoutDashboard, label: t('dashboard'), labelFr: 'Tableau de Bord' },
-    { path: '/add-trade', icon: PlusCircle, label: t('addTrade'), labelFr: 'Ajout de Trade' },
-    { path: '/history', icon: History, label: t('history'), labelFr: 'Historique Complet' },
-    { path: '/reports', icon: FileText, label: t('reports'), labelFr: 'Rapports' },
-    { path: '/psychology', icon: Brain, label: t('psychology'), labelFr: 'Analyse Psychologique' },
-    { path: '/video-journal', icon: Video, label: t('videoJournal'), labelFr: 'Journal Vidéo/Audio' },
-    { path: '/journal', icon: BookOpen, label: t('journal'), labelFr: 'Leçons & Routine' },
-    { path: '/calculator', icon: Calculator, label: t('calculator'), labelFr: 'Calculatrice de Lot' },
-    { path: '/challenges', icon: Trophy, label: t('challenges'), labelFr: 'Défis' },
-    { path: '/profile', icon: User, label: t('profile'), labelFr: 'Profil & Paramètres' },
+    { path: '/dashboard', icon: LayoutDashboard, label: t('dashboard') },
+    { path: '/add-trade', icon: PlusCircle, label: t('addTrade') },
+    { path: '/history', icon: History, label: t('history') },
+    { path: '/reports', icon: FileText, label: t('reports') },
+    { path: '/psychology', icon: Brain, label: t('psychology') },
+    { path: '/video-journal', icon: Video, label: t('videoJournal') },
+    { path: '/journal', icon: BookOpen, label: t('journal') },
+    { path: '/calculator', icon: Calculator, label: t('calculator') },
+    { path: '/challenges', icon: Trophy, label: t('challenges') },
+    { path: '/profile', icon: User, label: t('profile') },
   ];
 
   return (

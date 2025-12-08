@@ -11,7 +11,7 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const location = useLocation();
-  const isDashboard = location.pathname === '/dashboard' || location.pathname === '/';
+  const isDashboard = location.pathname === '/dashboard';
 
   return (
     <SidebarProvider defaultOpen={true}>

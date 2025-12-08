@@ -13,13 +13,16 @@ const translations: Translations = {
   // Navigation
   home: { fr: 'Accueil', en: 'Home' },
   dashboard: { fr: 'Tableau de Bord', en: 'Dashboard' },
-  addTrade: { fr: 'Ajouter Trade', en: 'Add Trade' },
-  history: { fr: 'Historique', en: 'History' },
-  calculator: { fr: 'Calculatrice', en: 'Calculator' },
-  journal: { fr: 'Journal', en: 'Journal' },
+  addTrade: { fr: 'Ajout de Trade', en: 'Add Trade' },
+  history: { fr: 'Historique Complet', en: 'Full History' },
+  calculator: { fr: 'Calculatrice de Lot', en: 'Lot Calculator' },
+  journal: { fr: 'Leçons & Routine', en: 'Lessons & Routine' },
   challenges: { fr: 'Défis', en: 'Challenges' },
   settings: { fr: 'Paramètres', en: 'Settings' },
-  profile: { fr: 'Profil', en: 'Profile' },
+  profile: { fr: 'Profil & Paramètres', en: 'Profile & Settings' },
+  reports: { fr: 'Rapports', en: 'Reports' },
+  psychology: { fr: 'Analyse Psychologique', en: 'Psychological Analysis' },
+  videoJournal: { fr: 'Journal Vidéo/Audio', en: 'Video/Audio Journal' },
   
   // Home
   welcome: { fr: 'Bienvenue', en: 'Welcome' },
