@@ -2,10 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { fr, enUS } from 'date-fns/locale';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useSidebar } from '@/components/ui/sidebar';
+import { Menu } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 const Header: React.FC = () => {
   const [currentTime, setCurrentTime] = useState(new Date());
   const { language } = useLanguage();
+  const { toggleSidebar, state } = useSidebar();
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -22,21 +26,37 @@ const Header: React.FC = () => {
   const formattedTime = format(currentTime, 'HH:mm:ss');
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 glass-card border-b border-primary/20 px-4 py-3">
-      <div className="container mx-auto flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-gradient-primary flex items-center justify-center shadow-neon">
-            <span className="font-display font-bold text-primary-foreground">STT</span>
+    <header className="fixed top-0 left-0 right-0 z-50 glass-card border-b border-primary/20 px-2 sm:px-4 py-2 sm:py-3">
+      <div className="w-full flex items-center justify-between gap-2">
+        {/* Left side - Hamburger menu + Logo */}
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+          {/* Hamburger Menu Button */}
+          <button
+            onClick={toggleSidebar}
+            className={cn(
+              "w-10 h-10 rounded-lg flex items-center justify-center transition-all duration-300 touch-target",
+              "bg-secondary/50 hover:bg-primary/20 active:bg-primary/30",
+              "border border-primary/20 hover:border-primary/40"
+            )}
+            aria-label="Toggle menu"
+          >
+            <Menu className="w-5 h-5 text-primary" />
+          </button>
+          
+          {/* Logo */}
+          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-gradient-primary flex items-center justify-center shadow-neon shrink-0">
+            <span className="font-display font-bold text-primary-foreground text-xs sm:text-sm">STT</span>
           </div>
-          <h1 className="font-display text-lg font-semibold text-foreground hidden sm:block">
+          <h1 className="font-display text-sm sm:text-lg font-semibold text-foreground hidden sm:block truncate">
             Smart Trade Tracker
           </h1>
         </div>
         
-        <div className="flex items-center gap-2 text-sm">
-          <div className="glass-card px-4 py-2 flex items-center gap-3">
-            <span className="text-muted-foreground capitalize">{formattedDate}</span>
-            <span className="text-primary font-display font-semibold neon-text">
+        {/* Right side - Date & Time */}
+        <div className="flex items-center shrink-0">
+          <div className="glass-card px-2 sm:px-4 py-1.5 sm:py-2 flex items-center gap-1 sm:gap-3">
+            <span className="text-muted-foreground capitalize text-[10px] sm:text-sm hidden xs:inline">{formattedDate}</span>
+            <span className="text-primary font-display font-semibold neon-text text-xs sm:text-sm">
               {formattedTime}
             </span>
           </div>
