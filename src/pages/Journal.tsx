@@ -1,11 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useJournalEntries } from '@/hooks/useJournalEntries';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
+import { fr, enUS } from 'date-fns/locale';
 import {
   BookOpen,
   CheckCircle2,
@@ -20,6 +24,8 @@ import {
   Check,
   X,
   Loader2,
+  CalendarIcon,
+  Save,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -41,16 +47,17 @@ const DEFAULT_CHECKLIST: ChecklistItem[] = [
 const Journal: React.FC = () => {
   const { t, language } = useLanguage();
   const { user } = useAuth();
+  const { entries, isLoading, getEntryByDate, upsertEntry } = useJournalEntries();
+  const locale = language === 'fr' ? fr : enUS;
 
-  const storageKey = user ? `journal-${user.id}` : 'journal-guest';
-
-  const [checklist, setChecklist] = useState<ChecklistItem[]>([]);
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [checklist, setChecklist] = useState<ChecklistItem[]>(DEFAULT_CHECKLIST);
   const [objectives, setObjectives] = useState('');
   const [lessons, setLessons] = useState('');
   const [mistakes, setMistakes] = useState('');
   const [strengths, setStrengths] = useState('');
   const [rating, setRating] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   
   // Editing states
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -58,63 +65,55 @@ const Journal: React.FC = () => {
   const [newItemLabel, setNewItemLabel] = useState('');
   const [isAddingNew, setIsAddingNew] = useState(false);
 
-  // Load data from localStorage on mount
+  // Load data for selected date
   useEffect(() => {
+    const entry = getEntryByDate(selectedDate);
+    if (entry) {
+      setChecklist(entry.checklist.length > 0 ? entry.checklist : DEFAULT_CHECKLIST.map(i => ({ ...i, checked: false })));
+      setObjectives(entry.daily_objective || '');
+      setLessons(entry.lessons || '');
+      setMistakes('');
+      setStrengths('');
+      setRating(0);
+    } else {
+      // Reset to defaults for new date
+      setChecklist(DEFAULT_CHECKLIST.map(i => ({ ...i, checked: false })));
+      setObjectives('');
+      setLessons('');
+      setMistakes('');
+      setStrengths('');
+      setRating(0);
+    }
+  }, [selectedDate, entries]);
+
+  const handleSave = async () => {
     if (!user) {
-      setChecklist(DEFAULT_CHECKLIST.map(item => ({ ...item, checked: false })));
-      setIsLoading(false);
+      toast.error(language === 'fr' ? 'Vous devez être connecté' : 'You must be logged in');
       return;
     }
 
-    const savedData = localStorage.getItem(storageKey);
-    if (savedData) {
-      try {
-        const parsed = JSON.parse(savedData);
-        setChecklist(parsed.checklist || DEFAULT_CHECKLIST.map(item => ({ ...item, checked: false })));
-        setObjectives(parsed.objectives || '');
-        setLessons(parsed.lessons || '');
-        setMistakes(parsed.mistakes || '');
-        setStrengths(parsed.strengths || '');
-        setRating(parsed.rating || 0);
-      } catch (e) {
-        setChecklist(DEFAULT_CHECKLIST.map(item => ({ ...item, checked: false })));
-      }
-    } else {
-      setChecklist(DEFAULT_CHECKLIST.map(item => ({ ...item, checked: false })));
+    setIsSaving(true);
+    try {
+      await upsertEntry.mutateAsync({
+        entry_date: format(selectedDate, 'yyyy-MM-dd'),
+        checklist,
+        daily_objective: objectives || undefined,
+        lessons: lessons || undefined,
+        notes: JSON.stringify({ mistakes, strengths, rating }),
+      });
+      toast.success(language === 'fr' ? 'Journal enregistré!' : 'Journal saved!');
+    } catch (error) {
+      console.error('Save error:', error);
+      toast.error(language === 'fr' ? 'Erreur lors de l\'enregistrement' : 'Error saving');
+    } finally {
+      setIsSaving(false);
     }
-    setIsLoading(false);
-  }, [user, storageKey]);
-
-  const saveToStorage = (data: {
-    checklist: ChecklistItem[];
-    objectives: string;
-    lessons: string;
-    mistakes: string;
-    strengths: string;
-    rating: number;
-  }) => {
-    if (user) {
-      localStorage.setItem(storageKey, JSON.stringify(data));
-    }
-  };
-
-  const saveChecklist = (newChecklist: ChecklistItem[]) => {
-    setChecklist(newChecklist);
-    saveToStorage({
-      checklist: newChecklist,
-      objectives,
-      lessons,
-      mistakes,
-      strengths,
-      rating,
-    });
   };
 
   const toggleChecklistItem = (id: string) => {
-    const updated = checklist.map(item =>
+    setChecklist(prev => prev.map(item =>
       item.id === id ? { ...item, checked: !item.checked } : item
-    );
-    saveChecklist(updated);
+    ));
   };
 
   const startEditing = (item: ChecklistItem) => {
@@ -127,13 +126,11 @@ const Journal: React.FC = () => {
       toast.error(language === 'fr' ? 'Le libellé ne peut pas être vide' : 'Label cannot be empty');
       return;
     }
-    const updated = checklist.map(item =>
+    setChecklist(prev => prev.map(item =>
       item.id === editingId ? { ...item, label: editingLabel.trim() } : item
-    );
-    saveChecklist(updated);
+    ));
     setEditingId(null);
     setEditingLabel('');
-    toast.success(language === 'fr' ? 'Élément modifié' : 'Item updated');
   };
 
   const cancelEdit = () => {
@@ -142,9 +139,7 @@ const Journal: React.FC = () => {
   };
 
   const deleteItem = (id: string) => {
-    const updated = checklist.filter(item => item.id !== id);
-    saveChecklist(updated);
-    toast.success(language === 'fr' ? 'Élément supprimé' : 'Item deleted');
+    setChecklist(prev => prev.filter(item => item.id !== id));
   };
 
   const addNewItem = () => {
@@ -157,10 +152,9 @@ const Journal: React.FC = () => {
       label: newItemLabel.trim(),
       checked: false,
     };
-    saveChecklist([...checklist, newItem]);
+    setChecklist(prev => [...prev, newItem]);
     setNewItemLabel('');
     setIsAddingNew(false);
-    toast.success(language === 'fr' ? 'Élément ajouté' : 'Item added');
   };
 
   const completedItems = checklist.filter(item => item.checked).length;
@@ -168,17 +162,8 @@ const Journal: React.FC = () => {
     ? Math.round((completedItems / checklist.length) * 100) 
     : 0;
 
-  const handleSave = () => {
-    saveToStorage({
-      checklist,
-      objectives,
-      lessons,
-      mistakes,
-      strengths,
-      rating,
-    });
-    toast.success(language === 'fr' ? 'Journal enregistré avec succès!' : 'Journal saved successfully!');
-  };
+  // Get dates with entries for calendar highlighting
+  const datesWithEntries = entries.map(e => new Date(e.entry_date));
 
   if (isLoading) {
     return (
@@ -205,9 +190,43 @@ const Journal: React.FC = () => {
         </div>
       </div>
 
+      {/* Calendar Section */}
+      <div className="glass-card p-6 animate-fade-in">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center">
+            <CalendarIcon className="w-5 h-5 text-primary" />
+          </div>
+          <div>
+            <h3 className="font-display font-semibold text-foreground">
+              {language === 'fr' ? 'Sélectionner une date' : 'Select a date'}
+            </h3>
+            <p className="text-xs text-muted-foreground">
+              {format(selectedDate, 'EEEE d MMMM yyyy', { locale })}
+            </p>
+          </div>
+        </div>
+        
+        <Calendar
+          mode="single"
+          selected={selectedDate}
+          onSelect={(date) => date && setSelectedDate(date)}
+          locale={locale}
+          className="rounded-lg border border-border mx-auto pointer-events-auto"
+          modifiers={{
+            hasEntry: datesWithEntries,
+          }}
+          modifiersStyles={{
+            hasEntry: {
+              backgroundColor: 'hsl(var(--primary) / 0.2)',
+              fontWeight: 'bold',
+            },
+          }}
+        />
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Pre-Market Checklist */}
-        <div className="glass-card p-6 animate-fade-in">
+        <div className="glass-card p-6 animate-fade-in" style={{ animationDelay: '50ms' }}>
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center">
@@ -230,7 +249,7 @@ const Journal: React.FC = () => {
             </div>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-3 max-h-[300px] overflow-y-auto">
             {checklist.map(item => (
               <div
                 key={item.id}
@@ -354,16 +373,13 @@ const Journal: React.FC = () => {
               ? "Quels sont vos objectifs pour aujourd'hui?\n- Max 3 trades\n- Risque max 2%\n- Respecter le plan..."
               : "What are your goals for today?\n- Max 3 trades\n- Max 2% risk\n- Follow the plan..."}
             value={objectives}
-            onChange={(e) => {
-              setObjectives(e.target.value);
-              saveToStorage({ checklist, objectives: e.target.value, lessons, mistakes, strengths, rating });
-            }}
+            onChange={(e) => setObjectives(e.target.value)}
             className="min-h-[180px]"
           />
         </div>
 
         {/* Lessons Learned */}
-        <div className="glass-card p-6 animate-fade-in" style={{ animationDelay: '200ms' }}>
+        <div className="glass-card p-6 animate-fade-in" style={{ animationDelay: '150ms' }}>
           <div className="flex items-center gap-3 mb-4">
             <div className="w-10 h-10 rounded-lg bg-profit/20 flex items-center justify-center">
               <Lightbulb className="w-5 h-5 text-profit" />
@@ -377,16 +393,13 @@ const Journal: React.FC = () => {
               ? "Qu'avez-vous appris aujourd'hui?\n- La patience paie\n- Ne pas entrer trop tôt..."
               : "What did you learn today?\n- Patience pays off\n- Don't enter too early..."}
             value={lessons}
-            onChange={(e) => {
-              setLessons(e.target.value);
-              saveToStorage({ checklist, objectives, lessons: e.target.value, mistakes, strengths, rating });
-            }}
+            onChange={(e) => setLessons(e.target.value)}
             className="min-h-[150px]"
           />
         </div>
 
         {/* Mistakes */}
-        <div className="glass-card p-6 animate-fade-in" style={{ animationDelay: '300ms' }}>
+        <div className="glass-card p-6 animate-fade-in" style={{ animationDelay: '200ms' }}>
           <div className="flex items-center gap-3 mb-4">
             <div className="w-10 h-10 rounded-lg bg-loss/20 flex items-center justify-center">
               <AlertTriangle className="w-5 h-5 text-loss" />
@@ -400,16 +413,13 @@ const Journal: React.FC = () => {
               ? "Quelles erreurs éviter?\n- FOMO sur les breakouts\n- Trading pendant les news..."
               : "What mistakes to avoid?\n- FOMO on breakouts\n- Trading during news..."}
             value={mistakes}
-            onChange={(e) => {
-              setMistakes(e.target.value);
-              saveToStorage({ checklist, objectives, lessons, mistakes: e.target.value, strengths, rating });
-            }}
+            onChange={(e) => setMistakes(e.target.value)}
             className="min-h-[150px]"
           />
         </div>
 
         {/* Strengths */}
-        <div className="glass-card p-6 animate-fade-in" style={{ animationDelay: '400ms' }}>
+        <div className="glass-card p-6 animate-fade-in" style={{ animationDelay: '250ms' }}>
           <div className="flex items-center gap-3 mb-4">
             <div className="w-10 h-10 rounded-lg bg-profit/20 flex items-center justify-center">
               <Award className="w-5 h-5 text-profit" />
@@ -423,16 +433,13 @@ const Journal: React.FC = () => {
               ? "Vos forces de la journée?\n- Bon timing d'entrée\n- Patience sur les positions..."
               : "Your strengths today?\n- Good entry timing\n- Patience on positions..."}
             value={strengths}
-            onChange={(e) => {
-              setStrengths(e.target.value);
-              saveToStorage({ checklist, objectives, lessons, mistakes, strengths: e.target.value, rating });
-            }}
+            onChange={(e) => setStrengths(e.target.value)}
             className="min-h-[150px]"
           />
         </div>
 
         {/* Day Rating */}
-        <div className="glass-card p-6 animate-fade-in" style={{ animationDelay: '500ms' }}>
+        <div className="glass-card p-6 animate-fade-in" style={{ animationDelay: '300ms' }}>
           <div className="flex items-center gap-3 mb-4">
             <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center">
               <Star className="w-5 h-5 text-primary" />
@@ -446,10 +453,7 @@ const Journal: React.FC = () => {
             {[1, 2, 3, 4, 5].map((star) => (
               <button
                 key={star}
-                onClick={() => {
-                  setRating(star);
-                  saveToStorage({ checklist, objectives, lessons, mistakes, strengths, rating: star });
-                }}
+                onClick={() => setRating(star)}
                 className="transition-transform hover:scale-110"
               >
                 <Star
@@ -457,35 +461,34 @@ const Journal: React.FC = () => {
                     "w-10 h-10 transition-colors",
                     star <= rating
                       ? "fill-primary text-primary"
-                      : "text-muted-foreground hover:text-primary/50"
+                      : "text-muted-foreground"
                   )}
                 />
               </button>
             ))}
           </div>
-          
-          <p className="text-center text-sm text-muted-foreground mt-2">
-            {rating === 0 && (language === 'fr' ? "Cliquez pour évaluer votre journée" : "Click to rate your day")}
-            {rating === 1 && (language === 'fr' ? "Journée difficile 😔" : "Tough day 😔")}
-            {rating === 2 && (language === 'fr' ? "Peut mieux faire 🤔" : "Could be better 🤔")}
-            {rating === 3 && (language === 'fr' ? "Journée correcte 👍" : "Decent day 👍")}
-            {rating === 4 && (language === 'fr' ? "Bonne journée! 😊" : "Good day! 😊")}
-            {rating === 5 && (language === 'fr' ? "Excellente journée! 🌟" : "Excellent day! 🌟")}
+
+          <p className="text-center text-sm text-muted-foreground">
+            {rating === 0 && (language === 'fr' ? 'Cliquez pour noter votre journée' : 'Click to rate your day')}
+            {rating === 1 && (language === 'fr' ? 'Journée difficile' : 'Difficult day')}
+            {rating === 2 && (language === 'fr' ? 'Peut mieux faire' : 'Could be better')}
+            {rating === 3 && (language === 'fr' ? 'Journée correcte' : 'Decent day')}
+            {rating === 4 && (language === 'fr' ? 'Bonne journée' : 'Good day')}
+            {rating === 5 && (language === 'fr' ? 'Excellente journée!' : 'Excellent day!')}
           </p>
         </div>
       </div>
 
       {/* Save Button */}
-      <div className="flex justify-end">
-        <Button
-          onClick={handleSave}
-          size="lg"
-          className="gap-2 bg-gradient-primary hover:opacity-90 font-display"
-        >
-          <CheckCircle2 className="w-5 h-5" />
-          {language === 'fr' ? 'Enregistrer le Journal' : 'Save Journal'}
-        </Button>
-      </div>
+      <Button
+        onClick={handleSave}
+        disabled={isSaving || !user}
+        className="w-full gap-2 bg-gradient-primary hover:opacity-90 font-display"
+        size="lg"
+      >
+        {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+        {language === 'fr' ? 'Enregistrer le journal' : 'Save journal'}
+      </Button>
     </div>
   );
 };

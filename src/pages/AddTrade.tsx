@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useTrades } from '@/hooks/useTrades';
+import { useTradeImages } from '@/hooks/useTradeImages';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -63,6 +64,7 @@ const TAGS = [
 const AddTrade: React.FC = () => {
   const { t, language } = useLanguage();
   const { addTrade } = useTrades();
+  const { uploadImages } = useTradeImages();
   const locale = language === 'fr' ? fr : enUS;
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -71,7 +73,8 @@ const AddTrade: React.FC = () => {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [assetSearch, setAssetSearch] = useState('');
   const [customAsset, setCustomAsset] = useState('');
-  const [images, setImages] = useState<string[]>([]);
+  const [imageFiles, setImageFiles] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [customTimeframe, setCustomTimeframe] = useState('');
   const [customSetup, setCustomSetup] = useState('');
   
@@ -120,22 +123,26 @@ const AddTrade: React.FC = () => {
     const files = e.target.files;
     if (!files) return;
 
-    if (images.length + files.length > 4) {
+    if (imageFiles.length + files.length > 4) {
       toast.error('Maximum 4 images autorisées');
       return;
     }
 
-    Array.from(files).forEach(file => {
+    const newFiles = Array.from(files);
+    setImageFiles(prev => [...prev, ...newFiles]);
+
+    newFiles.forEach(file => {
       const reader = new FileReader();
       reader.onload = () => {
-        setImages(prev => [...prev, reader.result as string]);
+        setImagePreviews(prev => [...prev, reader.result as string]);
       };
       reader.readAsDataURL(file);
     });
   };
 
   const removeImage = (index: number) => {
-    setImages(prev => prev.filter((_, i) => i !== index));
+    setImageFiles(prev => prev.filter((_, i) => i !== index));
+    setImagePreviews(prev => prev.filter((_, i) => i !== index));
   };
 
   const calculateQualityScore = () => {
@@ -173,6 +180,12 @@ const AddTrade: React.FC = () => {
     setIsSubmitting(true);
     
     try {
+      // Upload images first
+      let uploadedImageUrls: string[] = [];
+      if (imageFiles.length > 0) {
+        uploadedImageUrls = await uploadImages(imageFiles);
+      }
+
       const pnl = parseFloat(formData.pnl) || null;
       let result: 'win' | 'loss' | 'breakeven' | 'pending' | null = null;
       
@@ -198,7 +211,7 @@ const AddTrade: React.FC = () => {
         profit_loss: pnl,
         notes: formData.notes || null,
         emotions: formData.emotion || null,
-        images: images.length > 0 ? images : null,
+        images: uploadedImageUrls.length > 0 ? uploadedImageUrls : null,
         trade_date: date.toISOString(),
       });
       
@@ -220,7 +233,8 @@ const AddTrade: React.FC = () => {
       });
       setDirection('buy');
       setSelectedTags([]);
-      setImages([]);
+      setImageFiles([]);
+      setImagePreviews([]);
       setCustomAsset('');
       setCustomSetup('');
       setCustomTimeframe('');

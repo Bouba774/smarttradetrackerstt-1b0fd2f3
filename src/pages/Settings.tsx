@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Button } from '@/components/ui/button';
@@ -11,50 +11,109 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { cn } from '@/lib/utils';
 import {
   Settings as SettingsIcon,
   Moon,
   Sun,
+  Zap,
   Globe,
   Vibrate,
-  Bell,
-  Download,
-  LogOut,
-  Trash2,
-  User,
-  BookOpen,
-  AlertTriangle,
-  ChevronRight,
+  Volume2,
+  Type,
+  Palette,
+  Image,
+  RotateCcw,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
+const PRIMARY_COLORS = [
+  { value: 'blue', label: 'Bleu', hsl: '217 91% 60%' },
+  { value: 'green', label: 'Vert', hsl: '142 76% 36%' },
+  { value: 'red', label: 'Rouge', hsl: '0 84% 60%' },
+  { value: 'purple', label: 'Violet', hsl: '270 76% 60%' },
+  { value: 'orange', label: 'Orange', hsl: '25 95% 53%' },
+  { value: 'cyan', label: 'Cyan', hsl: '188 94% 43%' },
+];
+
+const BACKGROUNDS = [
+  { value: 'default', label: 'Par défaut' },
+  { value: 'gradient-dark', label: 'Dégradé sombre' },
+  { value: 'gradient-blue', label: 'Dégradé bleu' },
+  { value: 'solid-dark', label: 'Noir uni' },
+  { value: 'solid-gray', label: 'Gris uni' },
+];
+
+const FONT_SIZES = [
+  { value: 'small', label: 'Petite', scale: '0.875' },
+  { value: 'standard', label: 'Standard', scale: '1' },
+  { value: 'large', label: 'Grande', scale: '1.125' },
+];
+
+interface AppSettings {
+  displayMode: 'light' | 'dark' | 'neon';
+  primaryColor: string;
+  fontSize: string;
+  vibration: boolean;
+  sounds: boolean;
+  background: string;
+}
+
+const DEFAULT_SETTINGS: AppSettings = {
+  displayMode: 'dark',
+  primaryColor: 'blue',
+  fontSize: 'standard',
+  vibration: true,
+  sounds: true,
+  background: 'default',
+};
+
 const Settings: React.FC = () => {
   const { t, language, setLanguage } = useLanguage();
-  const { theme, toggleTheme } = useTheme();
+  const { theme, toggleTheme, setTheme } = useTheme();
 
-  const [settings, setSettings] = useState({
-    vibration: true,
-    journalReminder: true,
-    weeklyReport: true,
-    overtradingAlert: true,
+  const [settings, setSettings] = useState<AppSettings>(() => {
+    const saved = localStorage.getItem('app-settings');
+    return saved ? { ...DEFAULT_SETTINGS, ...JSON.parse(saved) } : DEFAULT_SETTINGS;
   });
 
-  const updateSetting = (key: string, value: boolean) => {
+  useEffect(() => {
+    localStorage.setItem('app-settings', JSON.stringify(settings));
+    
+    // Apply font size
+    const fontScale = FONT_SIZES.find(f => f.value === settings.fontSize)?.scale || '1';
+    document.documentElement.style.fontSize = `${parseFloat(fontScale) * 16}px`;
+    
+    // Apply primary color
+    const color = PRIMARY_COLORS.find(c => c.value === settings.primaryColor);
+    if (color) {
+      document.documentElement.style.setProperty('--primary', color.hsl);
+    }
+  }, [settings]);
+
+  const updateSetting = <K extends keyof AppSettings>(key: K, value: AppSettings[K]) => {
     setSettings(prev => ({ ...prev, [key]: value }));
-    toast.success('Paramètre mis à jour');
+    
+    if (settings.vibration && 'vibrate' in navigator) {
+      navigator.vibrate(10);
+    }
+    
+    toast.success(language === 'fr' ? 'Paramètre mis à jour' : 'Setting updated');
   };
 
-  const handleExport = (format: 'json' | 'csv') => {
-    toast.success(`Export ${format.toUpperCase()} en cours...`);
+  const handleDisplayModeChange = (mode: 'light' | 'dark' | 'neon') => {
+    updateSetting('displayMode', mode);
+    if (mode === 'light') {
+      setTheme('light');
+    } else {
+      setTheme('dark');
+    }
   };
 
-  const handleLogout = () => {
-    toast.success('Déconnexion...');
-  };
-
-  const handleDeleteAccount = () => {
-    toast.error('Cette action est irréversible!');
+  const resetSettings = () => {
+    setSettings(DEFAULT_SETTINGS);
+    document.documentElement.style.fontSize = '16px';
+    document.documentElement.style.removeProperty('--primary');
+    toast.success(language === 'fr' ? 'Paramètres réinitialisés' : 'Settings reset');
   };
 
   return (
@@ -66,7 +125,7 @@ const Settings: React.FC = () => {
             {t('settings')}
           </h1>
           <p className="text-muted-foreground text-sm mt-1">
-            Personnalisez votre expérience
+            {language === 'fr' ? 'Personnalisez votre expérience' : 'Customize your experience'}
           </p>
         </div>
         <div className="w-12 h-12 rounded-lg bg-gradient-primary flex items-center justify-center shadow-neon">
@@ -74,32 +133,65 @@ const Settings: React.FC = () => {
         </div>
       </div>
 
-      {/* Appearance */}
-      <div className="glass-card p-6 space-y-6 animate-fade-in">
-        <h3 className="font-display font-semibold text-foreground">Apparence</h3>
+      {/* Display Mode */}
+      <div className="glass-card p-6 space-y-4 animate-fade-in">
+        <h3 className="font-display font-semibold text-foreground flex items-center gap-2">
+          <Palette className="w-5 h-5 text-primary" />
+          {language === 'fr' ? 'Mode d\'affichage' : 'Display Mode'}
+        </h3>
 
-        {/* Theme */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            {theme === 'dark' ? (
-              <Moon className="w-5 h-5 text-primary" />
-            ) : (
-              <Sun className="w-5 h-5 text-primary" />
-            )}
-            <div>
-              <Label className="text-foreground">{t('theme')}</Label>
-              <p className="text-xs text-muted-foreground">
-                {theme === 'dark' ? t('dark') : t('light')}
-              </p>
-            </div>
-          </div>
-          <Switch
-            checked={theme === 'dark'}
-            onCheckedChange={toggleTheme}
-          />
+        <div className="grid grid-cols-3 gap-3">
+          <Button
+            variant={settings.displayMode === 'light' ? 'default' : 'outline'}
+            className="flex-col h-auto py-4 gap-2"
+            onClick={() => handleDisplayModeChange('light')}
+          >
+            <Sun className="w-6 h-6" />
+            <span className="text-xs">{language === 'fr' ? 'Clair' : 'Light'}</span>
+          </Button>
+          <Button
+            variant={settings.displayMode === 'dark' ? 'default' : 'outline'}
+            className="flex-col h-auto py-4 gap-2"
+            onClick={() => handleDisplayModeChange('dark')}
+          >
+            <Moon className="w-6 h-6" />
+            <span className="text-xs">{language === 'fr' ? 'Sombre' : 'Dark'}</span>
+          </Button>
+          <Button
+            variant={settings.displayMode === 'neon' ? 'default' : 'outline'}
+            className="flex-col h-auto py-4 gap-2"
+            onClick={() => handleDisplayModeChange('neon')}
+          >
+            <Zap className="w-6 h-6" />
+            <span className="text-xs">High-Tech Neon</span>
+          </Button>
         </div>
+      </div>
 
-        {/* Language */}
+      {/* Primary Color */}
+      <div className="glass-card p-6 space-y-4 animate-fade-in" style={{ animationDelay: '50ms' }}>
+        <h3 className="font-display font-semibold text-foreground flex items-center gap-2">
+          <Palette className="w-5 h-5 text-primary" />
+          {language === 'fr' ? 'Couleur principale' : 'Primary Color'}
+        </h3>
+
+        <div className="flex flex-wrap gap-3">
+          {PRIMARY_COLORS.map(color => (
+            <button
+              key={color.value}
+              onClick={() => updateSetting('primaryColor', color.value)}
+              className={`w-12 h-12 rounded-lg transition-transform hover:scale-110 ${
+                settings.primaryColor === color.value ? 'ring-2 ring-offset-2 ring-offset-background ring-foreground scale-110' : ''
+              }`}
+              style={{ backgroundColor: `hsl(${color.hsl})` }}
+              title={color.label}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* Language */}
+      <div className="glass-card p-6 space-y-4 animate-fade-in" style={{ animationDelay: '100ms' }}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Globe className="w-5 h-5 text-primary" />
@@ -111,7 +203,7 @@ const Settings: React.FC = () => {
             </div>
           </div>
           <Select value={language} onValueChange={(v: 'fr' | 'en') => setLanguage(v)}>
-            <SelectTrigger className="w-32">
+            <SelectTrigger className="w-40">
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="bg-popover border-border">
@@ -120,15 +212,44 @@ const Settings: React.FC = () => {
             </SelectContent>
           </Select>
         </div>
+      </div>
 
-        {/* Vibration */}
+      {/* Font Size */}
+      <div className="glass-card p-6 space-y-4 animate-fade-in" style={{ animationDelay: '150ms' }}>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Type className="w-5 h-5 text-primary" />
+            <div>
+              <Label className="text-foreground">
+                {language === 'fr' ? 'Taille de police' : 'Font Size'}
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                {FONT_SIZES.find(f => f.value === settings.fontSize)?.label}
+              </p>
+            </div>
+          </div>
+          <Select value={settings.fontSize} onValueChange={(v) => updateSetting('fontSize', v)}>
+            <SelectTrigger className="w-40">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-popover border-border">
+              {FONT_SIZES.map(size => (
+                <SelectItem key={size.value} value={size.value}>{size.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {/* Vibration & Sounds */}
+      <div className="glass-card p-6 space-y-4 animate-fade-in" style={{ animationDelay: '200ms' }}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Vibrate className="w-5 h-5 text-primary" />
             <div>
               <Label className="text-foreground">{t('vibration')}</Label>
               <p className="text-xs text-muted-foreground">
-                Vibration au toucher
+                {language === 'fr' ? 'Vibration au toucher' : 'Vibration on touch'}
               </p>
             </div>
           </div>
@@ -137,121 +258,65 @@ const Settings: React.FC = () => {
             onCheckedChange={(v) => updateSetting('vibration', v)}
           />
         </div>
-      </div>
 
-      {/* Notifications */}
-      <div className="glass-card p-6 space-y-6 animate-fade-in" style={{ animationDelay: '100ms' }}>
-        <div className="flex items-center gap-2">
-          <Bell className="w-5 h-5 text-primary" />
-          <h3 className="font-display font-semibold text-foreground">{t('notifications')}</h3>
-        </div>
-
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <BookOpen className="w-4 h-4 text-muted-foreground" />
-              <div>
-                <Label className="text-foreground">{t('journalReminder')}</Label>
-                <p className="text-xs text-muted-foreground">Rappel quotidien à 20h</p>
-              </div>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Volume2 className="w-5 h-5 text-primary" />
+            <div>
+              <Label className="text-foreground">
+                {language === 'fr' ? 'Sons' : 'Sounds'}
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                {language === 'fr' ? 'Effets sonores' : 'Sound effects'}
+              </p>
             </div>
-            <Switch
-              checked={settings.journalReminder}
-              onCheckedChange={(v) => updateSetting('journalReminder', v)}
-            />
           </div>
+          <Switch
+            checked={settings.sounds}
+            onCheckedChange={(v) => updateSetting('sounds', v)}
+          />
+        </div>
+      </div>
 
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <BookOpen className="w-4 h-4 text-muted-foreground" />
-              <div>
-                <Label className="text-foreground">{t('weeklyReport')}</Label>
-                <p className="text-xs text-muted-foreground">Bilan chaque dimanche</p>
-              </div>
+      {/* Background */}
+      <div className="glass-card p-6 space-y-4 animate-fade-in" style={{ animationDelay: '250ms' }}>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Image className="w-5 h-5 text-primary" />
+            <div>
+              <Label className="text-foreground">
+                {language === 'fr' ? 'Fond d\'écran' : 'Background'}
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                {BACKGROUNDS.find(b => b.value === settings.background)?.label}
+              </p>
             </div>
-            <Switch
-              checked={settings.weeklyReport}
-              onCheckedChange={(v) => updateSetting('weeklyReport', v)}
-            />
           </div>
-
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <AlertTriangle className="w-4 h-4 text-muted-foreground" />
-              <div>
-                <Label className="text-foreground">{t('overtradingAlert')}</Label>
-                <p className="text-xs text-muted-foreground">Alerte après 5 trades/jour</p>
-              </div>
-            </div>
-            <Switch
-              checked={settings.overtradingAlert}
-              onCheckedChange={(v) => updateSetting('overtradingAlert', v)}
-            />
-          </div>
+          <Select value={settings.background} onValueChange={(v) => updateSetting('background', v)}>
+            <SelectTrigger className="w-40">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-popover border-border">
+              {BACKGROUNDS.map(bg => (
+                <SelectItem key={bg.value} value={bg.value}>{bg.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
-      {/* Data */}
-      <div className="glass-card p-6 space-y-4 animate-fade-in" style={{ animationDelay: '200ms' }}>
-        <div className="flex items-center gap-2">
-          <Download className="w-5 h-5 text-primary" />
-          <h3 className="font-display font-semibold text-foreground">{t('exportData')}</h3>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <Button
-            variant="outline"
-            className="gap-2"
-            onClick={() => handleExport('json')}
-          >
-            <Download className="w-4 h-4" />
-            Export JSON
-          </Button>
-          <Button
-            variant="outline"
-            className="gap-2"
-            onClick={() => handleExport('csv')}
-          >
-            <Download className="w-4 h-4" />
-            Export CSV
-          </Button>
-        </div>
-      </div>
-
-      {/* Account */}
-      <div className="glass-card p-6 space-y-4 animate-fade-in" style={{ animationDelay: '300ms' }}>
-        <div className="flex items-center gap-2">
-          <User className="w-5 h-5 text-primary" />
-          <h3 className="font-display font-semibold text-foreground">Compte</h3>
-        </div>
-
-        <Button
-          variant="outline"
-          className="w-full justify-between"
-          onClick={handleLogout}
-        >
-          <div className="flex items-center gap-2">
-            <LogOut className="w-4 h-4" />
-            {t('logout')}
-          </div>
-          <ChevronRight className="w-4 h-4" />
-        </Button>
-
-        <Button
-          variant="outline"
-          className="w-full justify-between border-loss/30 text-loss hover:bg-loss/10 hover:text-loss"
-          onClick={handleDeleteAccount}
-        >
-          <div className="flex items-center gap-2">
-            <Trash2 className="w-4 h-4" />
-            {t('deleteAccount')}
-          </div>
-          <ChevronRight className="w-4 h-4" />
-        </Button>
-      </div>
+      {/* Reset */}
+      <Button
+        variant="outline"
+        className="w-full gap-2"
+        onClick={resetSettings}
+      >
+        <RotateCcw className="w-4 h-4" />
+        {language === 'fr' ? 'Réinitialiser l\'affichage' : 'Reset display'}
+      </Button>
 
       {/* Version Info */}
-      <div className="text-center text-xs text-muted-foreground py-4 animate-fade-in" style={{ animationDelay: '400ms' }}>
+      <div className="text-center text-xs text-muted-foreground py-4 animate-fade-in" style={{ animationDelay: '300ms' }}>
         <p>Smart Trade Tracker v1.0.0</p>
         <p className="mt-1">© 2024 ALPHA FX</p>
       </div>
