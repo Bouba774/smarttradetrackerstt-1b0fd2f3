@@ -595,12 +595,12 @@ const AddTrade: React.FC = () => {
           </div>
 
           <div className="space-y-2">
-            <Label>{t('images')} ({images.length}/4)</Label>
+            <Label>{t('images')} ({imagePreviews.length}/4)</Label>
             
             {/* Image Preview Grid */}
-            {images.length > 0 && (
+            {imagePreviews.length > 0 && (
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                {images.map((img, index) => (
+                {imagePreviews.map((img, index) => (
                   <div key={index} className="relative aspect-video rounded-lg overflow-hidden border border-border">
                     <img src={img} alt={`Capture ${index + 1}`} className="w-full h-full object-cover" />
                     <button
@@ -615,7 +615,7 @@ const AddTrade: React.FC = () => {
               </div>
             )}
 
-            {images.length < 4 && (
+            {imagePreviews.length < 4 && (
               <label className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-primary/50 transition-colors cursor-pointer block">
                 <input
                   type="file"
