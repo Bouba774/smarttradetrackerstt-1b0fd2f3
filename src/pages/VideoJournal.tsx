@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import {
   Video,
@@ -12,6 +13,8 @@ import {
   Calendar,
   Clock,
   Download,
+  SwitchCamera,
+  FileText,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -22,6 +25,7 @@ interface Recording {
   duration: number;
   url: string;
   blob?: Blob;
+  note?: string;
 }
 
 const STORAGE_KEY = 'smart-trade-tracker-recordings';
@@ -34,6 +38,10 @@ const VideoJournal: React.FC = () => {
   const [recordingType, setRecordingType] = useState<'video' | 'audio' | null>(null);
   const [recordingTime, setRecordingTime] = useState(0);
   const [playingId, setPlayingId] = useState<string | null>(null);
+  const [facingMode, setFacingMode] = useState<'user' | 'environment'>('environment'); // Default back camera
+  const [note, setNote] = useState('');
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [editingNoteText, setEditingNoteText] = useState('');
   
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -51,7 +59,6 @@ const VideoJournal: React.FC = () => {
     if (savedRecordings) {
       try {
         const parsed = JSON.parse(savedRecordings);
-        // Note: blob URLs won't persist, but the metadata will
         setRecordings(parsed.map((r: Recording) => ({ ...r, url: '' })));
       } catch (e) {
         console.error('Error loading recordings:', e);
@@ -68,7 +75,6 @@ const VideoJournal: React.FC = () => {
       if (streamRef.current) {
         streamRef.current.getTracks().forEach(track => track.stop());
       }
-      // Revoke all blob URLs
       recordings.forEach(r => {
         if (r.url) URL.revokeObjectURL(r.url);
       });
@@ -76,13 +82,13 @@ const VideoJournal: React.FC = () => {
   }, [recordings]);
 
   const saveRecordingsMetadata = (newRecordings: Recording[]) => {
-    // Save only metadata, not blob URLs
     const metadata = newRecordings.map(r => ({
       id: r.id,
       type: r.type,
       date: r.date,
       duration: r.duration,
       url: '',
+      note: r.note || '',
     }));
     localStorage.setItem(STORAGE_KEY, JSON.stringify(metadata));
   };
@@ -90,7 +96,14 @@ const VideoJournal: React.FC = () => {
   const startRecording = async (type: 'video' | 'audio') => {
     try {
       const constraints = type === 'video'
-        ? { video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } }, audio: true }
+        ? { 
+            video: { 
+              facingMode: facingMode, 
+              width: { ideal: 1280 }, 
+              height: { ideal: 720 } 
+            }, 
+            audio: true 
+          }
         : { audio: true };
 
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
@@ -128,6 +141,7 @@ const VideoJournal: React.FC = () => {
           duration: recordingTime,
           url,
           blob,
+          note: note.trim() || undefined,
         };
 
         setRecordings(prev => {
@@ -136,6 +150,7 @@ const VideoJournal: React.FC = () => {
           return updated;
         });
         
+        setNote('');
         toast.success(
           language === 'fr'
             ? 'Enregistrement sauvegardé!'
@@ -143,7 +158,7 @@ const VideoJournal: React.FC = () => {
         );
       };
 
-      mediaRecorder.start(1000); // Collect data every second
+      mediaRecorder.start(1000);
       setIsRecording(true);
       setRecordingType(type);
       setRecordingTime(0);
@@ -189,6 +204,54 @@ const VideoJournal: React.FC = () => {
     setRecordingType(null);
   };
 
+  const switchCamera = async () => {
+    const newFacingMode = facingMode === 'user' ? 'environment' : 'user';
+    setFacingMode(newFacingMode);
+    
+    if (isRecording && recordingType === 'video') {
+      // Stop current stream
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+      }
+      
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { 
+            facingMode: newFacingMode, 
+            width: { ideal: 1280 }, 
+            height: { ideal: 720 } 
+          },
+          audio: true
+        });
+        streamRef.current = stream;
+        
+        if (videoPreviewRef.current) {
+          videoPreviewRef.current.srcObject = stream;
+          videoPreviewRef.current.play();
+        }
+        
+        toast.success(
+          language === 'fr'
+            ? `Caméra ${newFacingMode === 'user' ? 'avant' : 'arrière'} activée`
+            : `${newFacingMode === 'user' ? 'Front' : 'Back'} camera activated`
+        );
+      } catch (error) {
+        console.error('Error switching camera:', error);
+        toast.error(
+          language === 'fr'
+            ? 'Erreur lors du changement de caméra'
+            : 'Error switching camera'
+        );
+      }
+    } else {
+      toast.info(
+        language === 'fr'
+          ? `Caméra ${newFacingMode === 'user' ? 'avant' : 'arrière'} sélectionnée`
+          : `${newFacingMode === 'user' ? 'Front' : 'Back'} camera selected`
+      );
+    }
+  };
+
   const deleteRecording = (id: string) => {
     const recording = recordings.find(r => r.id === id);
     if (recording?.url) {
@@ -214,7 +277,6 @@ const VideoJournal: React.FC = () => {
 
   const togglePlayback = (recording: Recording) => {
     if (playingId === recording.id) {
-      // Stop playback
       if (playbackVideoRef.current) {
         playbackVideoRef.current.pause();
       }
@@ -223,7 +285,6 @@ const VideoJournal: React.FC = () => {
       }
       setPlayingId(null);
     } else {
-      // Start playback
       if (!recording.url) {
         toast.error(
           language === 'fr'
@@ -252,6 +313,19 @@ const VideoJournal: React.FC = () => {
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
+  };
+
+  const updateNote = (id: string, newNote: string) => {
+    setRecordings(prev => {
+      const updated = prev.map(r => 
+        r.id === id ? { ...r, note: newNote.trim() || undefined } : r
+      );
+      saveRecordingsMetadata(updated);
+      return updated;
+    });
+    setEditingNoteId(null);
+    setEditingNoteText('');
+    toast.success(language === 'fr' ? 'Note mise à jour' : 'Note updated');
   };
 
   const formatDuration = (seconds: number) => {
@@ -288,24 +362,49 @@ const VideoJournal: React.FC = () => {
 
       {/* Recording Section */}
       <div className="glass-card p-6 animate-fade-in">
-        <h3 className="font-display font-semibold text-foreground mb-6">
-          {language === 'fr' ? 'Nouvel Enregistrement' : 'New Recording'}
-        </h3>
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="font-display font-semibold text-foreground">
+            {language === 'fr' ? 'Nouvel Enregistrement' : 'New Recording'}
+          </h3>
+          
+          {/* Camera Switch Button */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={switchCamera}
+            className="gap-2"
+          >
+            <SwitchCamera className="w-4 h-4" />
+            {language === 'fr' 
+              ? (facingMode === 'user' ? 'Avant' : 'Arrière')
+              : (facingMode === 'user' ? 'Front' : 'Back')}
+          </Button>
+        </div>
 
         {/* Video Preview */}
         {recordingType === 'video' && (
           <div className="mb-6 rounded-lg overflow-hidden bg-black aspect-video max-w-md mx-auto relative">
             <video
               ref={videoPreviewRef}
-              className="w-full h-full object-cover mirror"
+              className="w-full h-full object-cover"
               muted
               playsInline
-              style={{ transform: 'scaleX(-1)' }}
+              style={{ transform: facingMode === 'user' ? 'scaleX(-1)' : 'none' }}
             />
             {/* Recording indicator */}
             <div className="absolute top-4 left-4 flex items-center gap-2 px-3 py-1 rounded-full bg-loss/80">
               <div className="w-2 h-2 rounded-full bg-white animate-pulse" />
               <span className="text-xs text-white font-medium">REC</span>
+            </div>
+            
+            {/* Camera indicator */}
+            <div className="absolute top-4 right-4 flex items-center gap-2 px-3 py-1 rounded-full bg-secondary/80">
+              <SwitchCamera className="w-3 h-3 text-foreground" />
+              <span className="text-xs text-foreground font-medium">
+                {facingMode === 'user' 
+                  ? (language === 'fr' ? 'Avant' : 'Front')
+                  : (language === 'fr' ? 'Arrière' : 'Back')}
+              </span>
             </div>
           </div>
         )}
@@ -335,6 +434,23 @@ const VideoJournal: React.FC = () => {
           </div>
         )}
 
+        {/* Note Input */}
+        <div className="mb-6 max-w-md mx-auto">
+          <label className="block text-sm font-medium text-foreground mb-2">
+            <FileText className="w-4 h-4 inline mr-2" />
+            {language === 'fr' ? 'Note libre (optionnelle)' : 'Free note (optional)'}
+          </label>
+          <Textarea
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder={language === 'fr' 
+              ? 'Ajoutez une note à cet enregistrement...' 
+              : 'Add a note to this recording...'}
+            className="resize-none"
+            rows={3}
+          />
+        </div>
+
         {/* Recording Buttons */}
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
           {!isRecording ? (
@@ -359,19 +475,32 @@ const VideoJournal: React.FC = () => {
               </Button>
             </>
           ) : (
-            <Button
-              variant="destructive"
-              size="lg"
-              className="gap-3"
-              onClick={stopRecording}
-            >
-              <Square className="w-5 h-5" />
-              {language === 'fr' ? 'Arrêter l\'enregistrement' : 'Stop Recording'}
-            </Button>
+            <div className="flex flex-col sm:flex-row items-center gap-4">
+              {recordingType === 'video' && (
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="gap-3"
+                  onClick={switchCamera}
+                >
+                  <SwitchCamera className="w-5 h-5" />
+                  {language === 'fr' ? 'Changer Caméra' : 'Switch Camera'}
+                </Button>
+              )}
+              <Button
+                variant="destructive"
+                size="lg"
+                className="gap-3"
+                onClick={stopRecording}
+              >
+                <Square className="w-5 h-5" />
+                {language === 'fr' ? 'Arrêter' : 'Stop'}
+              </Button>
+            </div>
           )}
         </div>
 
-        {/* Audio Waveform Visualization (when recording audio) */}
+        {/* Audio Waveform Visualization */}
         {isRecording && recordingType === 'audio' && (
           <div className="flex items-center justify-center gap-1 h-16 mt-6">
             {Array.from({ length: 20 }).map((_, i) => (
@@ -419,6 +548,15 @@ const VideoJournal: React.FC = () => {
             </div>
           )}
           
+          {currentPlayingRecording.note && (
+            <div className="mt-4 p-3 rounded-lg bg-secondary/30 max-w-lg mx-auto">
+              <p className="text-sm text-muted-foreground">
+                <FileText className="w-4 h-4 inline mr-2" />
+                {currentPlayingRecording.note}
+              </p>
+            </div>
+          )}
+          
           <div className="flex justify-center mt-4">
             <Button
               variant="outline"
@@ -455,75 +593,127 @@ const VideoJournal: React.FC = () => {
               <div
                 key={recording.id}
                 className={cn(
-                  "flex items-center gap-4 p-4 rounded-lg bg-secondary/30 hover:bg-secondary/50 transition-colors animate-fade-in",
+                  "p-4 rounded-lg bg-secondary/30 hover:bg-secondary/50 transition-colors animate-fade-in",
                   playingId === recording.id && "ring-2 ring-primary"
                 )}
                 style={{ animationDelay: `${index * 50}ms` }}
               >
-                {/* Icon */}
-                <div className={cn(
-                  "w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0",
-                  recording.type === 'video' ? "bg-primary/20" : "bg-profit/20"
-                )}>
-                  {recording.type === 'video' ? (
-                    <Video className="w-6 h-6 text-primary" />
-                  ) : (
-                    <Mic className="w-6 h-6 text-profit" />
-                  )}
-                </div>
+                <div className="flex items-center gap-4">
+                  {/* Icon */}
+                  <div className={cn(
+                    "w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0",
+                    recording.type === 'video' ? "bg-primary/20" : "bg-profit/20"
+                  )}>
+                    {recording.type === 'video' ? (
+                      <Video className="w-6 h-6 text-primary" />
+                    ) : (
+                      <Mic className="w-6 h-6 text-profit" />
+                    )}
+                  </div>
 
-                {/* Info */}
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-foreground truncate">
-                    {recording.type === 'video'
-                      ? (language === 'fr' ? 'Vidéo' : 'Video')
-                      : 'Audio'}
-                  </p>
-                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                    <span className="flex items-center gap-1">
-                      <Calendar className="w-3 h-3" />
-                      {formatDate(recording.date)}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Clock className="w-3 h-3" />
-                      {formatDuration(recording.duration)}
-                    </span>
+                  {/* Info */}
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-foreground truncate">
+                      {recording.type === 'video'
+                        ? (language === 'fr' ? 'Vidéo' : 'Video')
+                        : 'Audio'}
+                    </p>
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                      <span className="flex items-center gap-1">
+                        <Calendar className="w-3 h-3" />
+                        {formatDate(recording.date)}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        {formatDuration(recording.duration)}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => togglePlayback(recording)}
+                      className="hover:bg-primary/20"
+                      disabled={!recording.url}
+                    >
+                      {playingId === recording.id ? (
+                        <Pause className="w-5 h-5 text-primary" />
+                      ) : (
+                        <Play className="w-5 h-5 text-primary" />
+                      )}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => {
+                        setEditingNoteId(recording.id);
+                        setEditingNoteText(recording.note || '');
+                      }}
+                      className="hover:bg-secondary text-muted-foreground"
+                    >
+                      <FileText className="w-5 h-5" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => downloadRecording(recording)}
+                      className="hover:bg-profit/20 text-muted-foreground hover:text-profit"
+                      disabled={!recording.url}
+                    >
+                      <Download className="w-5 h-5" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => deleteRecording(recording.id)}
+                      className="hover:bg-loss/20 text-muted-foreground hover:text-loss"
+                    >
+                      <Trash2 className="w-5 h-5" />
+                    </Button>
                   </div>
                 </div>
 
-                {/* Actions */}
-                <div className="flex items-center gap-1">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => togglePlayback(recording)}
-                    className="hover:bg-primary/20"
-                    disabled={!recording.url}
-                  >
-                    {playingId === recording.id ? (
-                      <Pause className="w-5 h-5 text-primary" />
-                    ) : (
-                      <Play className="w-5 h-5 text-primary" />
-                    )}
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => downloadRecording(recording)}
-                    className="hover:bg-profit/20 text-muted-foreground hover:text-profit"
-                    disabled={!recording.url}
-                  >
-                    <Download className="w-5 h-5" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => deleteRecording(recording.id)}
-                    className="hover:bg-loss/20 text-muted-foreground hover:text-loss"
-                  >
-                    <Trash2 className="w-5 h-5" />
-                  </Button>
-                </div>
+                {/* Note display */}
+                {recording.note && editingNoteId !== recording.id && (
+                  <div className="mt-3 p-2 rounded bg-secondary/30 text-sm text-muted-foreground">
+                    <FileText className="w-3 h-3 inline mr-1" />
+                    {recording.note}
+                  </div>
+                )}
+
+                {/* Note editing */}
+                {editingNoteId === recording.id && (
+                  <div className="mt-3 space-y-2">
+                    <Textarea
+                      value={editingNoteText}
+                      onChange={(e) => setEditingNoteText(e.target.value)}
+                      placeholder={language === 'fr' ? 'Ajouter une note...' : 'Add a note...'}
+                      className="resize-none"
+                      rows={2}
+                    />
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        onClick={() => updateNote(recording.id, editingNoteText)}
+                      >
+                        {language === 'fr' ? 'Sauvegarder' : 'Save'}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setEditingNoteId(null);
+                          setEditingNoteText('');
+                        }}
+                      >
+                        {language === 'fr' ? 'Annuler' : 'Cancel'}
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -536,9 +726,9 @@ const VideoJournal: React.FC = () => {
           💡 {language === 'fr' ? 'Conseils' : 'Tips'}
         </h3>
         <div className="space-y-2 text-sm text-muted-foreground">
+          <p>• {language === 'fr' ? 'Caméra arrière par défaut, changez avec le bouton "Changer Caméra"' : 'Back camera by default, switch with the "Switch Camera" button'}</p>
           <p>• {language === 'fr' ? 'Parlez de votre état émotionnel avant et après la session de trading' : 'Talk about your emotional state before and after the trading session'}</p>
-          <p>• {language === 'fr' ? 'Mentionnez les leçons apprises du jour' : 'Mention the lessons learned today'}</p>
-          <p>• {language === 'fr' ? 'Notez les erreurs à éviter pour demain' : 'Note the mistakes to avoid for tomorrow'}</p>
+          <p>• {language === 'fr' ? 'Ajoutez des notes libres à vos enregistrements' : 'Add free notes to your recordings'}</p>
           <p>• {language === 'fr' ? 'Durée maximale: 60 secondes par enregistrement' : 'Maximum duration: 60 seconds per recording'}</p>
           <p>• {language === 'fr' ? 'Les enregistrements sont stockés localement dans cette session' : 'Recordings are stored locally in this session'}</p>
         </div>

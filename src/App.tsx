@@ -18,8 +18,6 @@ import VideoJournal from "./pages/VideoJournal";
 import Journal from "./pages/Journal";
 import Calculator from "./pages/Calculator";
 import Challenges from "./pages/Challenges";
-import Profile from "./pages/Profile";
-import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -64,8 +62,6 @@ const AppContent = () => {
         <Route path="/journal" element={<ProtectedRoute><Layout><Journal /></Layout></ProtectedRoute>} />
         <Route path="/calculator" element={<ProtectedRoute><Layout><Calculator /></Layout></ProtectedRoute>} />
         <Route path="/challenges" element={<ProtectedRoute><Layout><Challenges /></Layout></ProtectedRoute>} />
-        <Route path="/profile" element={<ProtectedRoute><Layout><Profile /></Layout></ProtectedRoute>} />
-        <Route path="/settings" element={<ProtectedRoute><Layout><Settings /></Layout></ProtectedRoute>} />
         <Route path="*" element={<NotFound />} />
       </Routes>
       {user && <AIChatBot />}
