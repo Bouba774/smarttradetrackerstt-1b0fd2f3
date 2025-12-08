@@ -1,10 +1,12 @@
 import React, { useState, useMemo } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useTrades, Trade } from '@/hooks/useTrades';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -17,142 +19,21 @@ import { format, isWithinInterval, parseISO, startOfDay, endOfDay, startOfWeek, 
 import { fr, enUS } from 'date-fns/locale';
 import {
   Search,
-  Filter,
   TrendingUp,
   TrendingDown,
   ChevronDown,
   ChevronUp,
   CalendarIcon,
-  Image as ImageIcon,
   X,
+  Loader2,
+  Trash2,
+  FileX,
 } from 'lucide-react';
-
-interface Trade {
-  id: string;
-  date: string;
-  time: string;
-  asset: string;
-  direction: 'buy' | 'sell';
-  entryPrice: number;
-  stopLoss: number;
-  takeProfit: number;
-  lotSize: number;
-  pnl: number;
-  setup: string;
-  timeframe: string;
-  emotion: string;
-  qualityScore: number;
-  tags: string[];
-  images?: string[];
-}
-
-const MOCK_TRADES: Trade[] = [
-  {
-    id: '1',
-    date: '2024-12-05',
-    time: '10:30',
-    asset: 'EUR/USD',
-    direction: 'buy',
-    entryPrice: 1.0850,
-    stopLoss: 1.0800,
-    takeProfit: 1.0950,
-    lotSize: 0.5,
-    pnl: 250,
-    setup: 'Breakout',
-    timeframe: 'H1',
-    emotion: 'calm',
-    qualityScore: 85,
-    tags: ['A+ Setup', 'Plan Respecté'],
-  },
-  {
-    id: '2',
-    date: '2024-12-04',
-    time: '14:45',
-    asset: 'GBP/JPY',
-    direction: 'sell',
-    entryPrice: 189.50,
-    stopLoss: 190.20,
-    takeProfit: 188.00,
-    lotSize: 0.3,
-    pnl: -120,
-    setup: 'Reversal',
-    timeframe: 'M30',
-    emotion: 'stressed',
-    qualityScore: 55,
-    tags: ['FOMO', 'Early Entry'],
-  },
-  {
-    id: '3',
-    date: '2024-12-04',
-    time: '09:15',
-    asset: 'XAU/USD',
-    direction: 'buy',
-    entryPrice: 2145.00,
-    stopLoss: 2135.00,
-    takeProfit: 2165.00,
-    lotSize: 0.2,
-    pnl: 180,
-    setup: 'Trend Following',
-    timeframe: 'H4',
-    emotion: 'confident',
-    qualityScore: 92,
-    tags: ['High Probability', 'Perfect Execution'],
-  },
-  {
-    id: '4',
-    date: '2024-12-03',
-    time: '16:00',
-    asset: 'US100',
-    direction: 'buy',
-    entryPrice: 18250,
-    stopLoss: 18200,
-    takeProfit: 18350,
-    lotSize: 0.1,
-    pnl: 75,
-    setup: 'Support/Resistance',
-    timeframe: 'M15',
-    emotion: 'calm',
-    qualityScore: 78,
-    tags: ['Plan Respecté'],
-  },
-  {
-    id: '5',
-    date: '2024-11-28',
-    time: '11:30',
-    asset: 'BTC/USD',
-    direction: 'sell',
-    entryPrice: 71500,
-    stopLoss: 72500,
-    takeProfit: 69500,
-    lotSize: 0.05,
-    pnl: -200,
-    setup: 'Reversal',
-    timeframe: 'H1',
-    emotion: 'impulsive',
-    qualityScore: 35,
-    tags: ['Revenge Trading', 'FOMO'],
-  },
-  {
-    id: '6',
-    date: '2024-11-25',
-    time: '08:00',
-    asset: 'EUR/GBP',
-    direction: 'buy',
-    entryPrice: 0.8550,
-    stopLoss: 0.8520,
-    takeProfit: 0.8600,
-    lotSize: 0.4,
-    pnl: 0,
-    setup: 'Range',
-    timeframe: 'H1',
-    emotion: 'calm',
-    qualityScore: 70,
-    tags: ['Break-even'],
-  },
-];
+import { toast } from 'sonner';
 
 const History: React.FC = () => {
   const { t, language } = useLanguage();
+  const { trades, isLoading, deleteTrade } = useTrades();
   const locale = language === 'fr' ? fr : enUS;
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -171,91 +52,88 @@ const History: React.FC = () => {
   const [endDate, setEndDate] = useState<Date | undefined>();
 
   // Get unique values for filters
-  const uniqueAssets = [...new Set(MOCK_TRADES.map(t => t.asset))];
-  const uniqueSetups = [...new Set(MOCK_TRADES.map(t => t.setup))];
-  const uniqueEmotions = [...new Set(MOCK_TRADES.map(t => t.emotion))];
+  const uniqueAssets = [...new Set(trades.map(t => t.asset))];
+  const uniqueSetups = [...new Set(trades.map(t => t.setup).filter(Boolean))];
+  const uniqueEmotions = [...new Set(trades.map(t => t.emotions).filter(Boolean))];
 
   const filteredTrades = useMemo(() => {
-    let trades = MOCK_TRADES;
+    let filtered = [...trades];
 
     // Search filter
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
-      trades = trades.filter(trade => 
+      filtered = filtered.filter(trade => 
         trade.asset.toLowerCase().includes(query) ||
-        trade.setup.toLowerCase().includes(query) ||
-        trade.tags.some(tag => tag.toLowerCase().includes(query))
+        (trade.setup && trade.setup.toLowerCase().includes(query)) ||
+        (trade.notes && trade.notes.toLowerCase().includes(query))
       );
     }
 
     // Direction filter
     if (filterDirection !== 'all') {
-      trades = trades.filter(t => t.direction === filterDirection);
+      filtered = filtered.filter(t => t.direction === filterDirection);
     }
 
     // Result filter
     if (filterResult !== 'all') {
-      if (filterResult === 'win') trades = trades.filter(t => t.pnl > 0);
-      else if (filterResult === 'loss') trades = trades.filter(t => t.pnl < 0);
-      else if (filterResult === 'breakeven') trades = trades.filter(t => t.pnl === 0);
+      filtered = filtered.filter(t => t.result === filterResult);
     }
 
     // Asset filter
     if (filterAsset !== 'all') {
-      trades = trades.filter(t => t.asset === filterAsset);
+      filtered = filtered.filter(t => t.asset === filterAsset);
     }
 
     // Setup filter
     if (filterSetup !== 'all') {
-      trades = trades.filter(t => t.setup === filterSetup);
+      filtered = filtered.filter(t => t.setup === filterSetup);
     }
 
     // Emotion filter
     if (filterEmotion !== 'all') {
-      trades = trades.filter(t => t.emotion === filterEmotion);
+      filtered = filtered.filter(t => t.emotions === filterEmotion);
     }
 
     // Period filter
     const today = new Date();
     if (periodFilter === 'day') {
-      trades = trades.filter(t => 
-        isWithinInterval(parseISO(t.date), { start: startOfDay(today), end: endOfDay(today) })
+      filtered = filtered.filter(t => 
+        isWithinInterval(parseISO(t.trade_date), { start: startOfDay(today), end: endOfDay(today) })
       );
     } else if (periodFilter === 'week') {
-      trades = trades.filter(t => 
-        isWithinInterval(parseISO(t.date), { start: startOfWeek(today, { locale }), end: endOfWeek(today, { locale }) })
+      filtered = filtered.filter(t => 
+        isWithinInterval(parseISO(t.trade_date), { start: startOfWeek(today, { locale }), end: endOfWeek(today, { locale }) })
       );
     } else if (periodFilter === 'month') {
-      trades = trades.filter(t => 
-        isWithinInterval(parseISO(t.date), { start: startOfMonth(today), end: endOfMonth(today) })
+      filtered = filtered.filter(t => 
+        isWithinInterval(parseISO(t.trade_date), { start: startOfMonth(today), end: endOfMonth(today) })
       );
     } else if (periodFilter === 'year') {
-      trades = trades.filter(t => 
-        isWithinInterval(parseISO(t.date), { start: startOfYear(today), end: endOfYear(today) })
+      filtered = filtered.filter(t => 
+        isWithinInterval(parseISO(t.trade_date), { start: startOfYear(today), end: endOfYear(today) })
       );
     } else if (periodFilter === 'custom' && startDate && endDate) {
-      trades = trades.filter(t => 
-        isWithinInterval(parseISO(t.date), { start: startOfDay(startDate), end: endOfDay(endDate) })
+      filtered = filtered.filter(t => 
+        isWithinInterval(parseISO(t.trade_date), { start: startOfDay(startDate), end: endOfDay(endDate) })
       );
     }
 
     // Sort
-    trades = [...trades].sort((a, b) => {
+    filtered = filtered.sort((a, b) => {
       const modifier = sortOrder === 'asc' ? 1 : -1;
-      if (sortBy === 'date') return modifier * (new Date(b.date).getTime() - new Date(a.date).getTime());
-      if (sortBy === 'pnl') return modifier * (a.pnl - b.pnl);
-      if (sortBy === 'quality') return modifier * (a.qualityScore - b.qualityScore);
+      if (sortBy === 'date') return modifier * (new Date(b.trade_date).getTime() - new Date(a.trade_date).getTime());
+      if (sortBy === 'pnl') return modifier * ((a.profit_loss || 0) - (b.profit_loss || 0));
       if (sortBy === 'asset') return modifier * a.asset.localeCompare(b.asset);
       return 0;
     });
 
-    return trades;
-  }, [searchQuery, filterDirection, filterResult, filterAsset, filterSetup, filterEmotion, sortBy, sortOrder, periodFilter, startDate, endDate, locale]);
+    return filtered;
+  }, [trades, searchQuery, filterDirection, filterResult, filterAsset, filterSetup, filterEmotion, sortBy, sortOrder, periodFilter, startDate, endDate, locale]);
 
   // Calculate totals
-  const totalGains = filteredTrades.filter(t => t.pnl > 0).reduce((sum, t) => sum + t.pnl, 0);
-  const totalLosses = filteredTrades.filter(t => t.pnl < 0).reduce((sum, t) => sum + Math.abs(t.pnl), 0);
-  const totalBreakeven = filteredTrades.filter(t => t.pnl === 0).length;
+  const totalGains = filteredTrades.filter(t => t.profit_loss && t.profit_loss > 0).reduce((sum, t) => sum + (t.profit_loss || 0), 0);
+  const totalLosses = filteredTrades.filter(t => t.profit_loss && t.profit_loss < 0).reduce((sum, t) => sum + Math.abs(t.profit_loss || 0), 0);
+  const totalBreakeven = filteredTrades.filter(t => t.result === 'breakeven').length;
 
   const clearFilters = () => {
     setSearchQuery('');
@@ -268,6 +146,26 @@ const History: React.FC = () => {
     setStartDate(undefined);
     setEndDate(undefined);
   };
+
+  const handleDeleteTrade = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (window.confirm('Êtes-vous sûr de vouloir supprimer ce trade?')) {
+      try {
+        await deleteTrade.mutateAsync(id);
+        toast.success('Trade supprimé');
+      } catch (error) {
+        toast.error('Erreur lors de la suppression');
+      }
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[50vh]">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="py-4 space-y-6">
@@ -381,8 +279,8 @@ const History: React.FC = () => {
             </SelectTrigger>
             <SelectContent className="bg-popover border-border">
               <SelectItem value="all">Tous</SelectItem>
-              <SelectItem value="buy">Buy</SelectItem>
-              <SelectItem value="sell">Sell</SelectItem>
+              <SelectItem value="long">Long</SelectItem>
+              <SelectItem value="short">Short</SelectItem>
             </SelectContent>
           </Select>
 
@@ -395,6 +293,7 @@ const History: React.FC = () => {
               <SelectItem value="win">Gain</SelectItem>
               <SelectItem value="loss">Perte</SelectItem>
               <SelectItem value="breakeven">Break-even</SelectItem>
+              <SelectItem value="pending">En cours</SelectItem>
             </SelectContent>
           </Select>
 
@@ -417,19 +316,7 @@ const History: React.FC = () => {
             <SelectContent className="bg-popover border-border">
               <SelectItem value="all">Tous</SelectItem>
               {uniqueSetups.map(setup => (
-                <SelectItem key={setup} value={setup}>{setup}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Select value={filterEmotion} onValueChange={setFilterEmotion}>
-            <SelectTrigger className="w-32">
-              <SelectValue placeholder="Émotion" />
-            </SelectTrigger>
-            <SelectContent className="bg-popover border-border">
-              <SelectItem value="all">Tous</SelectItem>
-              {uniqueEmotions.map(emotion => (
-                <SelectItem key={emotion} value={emotion} className="capitalize">{emotion}</SelectItem>
+                <SelectItem key={setup as string} value={setup as string}>{setup}</SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -441,7 +328,6 @@ const History: React.FC = () => {
             <SelectContent className="bg-popover border-border">
               <SelectItem value="date">Date</SelectItem>
               <SelectItem value="pnl">PnL</SelectItem>
-              <SelectItem value="quality">Qualité</SelectItem>
               <SelectItem value="asset">Actif</SelectItem>
             </SelectContent>
           </Select>
@@ -462,143 +348,151 @@ const History: React.FC = () => {
       </div>
 
       {/* Trades List */}
-      <div className="space-y-3">
-        {filteredTrades.map((trade, index) => (
-          <div
-            key={trade.id}
-            className="glass-card-hover overflow-hidden animate-fade-in"
-            style={{ animationDelay: `${200 + index * 50}ms` }}
-          >
-            {/* Main Row */}
+      {filteredTrades.length === 0 ? (
+        <div className="glass-card p-12 text-center animate-fade-in">
+          <FileX className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
+          <h3 className="font-display text-xl font-semibold text-foreground mb-2">
+            Aucun trade trouvé
+          </h3>
+          <p className="text-muted-foreground mb-4">
+            {trades.length === 0 
+              ? "Commencez à enregistrer vos trades pour les voir ici"
+              : "Essayez de modifier vos filtres"
+            }
+          </p>
+          {trades.length > 0 && (
+            <Button variant="outline" onClick={clearFilters}>
+              Réinitialiser les filtres
+            </Button>
+          )}
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {filteredTrades.map((trade, index) => (
             <div
-              className="p-4 cursor-pointer"
-              onClick={() => setExpandedTrade(expandedTrade === trade.id ? null : trade.id)}
+              key={trade.id}
+              className="glass-card-hover overflow-hidden animate-fade-in"
+              style={{ animationDelay: `${200 + index * 50}ms` }}
             >
-              <div className="flex items-center justify-between gap-4">
-                <div className="flex items-center gap-4">
-                  {/* Direction Icon */}
-                  <div className={cn(
-                    "w-10 h-10 rounded-lg flex items-center justify-center",
-                    trade.direction === 'buy' ? "bg-profit/20" : "bg-loss/20"
-                  )}>
-                    {trade.direction === 'buy' ? (
-                      <TrendingUp className="w-5 h-5 text-profit" />
+              {/* Main Row */}
+              <div
+                className="p-4 cursor-pointer"
+                onClick={() => setExpandedTrade(expandedTrade === trade.id ? null : trade.id)}
+              >
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-4">
+                    {/* Direction Icon */}
+                    <div className={cn(
+                      "w-10 h-10 rounded-lg flex items-center justify-center",
+                      trade.direction === 'long' ? "bg-profit/20" : "bg-loss/20"
+                    )}>
+                      {trade.direction === 'long' ? (
+                        <TrendingUp className="w-5 h-5 text-profit" />
+                      ) : (
+                        <TrendingDown className="w-5 h-5 text-loss" />
+                      )}
+                    </div>
+
+                    {/* Trade Info */}
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-display font-semibold text-foreground">{trade.asset}</span>
+                        <Badge variant="outline" className="text-xs">
+                          {trade.direction === 'long' ? 'LONG' : 'SHORT'}
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        {format(parseISO(trade.trade_date), 'dd MMM yyyy HH:mm', { locale })}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* PnL and Actions */}
+                  <div className="flex items-center gap-4">
+                    <div className="text-right">
+                      <p className={cn(
+                        "font-display font-bold text-lg",
+                        trade.profit_loss && trade.profit_loss > 0 ? "profit-text" : 
+                        trade.profit_loss && trade.profit_loss < 0 ? "loss-text" : "text-muted-foreground"
+                      )}>
+                        {trade.profit_loss !== null 
+                          ? `${trade.profit_loss > 0 ? '+' : ''}$${trade.profit_loss.toLocaleString()}`
+                          : 'En cours'
+                        }
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {trade.lot_size} lots
+                      </p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-muted-foreground hover:text-loss"
+                      onClick={(e) => handleDeleteTrade(trade.id, e)}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                    {expandedTrade === trade.id ? (
+                      <ChevronUp className="w-5 h-5 text-muted-foreground" />
                     ) : (
-                      <TrendingDown className="w-5 h-5 text-loss" />
+                      <ChevronDown className="w-5 h-5 text-muted-foreground" />
                     )}
                   </div>
-
-                  {/* Trade Info */}
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-display font-semibold text-foreground">
-                        {trade.asset}
-                      </span>
-                      <Badge variant="outline" className="text-xs">
-                        {trade.timeframe}
-                      </Badge>
-                    </div>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <span>{format(parseISO(trade.date), 'dd MMM yyyy', { locale })}</span>
-                      <span>•</span>
-                      <span>{trade.time}</span>
-                      <span>•</span>
-                      <span>{trade.setup}</span>
-                    </div>
-                  </div>
                 </div>
+              </div>
 
-                {/* PnL & Score */}
-                <div className="flex items-center gap-6">
-                  <div className="text-right">
-                    <p className={cn(
-                      "font-display font-bold",
-                      trade.pnl > 0 ? "profit-text" : trade.pnl < 0 ? "loss-text" : "text-muted-foreground"
-                    )}>
-                      {trade.pnl > 0 ? '+' : ''}{trade.pnl}$
-                    </p>
-                    <p className="text-xs text-muted-foreground">{trade.lotSize} lots</p>
+              {/* Expanded Details */}
+              {expandedTrade === trade.id && (
+                <div className="px-4 pb-4 pt-2 border-t border-border bg-secondary/20">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Prix d'entrée</p>
+                      <p className="font-medium text-foreground">{trade.entry_price}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Prix de sortie</p>
+                      <p className="font-medium text-foreground">{trade.exit_price || '-'}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Stop Loss</p>
+                      <p className="font-medium text-loss">{trade.stop_loss || '-'}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Take Profit</p>
+                      <p className="font-medium text-profit">{trade.take_profit || '-'}</p>
+                    </div>
                   </div>
 
-                  <div className={cn(
-                    "w-12 h-12 rounded-full flex items-center justify-center border-2",
-                    trade.qualityScore >= 80 ? "border-profit text-profit" :
-                    trade.qualityScore >= 60 ? "border-primary text-primary" :
-                    "border-loss text-loss"
-                  )}>
-                    <span className="font-display font-bold text-sm">{trade.qualityScore}</span>
-                  </div>
-
-                  {expandedTrade === trade.id ? (
-                    <ChevronUp className="w-5 h-5 text-muted-foreground" />
-                  ) : (
-                    <ChevronDown className="w-5 h-5 text-muted-foreground" />
+                  {(trade.setup || trade.emotions || trade.notes) && (
+                    <div className="mt-4 pt-4 border-t border-border/50 space-y-3">
+                      {trade.setup && (
+                        <div>
+                          <p className="text-xs text-muted-foreground">Setup</p>
+                          <p className="font-medium text-foreground">{trade.setup}</p>
+                        </div>
+                      )}
+                      {trade.emotions && (
+                        <div>
+                          <p className="text-xs text-muted-foreground">Émotion</p>
+                          <Badge variant="outline" className="capitalize">{trade.emotions}</Badge>
+                        </div>
+                      )}
+                      {trade.notes && (
+                        <div>
+                          <p className="text-xs text-muted-foreground">Notes</p>
+                          <p className="text-sm text-muted-foreground">{trade.notes}</p>
+                        </div>
+                      )}
+                    </div>
                   )}
                 </div>
-              </div>
+              )}
             </div>
-
-            {/* Expanded Details */}
-            {expandedTrade === trade.id && (
-              <div className="border-t border-border p-4 bg-background/50 space-y-4">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div>
-                    <p className="text-xs text-muted-foreground">{t('entryPrice')}</p>
-                    <p className="font-medium text-foreground">{trade.entryPrice}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">{t('stopLoss')}</p>
-                    <p className="font-medium text-loss">{trade.stopLoss}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">{t('takeProfit')}</p>
-                    <p className="font-medium text-profit">{trade.takeProfit}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">{t('emotion')}</p>
-                    <p className="font-medium text-foreground capitalize">{trade.emotion}</p>
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap gap-2">
-                  {trade.tags.map(tag => (
-                    <Badge key={tag} variant="secondary" className="text-xs">
-                      {tag}
-                    </Badge>
-                  ))}
-                </div>
-
-                {/* Images if any */}
-                {trade.images && trade.images.length > 0 && (
-                  <div className="grid grid-cols-4 gap-2">
-                    {trade.images.map((img, idx) => (
-                      <div key={idx} className="aspect-video rounded-lg overflow-hidden border border-border">
-                        <img src={img} alt={`Capture ${idx + 1}`} className="w-full h-full object-cover" />
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
-
-      {filteredTrades.length === 0 && (
-        <div className="glass-card p-12 text-center">
-          <p className="text-muted-foreground">{t('noData')}</p>
-          <Button variant="ghost" onClick={clearFilters} className="mt-4">
-            Réinitialiser les filtres
-          </Button>
+          ))}
         </div>
       )}
     </div>
   );
 };
-
-// Add missing Label import
-const Label = ({ children, className }: { children: React.ReactNode; className?: string }) => (
-  <span className={cn("text-sm font-medium", className)}>{children}</span>
-);
 
 export default History;
