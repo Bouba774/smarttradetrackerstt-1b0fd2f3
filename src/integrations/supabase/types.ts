@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      journal_entries: {
+        Row: {
+          checklist: Json | null
+          created_at: string
+          daily_objective: string | null
+          entry_date: string
+          id: string
+          lessons: string | null
+          notes: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          checklist?: Json | null
+          created_at?: string
+          daily_objective?: string | null
+          entry_date: string
+          id?: string
+          lessons?: string | null
+          notes?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          checklist?: Json | null
+          created_at?: string
+          daily_objective?: string | null
+          entry_date?: string
+          id?: string
+          lessons?: string | null
+          notes?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
