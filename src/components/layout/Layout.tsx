@@ -14,21 +14,21 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const isDashboard = location.pathname === '/dashboard';
 
   return (
-    <SidebarProvider defaultOpen={true}>
-      <div className="min-h-screen flex w-full bg-background relative overflow-hidden">
-        {/* Ambient glow effects */}
+    <SidebarProvider defaultOpen={false}>
+      <div className="min-h-screen flex w-full bg-background relative overflow-x-hidden">
+        {/* Ambient glow effects - reduced on mobile for performance */}
         <div className="fixed inset-0 pointer-events-none overflow-hidden">
-          <div className="absolute -top-1/4 -left-1/4 w-1/2 h-1/2 bg-primary/5 rounded-full blur-[150px] animate-pulse" />
-          <div className="absolute -bottom-1/4 -right-1/4 w-1/2 h-1/2 bg-profit/5 rounded-full blur-[150px] animate-pulse" style={{ animationDelay: '1s' }} />
+          <div className="absolute -top-1/4 -left-1/4 w-1/2 h-1/2 bg-primary/5 rounded-full blur-[100px] sm:blur-[150px] animate-pulse" />
+          <div className="absolute -bottom-1/4 -right-1/4 w-1/2 h-1/2 bg-profit/5 rounded-full blur-[100px] sm:blur-[150px] animate-pulse" style={{ animationDelay: '1s' }} />
         </div>
 
         <AppSidebar />
         
-        <SidebarInset className="flex-1 flex flex-col">
+        <SidebarInset className="flex-1 flex flex-col min-w-0 w-full overflow-x-hidden">
           <Header />
           
-          <main className="flex-1 pt-20 pb-6 px-4 md:px-6 relative z-10 overflow-auto">
-            <div className="container mx-auto max-w-7xl">
+          <main className="flex-1 pt-16 sm:pt-20 pb-4 sm:pb-6 px-3 sm:px-4 md:px-6 relative z-10 overflow-x-hidden overflow-y-auto">
+            <div className="w-full max-w-7xl mx-auto">
               {children}
             </div>
             {isDashboard && <Footer />}

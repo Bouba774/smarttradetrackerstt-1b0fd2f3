@@ -150,30 +150,30 @@ const Dashboard: React.FC = () => {
   const levelTitle = language === 'fr' ? currentLevel.title : currentLevel.titleEn;
 
   return (
-    <div className="space-y-6 py-4">
+    <div className="space-y-4 sm:space-y-6 py-2 sm:py-4 w-full max-w-full overflow-x-hidden">
       {/* Welcome Message */}
-      <div className="glass-card p-6 animate-fade-in bg-gradient-to-r from-primary/10 to-profit/10 border-primary/30">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="font-display text-2xl md:text-3xl font-bold text-foreground">
+      <div className="glass-card p-4 sm:p-6 animate-fade-in bg-gradient-to-r from-primary/10 to-profit/10 border-primary/30">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="font-display text-lg sm:text-2xl md:text-3xl font-bold text-foreground truncate">
               {t('welcome')} {userNickname} 👋
             </h1>
-            <p className="text-primary font-display font-semibold mt-1 neon-text">
+            <p className="text-primary font-display font-semibold mt-1 neon-text text-sm sm:text-base">
               {levelTitle} (Niveau {userLevel})
             </p>
           </div>
-          <div className="hidden md:flex items-center gap-3 px-4 py-2 rounded-lg bg-primary/20 border border-primary/30">
-            <span className="text-2xl">🏆</span>
+          <div className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 rounded-lg bg-primary/20 border border-primary/30 self-start sm:self-auto">
+            <span className="text-xl sm:text-2xl">🏆</span>
             <div>
-              <p className="text-xs text-muted-foreground">Niveau actuel</p>
-              <p className="font-display font-bold text-primary">{userLevel}</p>
+              <p className="text-[10px] sm:text-xs text-muted-foreground">Niveau actuel</p>
+              <p className="font-display font-bold text-primary text-sm sm:text-base">{userLevel}</p>
             </div>
           </div>
         </div>
       </div>
 
       {/* Main Performance Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-4">
         <StatCard
           title="Total Transactions"
           value={stats.totalTrades}
@@ -181,14 +181,14 @@ const Dashboard: React.FC = () => {
           delay={0}
         />
         <StatCard
-          title="Transactions Rentables"
+          title="Trans. Rentables"
           value={stats.winningTrades}
           icon={TrendingUp}
           variant="profit"
           delay={50}
         />
         <StatCard
-          title="Transactions Perdantes"
+          title="Trans. Perdantes"
           value={stats.losingTrades}
           icon={TrendingDown}
           variant="loss"
@@ -218,7 +218,7 @@ const Dashboard: React.FC = () => {
       </div>
 
       {/* Financial Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-4">
         <StatCard
           title="Bénéfice Brut"
           value={`$${stats.grossProfit.toLocaleString()}`}
@@ -243,7 +243,7 @@ const Dashboard: React.FC = () => {
           delay={400}
         />
         <StatCard
-          title="Facteur de Profit"
+          title="Facteur Profit"
           value={stats.profitFactor.toFixed(2)}
           icon={Scale}
           variant={stats.profitFactor > 1 ? 'profit' : 'loss'}
@@ -267,7 +267,7 @@ const Dashboard: React.FC = () => {
       </div>
 
       {/* Average Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
         <StatCard
           title="Perte Moyenne"
           value={`$${stats.avgLoss.toFixed(2)}`}
@@ -276,7 +276,7 @@ const Dashboard: React.FC = () => {
           delay={600}
         />
         <StatCard
-          title="Taille Moyenne (Lots)"
+          title="Taille Moy. (Lots)"
           value={stats.avgTradeSize.toFixed(2)}
           icon={BarChart3}
           delay={650}
@@ -297,14 +297,14 @@ const Dashboard: React.FC = () => {
       </div>
 
       {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {/* Equity Curve */}
-        <div className="glass-card p-6 animate-fade-in" style={{ animationDelay: '800ms' }}>
-          <h3 className="font-display font-semibold text-foreground mb-4 flex items-center gap-2">
-            <Activity className="w-5 h-5 text-primary" />
+        <div className="glass-card p-3 sm:p-6 animate-fade-in" style={{ animationDelay: '800ms' }}>
+          <h3 className="font-display font-semibold text-foreground mb-3 sm:mb-4 flex items-center gap-2 text-sm sm:text-base">
+            <Activity className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
             {t('equityCurve')}
           </h3>
-          <div className="h-64">
+          <div className="h-48 sm:h-64">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={equityData}>
                 <defs>
@@ -314,13 +314,14 @@ const Dashboard: React.FC = () => {
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" fontSize={10} tick={{ fontSize: 10 }} />
+                <YAxis stroke="hsl(var(--muted-foreground))" fontSize={10} tick={{ fontSize: 10 }} width={45} />
                 <Tooltip
                   contentStyle={{
                     backgroundColor: 'hsl(var(--card))',
                     border: '1px solid hsl(var(--border))',
                     borderRadius: '8px',
+                    fontSize: '12px',
                   }}
                 />
                 <Area
@@ -336,22 +337,23 @@ const Dashboard: React.FC = () => {
         </div>
 
         {/* Gain/Loss Chart */}
-        <div className="glass-card p-6 animate-fade-in" style={{ animationDelay: '850ms' }}>
-          <h3 className="font-display font-semibold text-foreground mb-4 flex items-center gap-2">
-            <BarChart3 className="w-5 h-5 text-primary" />
+        <div className="glass-card p-3 sm:p-6 animate-fade-in" style={{ animationDelay: '850ms' }}>
+          <h3 className="font-display font-semibold text-foreground mb-3 sm:mb-4 flex items-center gap-2 text-sm sm:text-base">
+            <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
             {t('gainLossChart')}
           </h3>
-          <div className="h-64">
+          <div className="h-48 sm:h-64">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={gainLossData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="day" stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                <XAxis dataKey="day" stroke="hsl(var(--muted-foreground))" fontSize={10} tick={{ fontSize: 10 }} />
+                <YAxis stroke="hsl(var(--muted-foreground))" fontSize={10} tick={{ fontSize: 10 }} width={40} />
                 <Tooltip
                   contentStyle={{
                     backgroundColor: 'hsl(var(--card))',
                     border: '1px solid hsl(var(--border))',
                     borderRadius: '8px',
+                    fontSize: '12px',
                   }}
                 />
                 <Bar dataKey="gain" fill="hsl(var(--profit))" radius={[4, 4, 0, 0]} />
