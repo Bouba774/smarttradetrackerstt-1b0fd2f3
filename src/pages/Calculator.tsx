@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useCurrency } from '@/hooks/useCurrency';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -18,6 +19,7 @@ import { ASSET_CATEGORIES, PIP_VALUES, DECIMALS, getPipSize, getAssetCategory } 
 
 const Calculator: React.FC = () => {
   const { t } = useLanguage();
+  const { formatAmount, getCurrencySymbol, currency } = useCurrency();
   const [assetSearch, setAssetSearch] = useState('');
 
   const [formData, setFormData] = useState({
@@ -228,7 +230,7 @@ const Calculator: React.FC = () => {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>{t('capital')} ($)</Label>
+                <Label>{t('capital')} ({getCurrencySymbol()})</Label>
                 <Input
                   type="number"
                   placeholder="10000"
@@ -351,7 +353,7 @@ const Calculator: React.FC = () => {
                 <div className="p-4 rounded-lg bg-secondary/50">
                   <p className="text-xs text-muted-foreground">{t('riskAmount')}</p>
                   <p className="font-display text-xl font-bold text-foreground">
-                    ${results.riskAmount}
+                    {formatAmount(results.riskAmount, false, false)}
                   </p>
                 </div>
                 <div className="p-4 rounded-lg bg-secondary/50">
@@ -366,12 +368,12 @@ const Calculator: React.FC = () => {
                 <div className="p-4 rounded-lg bg-loss/10 border border-loss/20">
                   <p className="text-xs text-muted-foreground">{t('slPoints')}</p>
                   <p className="font-display text-xl font-bold text-loss">{results.slPips} pips</p>
-                  <p className="text-xs text-muted-foreground mt-1">Perte max: ${results.slValue}</p>
+                  <p className="text-xs text-muted-foreground mt-1">Perte max: {formatAmount(results.slValue, false, false)}</p>
                 </div>
                 <div className="p-4 rounded-lg bg-profit/10 border border-profit/20">
                   <p className="text-xs text-muted-foreground">{t('tpPoints')}</p>
                   <p className="font-display text-xl font-bold text-profit">{results.tpPips || '-'} pips</p>
-                  <p className="text-xs text-muted-foreground mt-1">Gain potentiel: ${results.tpValue || 0}</p>
+                  <p className="text-xs text-muted-foreground mt-1">Gain potentiel: {formatAmount(results.tpValue || 0, false, false)}</p>
                 </div>
               </div>
 
