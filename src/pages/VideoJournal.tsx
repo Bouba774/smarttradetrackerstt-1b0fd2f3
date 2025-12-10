@@ -95,30 +95,57 @@ const VideoJournal: React.FC = () => {
 
   const startRecording = async (type: 'video' | 'audio') => {
     try {
+      // Higher quality constraints
       const constraints = type === 'video'
         ? { 
             video: { 
               facingMode: facingMode, 
-              width: { ideal: 1280 }, 
-              height: { ideal: 720 } 
+              width: { ideal: 1920, min: 1280 }, 
+              height: { ideal: 1080, min: 720 },
+              frameRate: { ideal: 30 }
             }, 
-            audio: true 
+            audio: {
+              echoCancellation: true,
+              noiseSuppression: true,
+              sampleRate: 48000
+            }
           }
-        : { audio: true };
+        : { 
+            audio: {
+              echoCancellation: true,
+              noiseSuppression: true,
+              sampleRate: 48000
+            }
+          };
 
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
       streamRef.current = stream;
 
       if (type === 'video' && videoPreviewRef.current) {
         videoPreviewRef.current.srcObject = stream;
-        videoPreviewRef.current.play();
+        // Ensure preview plays immediately
+        await videoPreviewRef.current.play().catch(() => {});
       }
 
+      // Better quality encoding
       const mimeType = type === 'video' 
-        ? (MediaRecorder.isTypeSupported('video/webm;codecs=vp9') ? 'video/webm;codecs=vp9' : 'video/webm')
-        : (MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4');
+        ? (MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus') 
+            ? 'video/webm;codecs=vp9,opus' 
+            : MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus')
+              ? 'video/webm;codecs=vp8,opus'
+              : 'video/webm')
+        : (MediaRecorder.isTypeSupported('audio/webm;codecs=opus') 
+            ? 'audio/webm;codecs=opus' 
+            : 'audio/webm');
 
-      const mediaRecorder = new MediaRecorder(stream, { mimeType });
+      // Higher bitrate for better quality
+      const options: MediaRecorderOptions = { 
+        mimeType,
+        videoBitsPerSecond: type === 'video' ? 2500000 : undefined, // 2.5 Mbps for video
+        audioBitsPerSecond: 128000 // 128 kbps for audio
+      };
+
+      const mediaRecorder = new MediaRecorder(stream, options);
       mediaRecorderRef.current = mediaRecorder;
       chunksRef.current = [];
 
@@ -158,7 +185,8 @@ const VideoJournal: React.FC = () => {
         );
       };
 
-      mediaRecorder.start(1000);
+      // Start with smaller timeslice for smoother streaming
+      mediaRecorder.start(500);
       setIsRecording(true);
       setRecordingType(type);
       setRecordingTime(0);
@@ -206,30 +234,39 @@ const VideoJournal: React.FC = () => {
 
   const switchCamera = async () => {
     const newFacingMode = facingMode === 'user' ? 'environment' : 'user';
-    setFacingMode(newFacingMode);
     
-    if (isRecording && recordingType === 'video') {
-      // Stop current stream
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => track.stop());
-      }
-      
+    if (isRecording && recordingType === 'video' && mediaRecorderRef.current) {
+      // Seamless camera switch: replace video track without stopping the recorder
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({
+        // Get new video stream with new camera
+        const newVideoStream = await navigator.mediaDevices.getUserMedia({
           video: { 
             facingMode: newFacingMode, 
-            width: { ideal: 1280 }, 
-            height: { ideal: 720 } 
-          },
-          audio: true
+            width: { ideal: 1920, min: 1280 }, 
+            height: { ideal: 1080, min: 720 },
+            frameRate: { ideal: 30 }
+          }
         });
-        streamRef.current = stream;
         
-        if (videoPreviewRef.current) {
-          videoPreviewRef.current.srcObject = stream;
-          videoPreviewRef.current.play();
+        const newVideoTrack = newVideoStream.getVideoTracks()[0];
+        
+        if (streamRef.current) {
+          // Get the old video track and stop it
+          const oldVideoTrack = streamRef.current.getVideoTracks()[0];
+          
+          // Replace the video track in the current stream
+          streamRef.current.removeTrack(oldVideoTrack);
+          streamRef.current.addTrack(newVideoTrack);
+          oldVideoTrack.stop();
+          
+          // Update preview with new stream
+          if (videoPreviewRef.current) {
+            videoPreviewRef.current.srcObject = streamRef.current;
+            await videoPreviewRef.current.play().catch(() => {});
+          }
         }
         
+        setFacingMode(newFacingMode);
         toast.success(
           language === 'fr'
             ? `Caméra ${newFacingMode === 'user' ? 'avant' : 'arrière'} activée`
@@ -237,13 +274,16 @@ const VideoJournal: React.FC = () => {
         );
       } catch (error) {
         console.error('Error switching camera:', error);
+        // Fallback: if seamless switch fails, notify user but don't stop recording
         toast.error(
           language === 'fr'
-            ? 'Erreur lors du changement de caméra'
-            : 'Error switching camera'
+            ? 'Changement de caméra non disponible'
+            : 'Camera switch not available'
         );
       }
     } else {
+      // Not recording - just update the state
+      setFacingMode(newFacingMode);
       toast.info(
         language === 'fr'
           ? `Caméra ${newFacingMode === 'user' ? 'avant' : 'arrière'} sélectionnée`

@@ -75,7 +75,7 @@ export const CHALLENGE_DEFINITIONS: ChallengeDefinition[] = [
     icon: 'Star',
     calculateProgress: (trades) => trades.length
   },
-  // Medium
+  // Medium challenges
   {
     id: 'winning_streak',
     title: 'Série Gagnante',
@@ -225,16 +225,18 @@ export const useChallenges = () => {
     const calculatedProgress = stats ? def.calculateProgress(trades, stats) : 0;
     const progress = Math.min(calculatedProgress, def.target);
     const completed = progress >= def.target;
-    // Only mark as newly completed if not already marked as popup_shown in DB
-    const popupShown = userChallenge?.popup_shown || false;
+    // Check if popup was already shown - this is the key for preventing duplicate popups
+    const popupAlreadyShown = userChallenge?.popup_shown === true;
+    const wasAlreadyCompleted = userChallenge?.completed === true;
 
     return {
       ...def,
       progress,
       completed,
       userChallenge,
-      isNewlyCompleted: completed && !userChallenge?.completed && !popupShown,
-      popupShown,
+      // Only show popup if: completed now, not previously completed in DB, and popup never shown
+      isNewlyCompleted: completed && !wasAlreadyCompleted && !popupAlreadyShown,
+      popupShown: popupAlreadyShown,
     };
   });
 
@@ -246,22 +248,25 @@ export const useChallenges = () => {
       const existingChallenge = challenge.userChallenge;
 
       if (existingChallenge) {
-        // Update existing
+        // Update existing - NEVER reset popup_shown to false once it's true
+        const shouldMarkPopupShown = challenge.completed || existingChallenge.popup_shown;
+        const isNewlyCompleted = challenge.completed && !existingChallenge.completed;
+        
         const { error } = await supabase
           .from('user_challenges')
           .update({
             progress: challenge.progress,
             completed: challenge.completed,
-            completed_at: challenge.completed && !existingChallenge.completed ? new Date().toISOString() : existingChallenge.completed_at,
-            points_earned: challenge.completed ? challenge.points : 0,
-            popup_shown: challenge.completed ? true : existingChallenge.popup_shown || false,
+            completed_at: isNewlyCompleted ? new Date().toISOString() : existingChallenge.completed_at,
+            points_earned: challenge.completed ? challenge.points : existingChallenge.points_earned,
+            popup_shown: shouldMarkPopupShown,
           })
           .eq('id', existingChallenge.id);
 
         if (error) throw error;
 
-        // If newly completed, update user points
-        if (challenge.completed && !existingChallenge.completed) {
+        // If newly completed (first time), update user points
+        if (isNewlyCompleted && !existingChallenge.points_earned) {
           const newPoints = (profile?.total_points || 0) + challenge.points;
           const newLevel = USER_LEVELS.reduce((acc, lvl) => 
             newPoints >= lvl.minPoints ? lvl.level : acc

@@ -72,9 +72,17 @@ const Journal: React.FC = () => {
       setChecklist(entry.checklist.length > 0 ? entry.checklist : DEFAULT_CHECKLIST.map(i => ({ ...i, checked: false })));
       setObjectives(entry.daily_objective || '');
       setLessons(entry.lessons || '');
-      setMistakes('');
-      setStrengths('');
-      setRating(0);
+      // Parse notes JSON if available
+      try {
+        const notesData = entry.notes ? JSON.parse(entry.notes) : {};
+        setMistakes(notesData.mistakes || '');
+        setStrengths(notesData.strengths || '');
+      } catch {
+        setMistakes('');
+        setStrengths('');
+      }
+      // Load saved rating
+      setRating(entry.rating || 0);
     } else {
       // Reset to defaults for new date
       setChecklist(DEFAULT_CHECKLIST.map(i => ({ ...i, checked: false })));
