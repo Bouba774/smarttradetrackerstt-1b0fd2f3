@@ -69,6 +69,8 @@ const AddTrade: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [date, setDate] = useState<Date>(new Date());
+  const [exitDate, setExitDate] = useState<Date | undefined>();
+  const [exitTime, setExitTime] = useState('');
   const [direction, setDirection] = useState<'buy' | 'sell'>('buy');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [assetSearch, setAssetSearch] = useState('');
@@ -77,12 +79,14 @@ const AddTrade: React.FC = () => {
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [customTimeframe, setCustomTimeframe] = useState('');
   const [customSetup, setCustomSetup] = useState('');
+  const [exitMethod, setExitMethod] = useState<'sl' | 'tp' | 'manual'>('manual');
   
   const [formData, setFormData] = useState({
     asset: '',
     setup: '',
     timeframe: '',
     entryPrice: '',
+    exitPrice: '',
     stopLoss: '',
     takeProfit: '',
     lotSize: '',
@@ -196,12 +200,42 @@ const AddTrade: React.FC = () => {
       } else {
         result = 'pending';
       }
+
+      // Calculate exit timestamp and duration
+      let exitTimestamp: string | null = null;
+      let durationSeconds: number | null = null;
+      
+      if (exitDate) {
+        const exitDateTime = new Date(exitDate);
+        if (exitTime) {
+          const [hours, minutes] = exitTime.split(':').map(Number);
+          exitDateTime.setHours(hours, minutes, 0, 0);
+        }
+        exitTimestamp = exitDateTime.toISOString();
+        durationSeconds = Math.floor((exitDateTime.getTime() - date.getTime()) / 1000);
+        if (durationSeconds < 0) durationSeconds = null;
+      }
+
+      // Calculate exit price based on exit method
+      let finalExitPrice = formData.exitPrice ? parseFloat(formData.exitPrice) : null;
+      if (exitMethod === 'sl' && formData.stopLoss) {
+        finalExitPrice = parseFloat(formData.stopLoss);
+      } else if (exitMethod === 'tp' && formData.takeProfit) {
+        finalExitPrice = parseFloat(formData.takeProfit);
+      }
+
+      // Validation for exit price
+      if (finalExitPrice !== null && finalExitPrice < 0) {
+        toast.error(language === 'fr' ? 'Le prix de sortie ne peut pas être négatif' : 'Exit price cannot be negative');
+        setIsSubmitting(false);
+        return;
+      }
       
       await addTrade.mutateAsync({
         asset: finalAsset,
         direction: direction === 'buy' ? 'long' : 'short',
         entry_price: parseFloat(formData.entryPrice),
-        exit_price: pnl !== null ? parseFloat(formData.entryPrice) + (pnl / (parseFloat(formData.lotSize) * 100000)) : null,
+        exit_price: finalExitPrice,
         stop_loss: formData.stopLoss ? parseFloat(formData.stopLoss) : null,
         take_profit: formData.takeProfit ? parseFloat(formData.takeProfit) : null,
         lot_size: parseFloat(formData.lotSize),
@@ -213,6 +247,10 @@ const AddTrade: React.FC = () => {
         emotions: formData.emotion || null,
         images: uploadedImageUrls.length > 0 ? uploadedImageUrls : null,
         trade_date: date.toISOString(),
+        exit_timestamp: exitTimestamp,
+        exit_method: exitTimestamp ? exitMethod : null,
+        duration_seconds: durationSeconds,
+        timeframe: formData.timeframe || customTimeframe || null,
       });
       
       toast.success('Trade enregistré avec succès!');
@@ -223,6 +261,7 @@ const AddTrade: React.FC = () => {
         setup: '',
         timeframe: '',
         entryPrice: '',
+        exitPrice: '',
         stopLoss: '',
         takeProfit: '',
         lotSize: '',
@@ -239,6 +278,9 @@ const AddTrade: React.FC = () => {
       setCustomSetup('');
       setCustomTimeframe('');
       setDate(new Date());
+      setExitDate(undefined);
+      setExitTime('');
+      setExitMethod('manual');
       
     } catch (error) {
       console.error('Error saving trade:', error);
@@ -442,6 +484,83 @@ const AddTrade: React.FC = () => {
                 placeholder="0.10"
                 value={formData.lotSize}
                 onChange={(e) => handleInputChange('lotSize', e.target.value)}
+              />
+            </div>
+          </div>
+
+          {/* Exit Section */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-secondary/30 rounded-lg border border-border">
+            <div className="space-y-2">
+              <Label>{language === 'fr' ? 'Date/Heure de Sortie' : 'Exit Date/Time'}</Label>
+              <div className="flex gap-2">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "flex-1 justify-start text-left font-normal",
+                        !exitDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {exitDate ? format(exitDate, 'dd/MM/yy', { locale }) : (language === 'fr' ? 'Date sortie' : 'Exit date')}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0 bg-card border-border">
+                    <Calendar
+                      mode="single"
+                      selected={exitDate}
+                      onSelect={setExitDate}
+                      initialFocus
+                      className="pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
+                <Input 
+                  type="time" 
+                  value={exitTime}
+                  onChange={(e) => setExitTime(e.target.value)}
+                  className="w-24"
+                />
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <Label>{language === 'fr' ? 'Méthode de Sortie' : 'Exit Method'}</Label>
+              <Select value={exitMethod} onValueChange={(v: 'sl' | 'tp' | 'manual') => setExitMethod(v)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-popover border-border">
+                  <SelectItem value="manual">{language === 'fr' ? 'Personnalisé' : 'Manual'}</SelectItem>
+                  <SelectItem value="sl">{language === 'fr' ? 'Lié au SL' : 'Linked to SL'}</SelectItem>
+                  <SelectItem value="tp">{language === 'fr' ? 'Lié au TP' : 'Linked to TP'}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="space-y-2">
+              <Label>{language === 'fr' ? 'Prix de Sortie' : 'Exit Price'}</Label>
+              <Input
+                type="number"
+                step="any"
+                placeholder={
+                  exitMethod === 'sl' ? (formData.stopLoss || 'SL') :
+                  exitMethod === 'tp' ? (formData.takeProfit || 'TP') : '1.0900'
+                }
+                value={
+                  exitMethod === 'sl' ? formData.stopLoss :
+                  exitMethod === 'tp' ? formData.takeProfit : formData.exitPrice
+                }
+                onChange={(e) => {
+                  if (exitMethod === 'manual') {
+                    handleInputChange('exitPrice', e.target.value);
+                  }
+                }}
+                disabled={exitMethod !== 'manual'}
+                className={cn(
+                  exitMethod !== 'manual' && "bg-muted cursor-not-allowed"
+                )}
               />
             </div>
           </div>

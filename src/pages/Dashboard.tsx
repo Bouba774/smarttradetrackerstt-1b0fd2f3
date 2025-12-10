@@ -325,7 +325,7 @@ const Dashboard: React.FC = () => {
       {/* Section: Indicateurs de Performance */}
       <div>
         <SectionHeader icon={Zap} title="Indicateurs de Performance" delay={1000} />
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
           <StatCard
             title="Bénéfice Net"
             value={`$${stats.netProfit.toLocaleString()}`}
@@ -341,86 +341,58 @@ const Dashboard: React.FC = () => {
             delay={1100}
           />
           <StatCard
-            title="Espérance ($)"
-            value={`$${stats.expectancy.toFixed(2)}`}
-            icon={Target}
-            variant={stats.expectancy >= 0 ? 'profit' : 'loss'}
-            delay={1150}
-          />
-          <StatCard
-            title="Espérance (%)"
-            value={`${stats.expectancyPercent.toFixed(2)}%`}
-            icon={Percent}
-            variant={stats.expectancyPercent >= 0 ? 'profit' : 'loss'}
-            delay={1200}
-          />
-          <StatCard
             title="R:R Moyen"
             value={stats.avgRiskReward.toFixed(2)}
             icon={Scale}
             variant={stats.avgRiskReward >= 1.5 ? 'profit' : stats.avgRiskReward >= 1 ? 'neutral' : 'loss'}
-            delay={1250}
+            delay={1150}
           />
           <StatCard
             title="Résultat Moyen"
             value={`$${stats.avgTradeResult.toFixed(2)}`}
             icon={BarChart3}
             variant={stats.avgTradeResult >= 0 ? 'profit' : 'loss'}
-            delay={1300}
+            delay={1200}
           />
         </div>
       </div>
 
       {/* Section: Séries & Risque */}
       <div>
-        <SectionHeader icon={Flame} title="Séries & Gestion du Risque" delay={1350} />
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <SectionHeader icon={Flame} title="Séries" delay={1250} />
+        <div className="grid grid-cols-2 gap-3">
           <StatCard
             title="Série Gagnante Max"
             value={stats.longestWinStreak}
             icon={Award}
             variant="profit"
-            delay={1400}
+            delay={1300}
           />
           <StatCard
             title="Série Perdante Max"
             value={stats.longestLossStreak}
             icon={AlertTriangle}
             variant="loss"
-            delay={1450}
-          />
-          <StatCard
-            title="Max Drawdown ($)"
-            value={`$${stats.maxDrawdown.toLocaleString()}`}
-            icon={TrendingDown}
-            variant="loss"
-            delay={1500}
-          />
-          <StatCard
-            title="Max Drawdown (%)"
-            value={`${stats.maxDrawdownPercent.toFixed(1)}%`}
-            icon={Percent}
-            variant={stats.maxDrawdownPercent <= 10 ? 'profit' : stats.maxDrawdownPercent <= 20 ? 'neutral' : 'loss'}
-            delay={1550}
+            delay={1350}
           />
         </div>
       </div>
 
       {/* Section: Durée */}
       <div>
-        <SectionHeader icon={Timer} title="Durée des Trades" delay={1600} />
+        <SectionHeader icon={Timer} title="Durée des Trades" delay={1400} />
         <div className="grid grid-cols-2 gap-3">
           <StatCard
             title="Durée Moyenne"
             value={stats.avgTradeDuration}
             icon={Clock}
-            delay={1650}
+            delay={1450}
           />
           <StatCard
             title="Temps Total en Position"
             value={stats.totalTimeInPosition}
             icon={Timer}
-            delay={1700}
+            delay={1500}
           />
         </div>
       </div>

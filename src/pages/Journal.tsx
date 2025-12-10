@@ -99,7 +99,8 @@ const Journal: React.FC = () => {
         checklist,
         daily_objective: objectives || undefined,
         lessons: lessons || undefined,
-        notes: JSON.stringify({ mistakes, strengths, rating }),
+        notes: JSON.stringify({ mistakes, strengths }),
+        rating: rating > 0 ? rating : undefined,
       });
       toast.success(language === 'fr' ? 'Journal enregistré!' : 'Journal saved!');
     } catch (error) {

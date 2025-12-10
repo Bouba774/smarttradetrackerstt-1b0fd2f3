@@ -23,6 +23,7 @@ export type Database = {
           id: string
           lessons: string | null
           notes: string | null
+          rating: number | null
           updated_at: string
           user_id: string
         }
@@ -34,6 +35,7 @@ export type Database = {
           id?: string
           lessons?: string | null
           notes?: string | null
+          rating?: number | null
           updated_at?: string
           user_id: string
         }
@@ -45,6 +47,7 @@ export type Database = {
           id?: string
           lessons?: string | null
           notes?: string | null
+          rating?: number | null
           updated_at?: string
           user_id?: string
         }
@@ -101,9 +104,12 @@ export type Database = {
           created_at: string
           custom_setup: string | null
           direction: string
+          duration_seconds: number | null
           emotions: string | null
           entry_price: number
+          exit_method: string | null
           exit_price: number | null
+          exit_timestamp: string | null
           id: string
           images: string[] | null
           lot_size: number
@@ -113,6 +119,7 @@ export type Database = {
           setup: string | null
           stop_loss: number | null
           take_profit: number | null
+          timeframe: string | null
           trade_date: string
           updated_at: string
           user_id: string
@@ -122,9 +129,12 @@ export type Database = {
           created_at?: string
           custom_setup?: string | null
           direction: string
+          duration_seconds?: number | null
           emotions?: string | null
           entry_price: number
+          exit_method?: string | null
           exit_price?: number | null
+          exit_timestamp?: string | null
           id?: string
           images?: string[] | null
           lot_size: number
@@ -134,6 +144,7 @@ export type Database = {
           setup?: string | null
           stop_loss?: number | null
           take_profit?: number | null
+          timeframe?: string | null
           trade_date?: string
           updated_at?: string
           user_id: string
@@ -143,9 +154,12 @@ export type Database = {
           created_at?: string
           custom_setup?: string | null
           direction?: string
+          duration_seconds?: number | null
           emotions?: string | null
           entry_price?: number
+          exit_method?: string | null
           exit_price?: number | null
+          exit_timestamp?: string | null
           id?: string
           images?: string[] | null
           lot_size?: number
@@ -155,6 +169,7 @@ export type Database = {
           setup?: string | null
           stop_loss?: number | null
           take_profit?: number | null
+          timeframe?: string | null
           trade_date?: string
           updated_at?: string
           user_id?: string
@@ -169,6 +184,7 @@ export type Database = {
           created_at: string
           id: string
           points_earned: number | null
+          popup_shown: boolean | null
           progress: number | null
           target: number
           updated_at: string
@@ -181,6 +197,7 @@ export type Database = {
           created_at?: string
           id?: string
           points_earned?: number | null
+          popup_shown?: boolean | null
           progress?: number | null
           target: number
           updated_at?: string
@@ -193,6 +210,7 @@ export type Database = {
           created_at?: string
           id?: string
           points_earned?: number | null
+          popup_shown?: boolean | null
           progress?: number | null
           target?: number
           updated_at?: string

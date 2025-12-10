@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useIsMobile } from '@/hooks/use-mobile';
 import { format } from 'date-fns';
 import { fr, enUS } from 'date-fns/locale';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -11,7 +10,6 @@ const Header: React.FC = () => {
   const [currentTime, setCurrentTime] = useState(new Date());
   const { language } = useLanguage();
   const { toggleSidebar } = useSidebar();
-  const isMobile = useIsMobile();
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -23,7 +21,7 @@ const Header: React.FC = () => {
 
   const locale = language === 'fr' ? fr : enUS;
   
-  // Format: "Lun 8 Déc 2025   23 : 15 : 12"
+  // Format: "Mar 9 Déc 2025   06 : 29 : 17"
   const dayName = format(currentTime, 'EEE', { locale });
   const dayNumber = format(currentTime, 'd', { locale });
   const month = format(currentTime, 'MMM', { locale });
@@ -38,6 +36,7 @@ const Header: React.FC = () => {
   
   const formattedDate = `${capitalizedDay} ${dayNumber} ${capitalizedMonth} ${year}`;
   const formattedTime = `${hours} : ${minutes} : ${seconds}`;
+  const fullDateTime = `${formattedDate}   ${formattedTime}`;
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 glass-card border-b border-primary/20 px-2 sm:px-4 py-2 sm:py-3">
@@ -66,18 +65,18 @@ const Header: React.FC = () => {
           </h1>
         </div>
         
-        {/* Right side - Date & Time */}
+        {/* Right side - Date & Time - Always visible on all screens */}
         <div className="flex items-center shrink-0">
-          <div className="glass-card px-2 sm:px-4 py-1.5 sm:py-2 flex items-center gap-1 sm:gap-3">
-            {/* Date visible only on larger screens */}
-            {!isMobile && (
-              <span className="text-muted-foreground text-xs sm:text-sm whitespace-nowrap">
-                {formattedDate}
-              </span>
-            )}
-            {/* Time always visible */}
-            <span className="text-primary font-display font-semibold neon-text text-xs sm:text-sm whitespace-nowrap tracking-wider">
-              {formattedTime}
+          <div className="glass-card px-2 sm:px-4 py-1.5 sm:py-2 flex items-center">
+            {/* Full date & time - responsive font size, never hidden */}
+            <span 
+              className={cn(
+                "text-primary font-display font-semibold neon-text whitespace-nowrap tracking-wide",
+                "text-[10px] min-[360px]:text-xs sm:text-sm"
+              )}
+              style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}
+            >
+              {fullDateTime}
             </span>
           </div>
         </div>
