@@ -12,6 +12,7 @@ export interface UserChallenge {
   completed: boolean;
   completed_at: string | null;
   points_earned: number;
+  popup_shown: boolean;
   created_at: string;
   updated_at: string;
 }

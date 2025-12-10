@@ -17,6 +17,7 @@ export interface JournalEntry {
   daily_objective: string | null;
   lessons: string | null;
   notes: string | null;
+  rating: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -58,6 +59,7 @@ export const useJournalEntries = () => {
       daily_objective?: string;
       lessons?: string;
       notes?: string;
+      rating?: number;
     }) => {
       if (!user) throw new Error('User not authenticated');
 
@@ -76,6 +78,7 @@ export const useJournalEntries = () => {
         daily_objective: entry.daily_objective || null,
         lessons: entry.lessons || null,
         notes: entry.notes || null,
+        rating: entry.rating ?? null,
       };
 
       let result;
