@@ -49,7 +49,7 @@ const PsychologicalAnalysis: React.FC = () => {
     })).sort((a, b) => b.trades - a.trades);
   }, [trades]);
 
-  // Calculate emotion distribution
+  // Calculate emotion distribution with unique colors for all emotions
   const emotionDistribution = useMemo(() => {
     if (!trades || trades.length === 0) return [];
 
@@ -59,58 +59,113 @@ const PsychologicalAnalysis: React.FC = () => {
       counts[emotion] = (counts[emotion] || 0) + 1;
     });
 
-    const colors: Record<string, string> = {
-      'Calme': 'hsl(var(--profit))',
-      'Confiant': 'hsl(var(--primary))',
-      'Stressé': 'hsl(var(--loss))',
-      'Impulsif': 'hsl(30, 100%, 50%)',
-      'Neutre': 'hsl(var(--muted-foreground))',
+    // Extended color palette for all emotions
+    const colorPalette: Record<string, string> = {
+      'Calme': 'hsl(142, 76%, 36%)',        // Green
+      'Confiant': 'hsl(217, 91%, 60%)',      // Blue
+      'Stressé': 'hsl(0, 84%, 60%)',         // Red
+      'Impulsif': 'hsl(30, 100%, 50%)',      // Orange
+      'Euphorique': 'hsl(280, 87%, 65%)',    // Purple
+      'Fatigué': 'hsl(45, 93%, 47%)',        // Yellow/Gold
+      'Frustré': 'hsl(350, 89%, 60%)',       // Pink/Red
+      'Concentré': 'hsl(190, 90%, 50%)',     // Cyan
+      'Anxieux': 'hsl(320, 70%, 50%)',       // Magenta
+      'Neutre': 'hsl(220, 9%, 46%)',         // Gray
+    };
+
+    // Generate colors for unknown emotions
+    const usedHues: number[] = Object.values(colorPalette).map(c => {
+      const match = c.match(/hsl\((\d+)/);
+      return match ? parseInt(match[1]) : 0;
+    });
+    
+    let hueIndex = 0;
+    const getColor = (emotion: string): string => {
+      if (colorPalette[emotion]) return colorPalette[emotion];
+      // Generate new color
+      let hue = (hueIndex * 47 + 60) % 360;
+      while (usedHues.includes(hue)) {
+        hue = (hue + 30) % 360;
+      }
+      hueIndex++;
+      usedHues.push(hue);
+      return `hsl(${hue}, 70%, 55%)`;
     };
 
     const total = trades.length;
     return Object.entries(counts).map(([name, count]) => ({
       name,
       value: Math.round((count / total) * 100),
-      color: colors[name] || 'hsl(var(--primary))',
-    }));
+      color: getColor(name),
+    })).sort((a, b) => b.value - a.value);
   }, [trades]);
 
-  // Calculate weekly emotion trends
-  const weeklyEmotions = useMemo(() => {
-    if (!trades || trades.length === 0) return [];
+  // Calculate weekly emotion trends with all emotions
+  const weeklyEmotionsByType = useMemo(() => {
+    if (!trades || trades.length === 0) return { emotions: [], chartData: [] };
 
     const days = language === 'fr' ? DAYS_FR : DAYS_EN;
     const now = new Date();
     const weekStart = startOfWeek(now, { weekStartsOn: 1 });
     const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
 
-    const dayData: Record<number, { calme: number; stress: number; total: number }> = {};
+    // Collect all unique emotions
+    const allEmotions = new Set<string>();
+    const dayData: Record<number, Record<string, number>> = {};
+    const dayTotals: Record<number, number> = {};
+    
     for (let i = 0; i < 7; i++) {
-      dayData[i] = { calme: 0, stress: 0, total: 0 };
+      dayData[i] = {};
+      dayTotals[i] = 0;
     }
 
     trades.forEach(trade => {
       const tradeDate = parseISO(trade.trade_date);
       if (isWithinInterval(tradeDate, { start: weekStart, end: weekEnd })) {
         const dayIndex = getDay(tradeDate);
-        dayData[dayIndex].total++;
-        if (trade.emotions === 'Calme' || trade.emotions === 'Confiant') {
-          dayData[dayIndex].calme++;
-        } else if (trade.emotions === 'Stressé' || trade.emotions === 'Impulsif') {
-          dayData[dayIndex].stress++;
-        }
+        const emotion = trade.emotions || 'Neutre';
+        allEmotions.add(emotion);
+        dayData[dayIndex][emotion] = (dayData[dayIndex][emotion] || 0) + 1;
+        dayTotals[dayIndex]++;
       }
     });
 
-    return [1, 2, 3, 4, 5, 6, 0].map(dayIndex => ({
-      day: days[dayIndex],
-      calme: dayData[dayIndex].total > 0 
-        ? Math.round((dayData[dayIndex].calme / dayData[dayIndex].total) * 100) 
-        : 0,
-      stress: dayData[dayIndex].total > 0 
-        ? Math.round((dayData[dayIndex].stress / dayData[dayIndex].total) * 100) 
-        : 0,
-    }));
+    const emotions = Array.from(allEmotions);
+    
+    // Color palette for emotions
+    const colorPalette: Record<string, string> = {
+      'Calme': 'hsl(142, 76%, 36%)',
+      'Confiant': 'hsl(217, 91%, 60%)',
+      'Stressé': 'hsl(0, 84%, 60%)',
+      'Impulsif': 'hsl(30, 100%, 50%)',
+      'Euphorique': 'hsl(280, 87%, 65%)',
+      'Fatigué': 'hsl(45, 93%, 47%)',
+      'Frustré': 'hsl(350, 89%, 60%)',
+      'Concentré': 'hsl(190, 90%, 50%)',
+      'Anxieux': 'hsl(320, 70%, 50%)',
+      'Neutre': 'hsl(220, 9%, 46%)',
+    };
+
+    const getColor = (emotion: string, index: number): string => {
+      if (colorPalette[emotion]) return colorPalette[emotion];
+      const hue = (index * 47 + 60) % 360;
+      return `hsl(${hue}, 70%, 55%)`;
+    };
+
+    const chartData = [1, 2, 3, 4, 5, 6, 0].map(dayIndex => {
+      const result: Record<string, any> = { day: days[dayIndex] };
+      emotions.forEach(emotion => {
+        result[emotion] = dayTotals[dayIndex] > 0 
+          ? Math.round(((dayData[dayIndex][emotion] || 0) / dayTotals[dayIndex]) * 100) 
+          : 0;
+      });
+      return result;
+    });
+
+    return { 
+      emotions: emotions.map((e, i) => ({ name: e, color: getColor(e, i) })), 
+      chartData 
+    };
   }, [trades, language]);
 
   // Calculate discipline score
@@ -386,53 +441,59 @@ const PsychologicalAnalysis: React.FC = () => {
             </div>
           </div>
 
-          {/* Weekly Emotion Trend */}
+          {/* Weekly Emotion Trend - All Emotions */}
           <div className="glass-card p-6 animate-fade-in" style={{ animationDelay: '200ms' }}>
             <h3 className="font-display font-semibold text-foreground mb-4">
               {language === 'fr' ? 'Tendance Émotionnelle (Semaine)' : 'Emotional Trend (Week)'}
             </h3>
-            <div className="h-[250px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={weeklyEmotions}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis dataKey="day" stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                  <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} domain={[0, 100]} />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: 'hsl(var(--popover))',
-                      border: '1px solid hsl(var(--border))',
-                      borderRadius: '8px',
-                    }}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="calme"
-                    stroke="hsl(var(--profit))"
-                    strokeWidth={2}
-                    dot={{ fill: 'hsl(var(--profit))' }}
-                    name={language === 'fr' ? 'Calme' : 'Calm'}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="stress"
-                    stroke="hsl(var(--loss))"
-                    strokeWidth={2}
-                    dot={{ fill: 'hsl(var(--loss))' }}
-                    name="Stress"
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="flex justify-center gap-6 mt-4">
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-profit" />
-                <span className="text-xs text-muted-foreground">{language === 'fr' ? 'Calme' : 'Calm'}</span>
+            {weeklyEmotionsByType.emotions.length > 0 ? (
+              <>
+                <div className="h-[250px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={weeklyEmotionsByType.chartData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                      <XAxis dataKey="day" stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                      <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} domain={[0, 100]} />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: 'hsl(var(--popover))',
+                          border: '1px solid hsl(var(--border))',
+                          borderRadius: '8px',
+                        }}
+                        formatter={(value: number) => [`${value}%`, '']}
+                      />
+                      {weeklyEmotionsByType.emotions.map((emotion) => (
+                        <Line
+                          key={emotion.name}
+                          type="monotone"
+                          dataKey={emotion.name}
+                          stroke={emotion.color}
+                          strokeWidth={2}
+                          dot={{ fill: emotion.color, r: 3 }}
+                          name={emotion.name}
+                        />
+                      ))}
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+                {/* Legend for all emotions */}
+                <div className="flex flex-wrap justify-center gap-4 mt-4">
+                  {weeklyEmotionsByType.emotions.map((emotion) => (
+                    <div key={emotion.name} className="flex items-center gap-2">
+                      <div 
+                        className="w-3 h-3 rounded-full" 
+                        style={{ backgroundColor: emotion.color }} 
+                      />
+                      <span className="text-xs text-muted-foreground">{emotion.name}</span>
+                    </div>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <div className="h-[250px] flex items-center justify-center text-muted-foreground">
+                {language === 'fr' ? 'Pas de données cette semaine' : 'No data this week'}
               </div>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-loss" />
-                <span className="text-xs text-muted-foreground">Stress</span>
-              </div>
-            </div>
+            )}
           </div>
 
           {/* Emotion Performance Cards */}
