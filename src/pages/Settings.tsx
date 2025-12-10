@@ -215,8 +215,8 @@ const Settings: React.FC = () => {
         </Select>
         <p className="text-xs text-muted-foreground mt-2">
           {language === 'fr' 
-            ? 'Cette devise sera utilisée dans toute l\'application' 
-            : 'This currency will be used throughout the app'}
+            ? 'Toutes les valeurs seront converties automatiquement avec les taux de change actuels' 
+            : 'All values will be automatically converted using current exchange rates'}
         </p>
       </div>
 

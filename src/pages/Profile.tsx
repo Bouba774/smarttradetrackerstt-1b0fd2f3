@@ -3,6 +3,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTrades } from '@/hooks/useTrades';
 import { useJournalEntries } from '@/hooks/useJournalEntries';
+import { useCurrency } from '@/hooks/useCurrency';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
@@ -43,6 +44,7 @@ const Profile: React.FC = () => {
   const { user, profile, signOut, refreshProfile, updateProfile } = useAuth();
   const { trades } = useTrades();
   const { entries: journalEntries } = useJournalEntries();
+  const { currency, formatAmount, convertFromBase } = useCurrency();
   const { triggerFeedback } = useFeedback();
   const [isUploading, setIsUploading] = useState(false);
   const [isDeletingData, setIsDeletingData] = useState(false);
@@ -124,15 +126,23 @@ const Profile: React.FC = () => {
     triggerFeedback('click');
 
     try {
+      // Convert trade amounts to selected currency
+      const convertedTrades = trades.map(trade => ({
+        ...trade,
+        profit_loss: trade.profit_loss ? convertFromBase(trade.profit_loss) : null,
+        currency: currency,
+      }));
+
       const exportData = {
         exportDate: new Date().toISOString(),
+        currency: currency,
         profile: profile ? {
           nickname: profile.nickname,
           level: profile.level,
           total_points: profile.total_points,
           trading_style: profile.trading_style,
         } : null,
-        trades: trades,
+        trades: convertedTrades,
         journalEntries: journalEntries,
       };
 
@@ -167,8 +177,8 @@ const Profile: React.FC = () => {
     triggerFeedback('click');
 
     try {
-      // Create CSV for trades
-      const headers = ['Date', 'Asset', 'Direction', 'Entry Price', 'Exit Price', 'Stop Loss', 'Take Profit', 'Lot Size', 'PnL', 'Result', 'Setup', 'Emotions', 'Notes'];
+      // Create CSV for trades with currency conversion
+      const headers = ['Date', 'Asset', 'Direction', 'Entry Price', 'Exit Price', 'Stop Loss', 'Take Profit', 'Lot Size', `PnL (${currency})`, 'Result', 'Setup', 'Emotions', 'Notes'];
       const rows = trades.map(trade => [
         trade.trade_date,
         trade.asset,
@@ -178,7 +188,7 @@ const Profile: React.FC = () => {
         trade.stop_loss || '',
         trade.take_profit || '',
         trade.lot_size,
-        trade.profit_loss || '',
+        trade.profit_loss ? convertFromBase(trade.profit_loss).toFixed(2) : '',
         trade.result || '',
         trade.setup || '',
         trade.emotions || '',
