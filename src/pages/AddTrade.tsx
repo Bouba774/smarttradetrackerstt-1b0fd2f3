@@ -33,6 +33,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { ASSET_CATEGORIES, ALL_ASSETS } from '@/data/assets';
+import { validateTradeForm, validateImageFiles, sanitizeText } from '@/lib/tradeValidation';
 
 const DEFAULT_SETUPS = [
   'Breakout', 'Pullback', 'Reversal', 'Range', 'Trend Following',
@@ -127,13 +128,17 @@ const AddTrade: React.FC = () => {
     const files = e.target.files;
     if (!files) return;
 
-    if (imageFiles.length + files.length > 4) {
-      toast.error('Maximum 4 images autorisées');
+    const newFiles = Array.from(files);
+    const allFiles = [...imageFiles, ...newFiles];
+    
+    // Validate all files including existing ones
+    const validation = validateImageFiles(allFiles);
+    if (!validation.valid) {
+      validation.errors.forEach(error => toast.error(error));
       return;
     }
 
-    const newFiles = Array.from(files);
-    setImageFiles(prev => [...prev, ...newFiles]);
+    setImageFiles(allFiles);
 
     newFiles.forEach(file => {
       const reader = new FileReader();
@@ -166,19 +171,37 @@ const AddTrade: React.FC = () => {
     const finalAsset = customAsset || formData.asset;
     const finalSetup = customSetup || formData.setup;
     
-    if (!finalAsset) {
-      toast.error('Veuillez sélectionner un actif');
+    // Comprehensive validation using Zod schema
+    const validationData = {
+      asset: finalAsset,
+      direction: direction,
+      entryPrice: formData.entryPrice,
+      exitPrice: formData.exitPrice || undefined,
+      stopLoss: formData.stopLoss || undefined,
+      takeProfit: formData.takeProfit || undefined,
+      lotSize: formData.lotSize,
+      pnl: formData.pnl || undefined,
+      risk: formData.risk || undefined,
+      setup: formData.setup || undefined,
+      customSetup: customSetup || undefined,
+      timeframe: formData.timeframe || customTimeframe || undefined,
+      emotion: formData.emotion || undefined,
+      notes: formData.notes || undefined,
+    };
+
+    const validation = validateTradeForm(validationData);
+    if (!validation.success) {
+      validation.errors.forEach(error => toast.error(error));
       return;
     }
-    
-    if (!formData.entryPrice) {
-      toast.error('Veuillez entrer un prix d\'entrée');
-      return;
-    }
-    
-    if (!formData.lotSize) {
-      toast.error('Veuillez entrer une taille de lot');
-      return;
+
+    // Validate images if present
+    if (imageFiles.length > 0) {
+      const imageValidation = validateImageFiles(imageFiles);
+      if (!imageValidation.valid) {
+        imageValidation.errors.forEach(error => toast.error(error));
+        return;
+      }
     }
     
     setIsSubmitting(true);
@@ -240,10 +263,10 @@ const AddTrade: React.FC = () => {
         take_profit: formData.takeProfit ? parseFloat(formData.takeProfit) : null,
         lot_size: parseFloat(formData.lotSize),
         setup: finalSetup || null,
-        custom_setup: customSetup || null,
+        custom_setup: customSetup ? sanitizeText(customSetup) : null,
         result,
         profit_loss: pnl,
-        notes: formData.notes || null,
+        notes: formData.notes ? sanitizeText(formData.notes) : null,
         emotions: formData.emotion || null,
         images: uploadedImageUrls.length > 0 ? uploadedImageUrls : null,
         trade_date: date.toISOString(),
