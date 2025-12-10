@@ -4,24 +4,25 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useTrades } from '@/hooks/useTrades';
 import { useJournalEntries } from '@/hooks/useJournalEntries';
 import { useCurrency } from '@/hooks/useCurrency';
+import { usePDFExport } from '@/hooks/usePDFExport';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { supabase } from '@/integrations/supabase/client';
 import { useFeedback } from '@/hooks/useFeedback';
+import { ProfilePhotoUploader } from '@/components/ProfilePhotoUploader';
 import {
   User,
   Mail,
   Trophy,
-  Camera,
   LogOut,
   Trash2,
   AlertTriangle,
-  Shield,
   Star,
   Download,
   FileJson,
   FileSpreadsheet,
+  FileText,
   Edit3,
   Check,
   X,
@@ -45,15 +46,14 @@ const Profile: React.FC = () => {
   const { trades } = useTrades();
   const { entries: journalEntries } = useJournalEntries();
   const { currency, formatAmount, convertFromBase } = useCurrency();
+  const { exportToPDF } = usePDFExport();
   const { triggerFeedback } = useFeedback();
-  const [isUploading, setIsUploading] = useState(false);
   const [isDeletingData, setIsDeletingData] = useState(false);
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [isEditingNickname, setIsEditingNickname] = useState(false);
   const [newNickname, setNewNickname] = useState('');
   const [isSavingNickname, setIsSavingNickname] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Get user level title
   const getLevelTitle = (level: number) => {
@@ -62,58 +62,12 @@ const Profile: React.FC = () => {
     return t(titles[index]);
   };
 
-  const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !user) return;
-
-    // Validate file
-    if (!file.type.startsWith('image/')) {
-      toast.error(t('error'));
+  const handleExportPDF = async () => {
+    if (trades.length === 0) {
+      toast.error(t('noDataToExport'));
       return;
     }
-
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error(language === 'fr' ? 'Image trop volumineuse (max 5MB)' : 'Image too large (max 5MB)');
-      return;
-    }
-
-    setIsUploading(true);
-    triggerFeedback('click');
-
-    try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${user.id}/avatar.${fileExt}`;
-
-      // Upload to storage
-      const { error: uploadError } = await supabase.storage
-        .from('trade-images')
-        .upload(fileName, file, { upsert: true });
-
-      if (uploadError) throw uploadError;
-
-      // Get public URL
-      const { data: urlData } = supabase.storage
-        .from('trade-images')
-        .getPublicUrl(fileName);
-
-      // Update profile
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({ avatar_url: urlData.publicUrl })
-        .eq('user_id', user.id);
-
-      if (updateError) throw updateError;
-
-      await refreshProfile();
-      triggerFeedback('success');
-      toast.success(language === 'fr' ? 'Photo mise à jour!' : 'Photo updated!');
-    } catch (error) {
-      console.error('Error uploading photo:', error);
-      triggerFeedback('error');
-      toast.error(language === 'fr' ? 'Erreur lors du téléchargement' : 'Upload error');
-    } finally {
-      setIsUploading(false);
-    }
+    await exportToPDF(trades, profile ? { nickname: profile.nickname, level: profile.level, total_points: profile.total_points } : null);
   };
 
   const handleExportJSON = async () => {
@@ -430,7 +384,7 @@ const Profile: React.FC = () => {
           </h3>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-3 mb-3">
           <Button
             variant="outline"
             className="flex-1 justify-start gap-3 h-12"
@@ -450,6 +404,15 @@ const Profile: React.FC = () => {
             {t('exportCSV')}
           </Button>
         </div>
+        <Button
+          variant="outline"
+          className="w-full justify-start gap-3 h-12"
+          onClick={handleExportPDF}
+          disabled={isExporting}
+        >
+          <FileText className="w-5 h-5 text-loss" />
+          {language === 'fr' ? 'Exporter en PDF' : 'Export to PDF'}
+        </Button>
       </div>
 
       {/* Actions Card */}
@@ -459,25 +422,11 @@ const Profile: React.FC = () => {
         </h3>
 
         {/* Change Photo */}
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          onChange={handlePhotoChange}
-          className="hidden"
+        <ProfilePhotoUploader
+          currentAvatarUrl={profile?.avatar_url}
+          nickname={profile?.nickname}
+          onPhotoUpdated={refreshProfile}
         />
-        <Button
-          variant="outline"
-          className="w-full justify-start gap-3 h-12"
-          onClick={() => {
-            triggerFeedback('click');
-            fileInputRef.current?.click();
-          }}
-          disabled={isUploading}
-        >
-          <Camera className="w-5 h-5 text-primary" />
-          {isUploading ? t('uploading') : t('changePhoto')}
-        </Button>
 
         {/* Logout */}
         <Button
@@ -549,14 +498,14 @@ const Profile: React.FC = () => {
                 disabled={isDeletingAccount}
                 onClick={() => triggerFeedback('click')}
               >
-                <Shield className="w-5 h-5" />
+                <Trash2 className="w-5 h-5" />
                 {isDeletingAccount ? t('loading') : t('deleteAccountPermanently')}
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
                 <AlertDialogTitle className="flex items-center gap-2 text-loss">
-                  <Shield className="w-5 h-5" />
+                  <Trash2 className="w-5 h-5" />
                   {t('deleteAccountConfirm')}
                 </AlertDialogTitle>
                 <AlertDialogDescription>
