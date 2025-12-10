@@ -5,6 +5,7 @@ import { useTrades } from '@/hooks/useTrades';
 import { useJournalEntries } from '@/hooks/useJournalEntries';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Input } from '@/components/ui/input';
 import { supabase } from '@/integrations/supabase/client';
 import { useFeedback } from '@/hooks/useFeedback';
 import {
@@ -20,6 +21,9 @@ import {
   Download,
   FileJson,
   FileSpreadsheet,
+  Edit3,
+  Check,
+  X,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -36,7 +40,7 @@ import {
 
 const Profile: React.FC = () => {
   const { language, t } = useLanguage();
-  const { user, profile, signOut, refreshProfile } = useAuth();
+  const { user, profile, signOut, refreshProfile, updateProfile } = useAuth();
   const { trades } = useTrades();
   const { entries: journalEntries } = useJournalEntries();
   const { triggerFeedback } = useFeedback();
@@ -44,6 +48,9 @@ const Profile: React.FC = () => {
   const [isDeletingData, setIsDeletingData] = useState(false);
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [isEditingNickname, setIsEditingNickname] = useState(false);
+  const [newNickname, setNewNickname] = useState('');
+  const [isSavingNickname, setIsSavingNickname] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Get user level title
@@ -307,9 +314,74 @@ const Profile: React.FC = () => {
 
           {/* User Info */}
           <div className="space-y-2">
-            <h2 className="font-display text-2xl font-bold text-foreground">
-              {profile?.nickname || 'Trader'}
-            </h2>
+            {isEditingNickname ? (
+              <div className="flex items-center justify-center gap-2">
+                <Input
+                  value={newNickname}
+                  onChange={(e) => setNewNickname(e.target.value)}
+                  placeholder={profile?.nickname || 'Trader'}
+                  className="max-w-[200px] text-center font-display text-xl font-bold"
+                  autoFocus
+                  disabled={isSavingNickname}
+                />
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-8 w-8 text-profit hover:text-profit"
+                  onClick={async () => {
+                    if (!newNickname.trim()) {
+                      toast.error(language === 'fr' ? 'Le pseudo ne peut pas être vide' : 'Nickname cannot be empty');
+                      return;
+                    }
+                    setIsSavingNickname(true);
+                    triggerFeedback('click');
+                    const { error } = await updateProfile({ nickname: newNickname.trim() });
+                    setIsSavingNickname(false);
+                    if (error) {
+                      triggerFeedback('error');
+                      toast.error(language === 'fr' ? 'Erreur lors de la mise à jour' : 'Update error');
+                    } else {
+                      triggerFeedback('success');
+                      toast.success(language === 'fr' ? 'Pseudo mis à jour!' : 'Nickname updated!');
+                      setIsEditingNickname(false);
+                    }
+                  }}
+                  disabled={isSavingNickname}
+                >
+                  <Check className="w-4 h-4" />
+                </Button>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-8 w-8 text-loss hover:text-loss"
+                  onClick={() => {
+                    setIsEditingNickname(false);
+                    setNewNickname(profile?.nickname || '');
+                  }}
+                  disabled={isSavingNickname}
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+            ) : (
+              <div className="flex items-center justify-center gap-2">
+                <h2 className="font-display text-2xl font-bold text-foreground">
+                  {profile?.nickname || 'Trader'}
+                </h2>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-8 w-8 text-muted-foreground hover:text-primary"
+                  onClick={() => {
+                    setNewNickname(profile?.nickname || '');
+                    setIsEditingNickname(true);
+                    triggerFeedback('click');
+                  }}
+                >
+                  <Edit3 className="w-4 h-4" />
+                </Button>
+              </div>
+            )}
             <div className="flex items-center justify-center gap-2 text-muted-foreground">
               <Mail className="w-4 h-4" />
               <span className="text-sm">{user?.email}</span>
