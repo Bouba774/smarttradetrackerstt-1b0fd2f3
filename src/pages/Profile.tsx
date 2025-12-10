@@ -5,6 +5,7 @@ import { useTrades } from '@/hooks/useTrades';
 import { useJournalEntries } from '@/hooks/useJournalEntries';
 import { useCurrency } from '@/hooks/useCurrency';
 import { usePDFExport } from '@/hooks/usePDFExport';
+import { PDFExportDialog } from '@/components/PDFExportDialog';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
@@ -62,12 +63,14 @@ const Profile: React.FC = () => {
     return t(titles[index]);
   };
 
-  const handleExportPDF = async () => {
-    if (trades.length === 0) {
+  const handleExportPDF = async (filteredTrades: any[], profileData: any, periodLabel: string) => {
+    if (filteredTrades.length === 0) {
       toast.error(t('noDataToExport'));
       return;
     }
-    await exportToPDF(trades, profile ? { nickname: profile.nickname, level: profile.level, total_points: profile.total_points } : null);
+    setIsExporting(true);
+    await exportToPDF(filteredTrades, profileData, periodLabel);
+    setIsExporting(false);
   };
 
   const handleExportJSON = async () => {
@@ -404,15 +407,12 @@ const Profile: React.FC = () => {
             {t('exportCSV')}
           </Button>
         </div>
-        <Button
-          variant="outline"
-          className="w-full justify-start gap-3 h-12"
-          onClick={handleExportPDF}
-          disabled={isExporting}
-        >
-          <FileText className="w-5 h-5 text-loss" />
-          {language === 'fr' ? 'Exporter en PDF' : 'Export to PDF'}
-        </Button>
+        <PDFExportDialog
+          trades={trades}
+          profile={profile ? { nickname: profile.nickname, level: profile.level, total_points: profile.total_points } : null}
+          onExport={handleExportPDF}
+          isExporting={isExporting}
+        />
       </div>
 
       {/* Actions Card */}
