@@ -224,13 +224,16 @@ export const useChallenges = () => {
     const calculatedProgress = stats ? def.calculateProgress(trades, stats) : 0;
     const progress = Math.min(calculatedProgress, def.target);
     const completed = progress >= def.target;
+    // Only mark as newly completed if not already marked as popup_shown in DB
+    const popupShown = userChallenge?.popup_shown || false;
 
     return {
       ...def,
       progress,
       completed,
       userChallenge,
-      isNewlyCompleted: completed && !userChallenge?.completed
+      isNewlyCompleted: completed && !userChallenge?.completed && !popupShown,
+      popupShown,
     };
   });
 
@@ -249,7 +252,8 @@ export const useChallenges = () => {
             progress: challenge.progress,
             completed: challenge.completed,
             completed_at: challenge.completed && !existingChallenge.completed ? new Date().toISOString() : existingChallenge.completed_at,
-            points_earned: challenge.completed ? challenge.points : 0
+            points_earned: challenge.completed ? challenge.points : 0,
+            popup_shown: challenge.completed ? true : existingChallenge.popup_shown || false,
           })
           .eq('id', existingChallenge.id);
 
@@ -278,7 +282,8 @@ export const useChallenges = () => {
             target: challenge.target,
             completed: challenge.completed,
             completed_at: challenge.completed ? new Date().toISOString() : null,
-            points_earned: challenge.completed ? challenge.points : 0
+            points_earned: challenge.completed ? challenge.points : 0,
+            popup_shown: challenge.completed ? true : false,
           });
 
         if (error) throw error;

@@ -215,17 +215,18 @@ export const useAdvancedStats = (trades: Trade[]): AdvancedStats => {
     // Drawdown
     const drawdown = calculateMaxDrawdown(trades);
     
-    // Time calculations (assuming trades have created_at and trade_date)
-    // For simplicity, we'll estimate duration based on trade frequency
-    let totalDurationMinutes = 0;
+    // Time calculations using actual duration_seconds from closed trades
+    const closedTradesWithDuration = trades.filter(t => 
+      t.result !== 'pending' && t.duration_seconds && t.duration_seconds > 0
+    );
     
-    trades.forEach(trade => {
-      // Estimate 4 hours average per trade if no specific duration data
-      totalDurationMinutes += 240;
-    });
+    const totalDurationSeconds = closedTradesWithDuration.reduce(
+      (sum, t) => sum + (t.duration_seconds || 0), 0
+    );
+    const totalDurationMinutes = totalDurationSeconds / 60;
     
-    const avgTradeDuration = trades.length > 0 
-      ? formatDuration(totalDurationMinutes / trades.length) 
+    const avgTradeDuration = closedTradesWithDuration.length > 0 
+      ? formatDuration(totalDurationMinutes / closedTradesWithDuration.length) 
       : '0m';
     const totalTimeInPosition = formatDuration(totalDurationMinutes);
 

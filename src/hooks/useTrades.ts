@@ -22,6 +22,11 @@ export interface Trade {
   trade_date: string;
   created_at: string;
   updated_at: string;
+  // New fields for exit tracking
+  exit_timestamp: string | null;
+  exit_method: 'sl' | 'tp' | 'manual' | null;
+  duration_seconds: number | null;
+  timeframe: string | null;
 }
 
 export const useTrades = () => {

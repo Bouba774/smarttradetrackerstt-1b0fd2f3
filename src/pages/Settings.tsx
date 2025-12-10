@@ -6,6 +6,13 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
   Settings as SettingsIcon,
   Moon,
   Sun,
@@ -17,9 +24,11 @@ import {
   Sparkles,
   Image,
   RotateCcw,
+  Coins,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { CURRENCIES, getCurrencyLabel } from '@/data/currencies';
 
 const SETTINGS_STORAGE_KEY = 'smart-trade-tracker-settings';
 
@@ -29,6 +38,7 @@ interface AppSettings {
   animations: boolean;
   fontSize: 'small' | 'standard' | 'large';
   background: 'default' | 'gradient' | 'dark' | 'light';
+  currency: string;
 }
 
 const defaultSettings: AppSettings = {
@@ -37,6 +47,7 @@ const defaultSettings: AppSettings = {
   animations: true,
   fontSize: 'standard',
   background: 'default',
+  currency: 'USD',
 };
 
 const Settings: React.FC = () => {
@@ -51,7 +62,8 @@ const Settings: React.FC = () => {
     const saved = localStorage.getItem(SETTINGS_STORAGE_KEY);
     if (saved) {
       try {
-        setSettings(JSON.parse(saved));
+        const parsed = JSON.parse(saved);
+        setSettings({ ...defaultSettings, ...parsed });
       } catch (e) {
         console.error('Error loading settings:', e);
       }
@@ -178,8 +190,38 @@ const Settings: React.FC = () => {
         </div>
       </div>
 
-      {/* Theme Mode */}
+      {/* Currency Selection */}
       <div className="glass-card p-6 animate-fade-in">
+        <div className="flex items-center gap-3 mb-4">
+          <Coins className="w-5 h-5 text-primary" />
+          <h3 className="font-display font-semibold text-foreground">
+            {language === 'fr' ? 'Devise Principale' : 'Main Currency'}
+          </h3>
+        </div>
+        <Select 
+          value={settings.currency} 
+          onValueChange={(value) => updateSetting('currency', value)}
+        >
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder={language === 'fr' ? 'Sélectionner une devise' : 'Select currency'} />
+          </SelectTrigger>
+          <SelectContent className="bg-popover border-border max-h-80">
+            {CURRENCIES.map((currency) => (
+              <SelectItem key={currency.code} value={currency.code}>
+                {getCurrencyLabel(currency, language)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <p className="text-xs text-muted-foreground mt-2">
+          {language === 'fr' 
+            ? 'Cette devise sera utilisée dans toute l\'application' 
+            : 'This currency will be used throughout the app'}
+        </p>
+      </div>
+
+      {/* Theme Mode */}
+      <div className="glass-card p-6 animate-fade-in" style={{ animationDelay: '50ms' }}>
         <div className="flex items-center gap-3 mb-4">
           <Moon className="w-5 h-5 text-primary" />
           <h3 className="font-display font-semibold text-foreground">
@@ -212,7 +254,7 @@ const Settings: React.FC = () => {
       </div>
 
       {/* Primary Color */}
-      <div className="glass-card p-6 animate-fade-in" style={{ animationDelay: '50ms' }}>
+      <div className="glass-card p-6 animate-fade-in" style={{ animationDelay: '100ms' }}>
         <div className="flex items-center gap-3 mb-4">
           <Palette className="w-5 h-5 text-primary" />
           <h3 className="font-display font-semibold text-foreground">
@@ -238,7 +280,7 @@ const Settings: React.FC = () => {
       </div>
 
       {/* Language */}
-      <div className="glass-card p-6 animate-fade-in" style={{ animationDelay: '100ms' }}>
+      <div className="glass-card p-6 animate-fade-in" style={{ animationDelay: '150ms' }}>
         <div className="flex items-center gap-3 mb-4">
           <Languages className="w-5 h-5 text-primary" />
           <h3 className="font-display font-semibold text-foreground">
@@ -274,7 +316,7 @@ const Settings: React.FC = () => {
       </div>
 
       {/* Font Size */}
-      <div className="glass-card p-6 animate-fade-in" style={{ animationDelay: '150ms' }}>
+      <div className="glass-card p-6 animate-fade-in" style={{ animationDelay: '200ms' }}>
         <div className="flex items-center gap-3 mb-4">
           <Type className="w-5 h-5 text-primary" />
           <h3 className="font-display font-semibold text-foreground">
@@ -307,7 +349,7 @@ const Settings: React.FC = () => {
       </div>
 
       {/* Toggles */}
-      <div className="glass-card p-6 animate-fade-in space-y-6" style={{ animationDelay: '200ms' }}>
+      <div className="glass-card p-6 animate-fade-in space-y-6" style={{ animationDelay: '250ms' }}>
         <h3 className="font-display font-semibold text-foreground">
           {language === 'fr' ? 'Options' : 'Options'}
         </h3>
@@ -359,7 +401,7 @@ const Settings: React.FC = () => {
       </div>
 
       {/* Background Selector */}
-      <div className="glass-card p-6 animate-fade-in" style={{ animationDelay: '250ms' }}>
+      <div className="glass-card p-6 animate-fade-in" style={{ animationDelay: '300ms' }}>
         <div className="flex items-center gap-3 mb-4">
           <Image className="w-5 h-5 text-primary" />
           <h3 className="font-display font-semibold text-foreground">
@@ -385,7 +427,7 @@ const Settings: React.FC = () => {
       </div>
 
       {/* Reset Button */}
-      <div className="glass-card p-6 animate-fade-in" style={{ animationDelay: '300ms' }}>
+      <div className="glass-card p-6 animate-fade-in" style={{ animationDelay: '350ms' }}>
         <Button
           variant="outline"
           className="w-full gap-3 h-12"
