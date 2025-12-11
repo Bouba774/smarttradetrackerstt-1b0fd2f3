@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
@@ -247,6 +247,35 @@ const Auth: React.FC = () => {
                 </div>
               )}
             </Button>
+
+            {/* Legal consent message */}
+            <p className="text-xs text-muted-foreground text-center mt-4">
+              {language === 'fr' ? (
+                <>
+                  En continuant, vous acceptez nos{' '}
+                  <Link to="/privacy-policy" className="text-profit hover:underline">
+                    règles de confidentialité
+                  </Link>
+                  {' '}et{' '}
+                  <Link to="/terms-of-use" className="text-profit hover:underline">
+                    conditions d'utilisation
+                  </Link>
+                  .
+                </>
+              ) : (
+                <>
+                  By continuing, you agree to our{' '}
+                  <Link to="/privacy-policy" className="text-profit hover:underline">
+                    privacy policy
+                  </Link>
+                  {' '}and{' '}
+                  <Link to="/terms-of-use" className="text-profit hover:underline">
+                    terms of use
+                  </Link>
+                  .
+                </>
+              )}
+            </p>
           </form>
 
           <p className="text-center text-xs text-muted-foreground mt-6">
