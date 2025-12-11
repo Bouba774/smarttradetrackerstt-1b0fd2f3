@@ -23,6 +23,7 @@ const translations: Translations = {
   reports: { fr: 'Rapports', en: 'Reports' },
   psychology: { fr: 'Analyse Psychologique', en: 'Psychological Analysis' },
   videoJournal: { fr: 'Journal Vidéo/Audio', en: 'Video/Audio Journal' },
+  about: { fr: 'À Propos', en: 'About' },
   
   // Home
   welcome: { fr: 'Bienvenue', en: 'Welcome' },

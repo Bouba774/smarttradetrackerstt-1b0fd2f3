@@ -26,6 +26,7 @@ import {
   Trophy,
   User,
   Settings,
+  Info,
   X,
 } from 'lucide-react';
 
@@ -47,6 +48,7 @@ const AppSidebar: React.FC = () => {
     { path: '/challenges', icon: Trophy, label: t('challenges') },
     { path: '/profile', icon: User, label: t('profile') },
     { path: '/settings', icon: Settings, label: t('settings') },
+    { path: '/about', icon: Info, label: t('about') },
   ];
 
   const handleNavClick = () => {
