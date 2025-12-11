@@ -187,9 +187,14 @@ const About: React.FC = () => {
             <p className="text-muted-foreground mb-6 max-w-lg mx-auto">
               Every successful trader tracks their trades. Every consistent trader knows their data. Start logging your trades today and discover the power of discipline and data-driven trading.
             </p>
-            <p className="text-profit font-display font-semibold">
+            <p className="text-profit font-display font-semibold mb-4">
               "Discipline is the bridge between goals and accomplishment."
             </p>
+            <div className="pt-4 border-t border-border/50">
+              <p className="text-sm text-muted-foreground">
+                Contact us: <a href="mailto:alphafx@outlook.fr" className="text-profit hover:underline font-medium">alphafx@outlook.fr</a>
+              </p>
+            </div>
           </section>
 
           {/* Legal Information */}
