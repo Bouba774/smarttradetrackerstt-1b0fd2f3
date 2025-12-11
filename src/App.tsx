@@ -20,6 +20,9 @@ import Calculator from "./pages/Calculator";
 import Challenges from "./pages/Challenges";
 import Profile from "./pages/Profile";
 import Settings from "./pages/Settings";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import TermsOfUse from "./pages/TermsOfUse";
+import About from "./pages/About";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -52,6 +55,11 @@ const AppContent = () => {
       <Routes>
         {/* Auth page renders without layout */}
         <Route path="/auth" element={<Auth />} />
+        
+        {/* Public pages without authentication */}
+        <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+        <Route path="/terms-of-use" element={<TermsOfUse />} />
+        <Route path="/about" element={<About />} />
         
         {/* All other routes with layout */}
         <Route path="/" element={<ProtectedRoute><Layout><Dashboard /></Layout></ProtectedRoute>} />
