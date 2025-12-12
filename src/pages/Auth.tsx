@@ -6,8 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Eye, EyeOff, Mail, Lock, User, TrendingUp, Zap } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, User, TrendingUp, Zap, ArrowLeft } from 'lucide-react';
 import { z } from 'zod';
+import { supabase } from '@/integrations/supabase/client';
 
 const Auth: React.FC = () => {
   const { signIn, signUp, user, loading } = useAuth();
@@ -15,6 +16,7 @@ const Auth: React.FC = () => {
   const navigate = useNavigate();
   
   const [isLogin, setIsLogin] = useState(true);
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [nickname, setNickname] = useState('');
@@ -43,20 +45,22 @@ const Auth: React.FC = () => {
       }
     }
 
-    try {
-      passwordSchema.parse(password);
-    } catch (e) {
-      if (e instanceof z.ZodError) {
-        newErrors.password = e.errors[0].message;
-      }
-    }
-
-    if (!isLogin) {
+    if (!isForgotPassword) {
       try {
-        nicknameSchema.parse(nickname);
+        passwordSchema.parse(password);
       } catch (e) {
         if (e instanceof z.ZodError) {
-          newErrors.nickname = e.errors[0].message;
+          newErrors.password = e.errors[0].message;
+        }
+      }
+
+      if (!isLogin) {
+        try {
+          nicknameSchema.parse(nickname);
+        } catch (e) {
+          if (e instanceof z.ZodError) {
+            newErrors.nickname = e.errors[0].message;
+          }
         }
       }
     }
@@ -73,7 +77,20 @@ const Auth: React.FC = () => {
     setIsSubmitting(true);
 
     try {
-      if (isLogin) {
+      if (isForgotPassword) {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/auth?type=recovery`,
+        });
+
+        if (error) {
+          toast.error(error.message);
+        } else {
+          toast.success(language === 'fr' 
+            ? 'Email envoyé ! Vérifiez votre boîte mail.' 
+            : 'Email sent! Check your inbox.');
+          setIsForgotPassword(false);
+        }
+      } else if (isLogin) {
         const { error } = await signIn(email, password);
         if (error) {
           if (error.message.includes('Invalid login credentials')) {
@@ -136,31 +153,53 @@ const Auth: React.FC = () => {
 
         {/* Auth Card */}
         <div className="glass-card p-8 animate-fade-in">
-          <div className="flex mb-8">
-            <button
-              onClick={() => setIsLogin(true)}
-              className={`flex-1 py-3 text-sm font-medium transition-all border-b-2 ${
-                isLogin 
-                  ? 'border-primary text-primary' 
-                  : 'border-transparent text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              {t('login')}
-            </button>
-            <button
-              onClick={() => setIsLogin(false)}
-              className={`flex-1 py-3 text-sm font-medium transition-all border-b-2 ${
-                !isLogin 
-                  ? 'border-primary text-primary' 
-                  : 'border-transparent text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              {t('signUp')}
-            </button>
-          </div>
+          {isForgotPassword ? (
+            <>
+              <div className="mb-6">
+                <button
+                  onClick={() => setIsForgotPassword(false)}
+                  className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  {language === 'fr' ? 'Retour' : 'Back'}
+                </button>
+              </div>
+              <h2 className="text-xl font-bold text-foreground mb-2">
+                {language === 'fr' ? 'Mot de passe oublié' : 'Forgot password'}
+              </h2>
+              <p className="text-sm text-muted-foreground mb-6">
+                {language === 'fr' 
+                  ? 'Entrez votre email pour recevoir un lien de réinitialisation.' 
+                  : 'Enter your email to receive a reset link.'}
+              </p>
+            </>
+          ) : (
+            <div className="flex mb-8">
+              <button
+                onClick={() => setIsLogin(true)}
+                className={`flex-1 py-3 text-sm font-medium transition-all border-b-2 ${
+                  isLogin 
+                    ? 'border-primary text-primary' 
+                    : 'border-transparent text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                {t('login')}
+              </button>
+              <button
+                onClick={() => setIsLogin(false)}
+                className={`flex-1 py-3 text-sm font-medium transition-all border-b-2 ${
+                  !isLogin 
+                    ? 'border-primary text-primary' 
+                    : 'border-transparent text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                {t('signUp')}
+              </button>
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-5">
-            {!isLogin && (
+            {!isLogin && !isForgotPassword && (
               <div className="space-y-2">
                 <Label htmlFor="nickname" className="text-foreground">
                   {t('nickname')}
@@ -200,32 +239,47 @@ const Auth: React.FC = () => {
               )}
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="password" className="text-foreground">
-                {t('password')}
-              </Label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  id="password"
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className={`pl-10 pr-10 bg-secondary/50 border-border ${errors.password ? 'border-loss' : ''}`}
-                  placeholder="••••••••"
-                />
+            {!isForgotPassword && (
+              <div className="space-y-2">
+                <Label htmlFor="password" className="text-foreground">
+                  {t('password')}
+                </Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    id="password"
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className={`pl-10 pr-10 bg-secondary/50 border-border ${errors.password ? 'border-loss' : ''}`}
+                    placeholder="••••••••"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+                {errors.password && (
+                  <p className="text-loss text-xs">{errors.password}</p>
+                )}
+              </div>
+            )}
+
+            {/* Forgot password link */}
+            {isLogin && !isForgotPassword && (
+              <div className="text-right">
                 <button
                   type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  onClick={() => setIsForgotPassword(true)}
+                  className="text-sm text-primary hover:underline"
                 >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  {language === 'fr' ? 'Mot de passe oublié ?' : 'Forgot password?'}
                 </button>
               </div>
-              {errors.password && (
-                <p className="text-loss text-xs">{errors.password}</p>
-              )}
-            </div>
+            )}
 
             <Button
               type="submit"
@@ -237,6 +291,11 @@ const Auth: React.FC = () => {
                   <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
                   {t('loading')}
                 </div>
+              ) : isForgotPassword ? (
+                <div className="flex items-center gap-2">
+                  <Mail className="w-4 h-4" />
+                  {language === 'fr' ? 'Envoyer le lien' : 'Send reset link'}
+                </div>
               ) : (
                 <div className="flex items-center gap-2">
                   <Zap className="w-4 h-4" />
@@ -246,29 +305,33 @@ const Auth: React.FC = () => {
             </Button>
 
             {/* Legal consent message */}
-            <p className="text-xs text-muted-foreground text-center mt-4">
-              {t('consentMessage')}{' '}
-              <Link to="/privacy-policy" className="text-profit hover:underline">
-                {t('privacyRules')}
-              </Link>
-              {' '}{t('and_connector')}{' '}
-              <Link to="/terms-of-use" className="text-profit hover:underline">
-                {t('termsOfUse')}
-              </Link>
-              .
-            </p>
+            {!isForgotPassword && (
+              <p className="text-xs text-muted-foreground text-center mt-4">
+                {t('consentMessage')}{' '}
+                <Link to="/privacy-policy" className="text-profit hover:underline">
+                  {t('privacyRules')}
+                </Link>
+                {' '}{t('and_connector')}{' '}
+                <Link to="/terms-of-use" className="text-profit hover:underline">
+                  {t('termsOfUse')}
+                </Link>
+                .
+              </p>
+            )}
           </form>
 
-          <p className="text-center text-xs text-muted-foreground mt-6">
-            {isLogin ? t('noAccountYet') : t('alreadyHaveAccount')}
-            {' '}
-            <button
-              onClick={() => setIsLogin(!isLogin)}
-              className="text-primary hover:underline"
-            >
-              {isLogin ? t('signUp') : t('signIn')}
-            </button>
-          </p>
+          {!isForgotPassword && (
+            <p className="text-center text-xs text-muted-foreground mt-6">
+              {isLogin ? t('noAccountYet') : t('alreadyHaveAccount')}
+              {' '}
+              <button
+                onClick={() => setIsLogin(!isLogin)}
+                className="text-primary hover:underline"
+              >
+                {isLogin ? t('signUp') : t('signIn')}
+              </button>
+            </p>
+          )}
         </div>
 
         {/* Footer */}

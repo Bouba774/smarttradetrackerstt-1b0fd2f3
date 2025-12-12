@@ -126,26 +126,28 @@ const Landing = () => {
             </nav>
             
             <div className="flex items-center gap-3">
-              {/* Language Selector */}
+              {/* Language Selector with Flags */}
               <div className="flex items-center gap-1 p-1 rounded-lg bg-secondary/50 border border-border/50">
                 <button
                   onClick={() => setLanguage('fr')}
-                  className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
                     language === 'fr' 
                       ? 'bg-primary text-primary-foreground shadow-sm' 
                       : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
+                  <span role="img" aria-label="French flag">🇫🇷</span>
                   FR
                 </button>
                 <button
                   onClick={() => setLanguage('en')}
-                  className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
                     language === 'en' 
                       ? 'bg-primary text-primary-foreground shadow-sm' 
                       : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
+                  <span role="img" aria-label="UK flag">🇬🇧</span>
                   EN
                 </button>
               </div>
