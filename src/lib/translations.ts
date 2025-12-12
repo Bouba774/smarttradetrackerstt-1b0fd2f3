@@ -452,6 +452,17 @@ export const translations: Translations = {
   and_connector: { fr: 'et', en: 'and' },
   welcomeToApp: { fr: 'Bienvenue sur', en: 'Welcome to' },
   tradingJournalDesc: { fr: 'Votre journal de trading intelligent pour améliorer vos performances', en: 'Your smart trading journal to improve your performance' },
+  login: { fr: 'Connexion', en: 'Login' },
+  yourTraderNickname: { fr: 'Votre pseudo de trader', en: 'Your trader nickname' },
+  invalidEmail: { fr: 'Email invalide', en: 'Invalid email' },
+  passwordMin6: { fr: 'Le mot de passe doit contenir au moins 6 caractères', en: 'Password must be at least 6 characters' },
+  nicknameMin2: { fr: 'Le pseudo doit contenir au moins 2 caractères', en: 'Nickname must be at least 2 characters' },
+  invalidCredentials: { fr: 'Email ou mot de passe incorrect', en: 'Invalid email or password' },
+  emailAlreadyUsed: { fr: 'Cet email est déjà utilisé', en: 'This email is already registered' },
+  accountCreated: { fr: 'Compte créé avec succès!', en: 'Account created successfully!' },
+  cameraActivated: { fr: 'Caméra {camera} activée', en: '{camera} camera activated' },
+  cameraSelected: { fr: 'Caméra {camera} sélectionnée', en: '{camera} camera selected' },
+  cameraSwitchUnavailable: { fr: 'Changement de caméra non disponible', en: 'Camera switch not available' },
 
   // ============================================
   // AI ASSISTANT

@@ -96,7 +96,7 @@ const Journal: React.FC = () => {
 
   const handleSave = async () => {
     if (!user) {
-      toast.error(language === 'fr' ? 'Vous devez être connecté' : 'You must be logged in');
+      toast.error(t('mustBeLoggedIn'));
       return;
     }
 
@@ -110,10 +110,10 @@ const Journal: React.FC = () => {
         notes: JSON.stringify({ mistakes, strengths }),
         rating: rating > 0 ? rating : undefined,
       });
-      toast.success(language === 'fr' ? 'Journal enregistré!' : 'Journal saved!');
+      toast.success(t('journalSaved'));
     } catch (error) {
       console.error('Save error:', error);
-      toast.error(language === 'fr' ? 'Erreur lors de l\'enregistrement' : 'Error saving');
+      toast.error(t('journalSaveError'));
     } finally {
       setIsSaving(false);
     }
@@ -132,7 +132,7 @@ const Journal: React.FC = () => {
 
   const saveEdit = () => {
     if (!editingLabel.trim()) {
-      toast.error(language === 'fr' ? 'Le libellé ne peut pas être vide' : 'Label cannot be empty');
+      toast.error(t('labelEmpty'));
       return;
     }
     setChecklist(prev => prev.map(item =>
@@ -153,7 +153,7 @@ const Journal: React.FC = () => {
 
   const addNewItem = () => {
     if (!newItemLabel.trim()) {
-      toast.error(language === 'fr' ? 'Le libellé ne peut pas être vide' : 'Label cannot be empty');
+      toast.error(t('labelEmpty'));
       return;
     }
     const newItem: ChecklistItem = {
@@ -191,7 +191,7 @@ const Journal: React.FC = () => {
             {t('journal')}
           </h1>
           <p className="text-muted-foreground text-sm mt-1">
-            {language === 'fr' ? 'Routine quotidienne et leçons apprises' : 'Daily routine and lessons learned'}
+            {t('dailyRoutine')}
           </p>
         </div>
         <div className="w-12 h-12 rounded-lg bg-gradient-primary flex items-center justify-center shadow-neon">

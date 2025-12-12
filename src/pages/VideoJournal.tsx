@@ -31,7 +31,7 @@ interface Recording {
 const STORAGE_KEY = 'smart-trade-tracker-recordings';
 
 const VideoJournal: React.FC = () => {
-  const { language } = useLanguage();
+  const { language, t } = useLanguage();
   
   const [recordings, setRecordings] = useState<Recording[]>([]);
   const [isRecording, setIsRecording] = useState(false);
@@ -178,11 +178,7 @@ const VideoJournal: React.FC = () => {
         });
         
         setNote('');
-        toast.success(
-          language === 'fr'
-            ? 'Enregistrement sauvegardé!'
-            : 'Recording saved!'
-        );
+        toast.success(t('recordingSaved'));
       };
 
       // Start with smaller timeslice for smoother streaming
@@ -203,11 +199,7 @@ const VideoJournal: React.FC = () => {
 
     } catch (error) {
       console.error('Error starting recording:', error);
-      toast.error(
-        language === 'fr'
-          ? 'Erreur d\'accès à la caméra/micro. Veuillez autoriser l\'accès.'
-          : 'Error accessing camera/microphone. Please allow access.'
-      );
+      toast.error(t('cameraError'));
     }
   };
 
@@ -267,28 +259,16 @@ const VideoJournal: React.FC = () => {
         }
         
         setFacingMode(newFacingMode);
-        toast.success(
-          language === 'fr'
-            ? `Caméra ${newFacingMode === 'user' ? 'avant' : 'arrière'} activée`
-            : `${newFacingMode === 'user' ? 'Front' : 'Back'} camera activated`
-        );
+        const cameraLabel = newFacingMode === 'user' ? t('frontCamera') : t('backCamera');
+        toast.success(`${cameraLabel} ${language === 'fr' ? 'activée' : 'activated'}`);
       } catch (error) {
         console.error('Error switching camera:', error);
-        // Fallback: if seamless switch fails, notify user but don't stop recording
-        toast.error(
-          language === 'fr'
-            ? 'Changement de caméra non disponible'
-            : 'Camera switch not available'
-        );
+        toast.error(t('cameraSwitchUnavailable'));
       }
     } else {
-      // Not recording - just update the state
       setFacingMode(newFacingMode);
-      toast.info(
-        language === 'fr'
-          ? `Caméra ${newFacingMode === 'user' ? 'avant' : 'arrière'} sélectionnée`
-          : `${newFacingMode === 'user' ? 'Front' : 'Back'} camera selected`
-      );
+      const cameraLabel = newFacingMode === 'user' ? t('frontCamera') : t('backCamera');
+      toast.info(`${cameraLabel} ${language === 'fr' ? 'sélectionnée' : 'selected'}`);
     }
   };
 
@@ -308,11 +288,7 @@ const VideoJournal: React.FC = () => {
       setPlayingId(null);
     }
     
-    toast.success(
-      language === 'fr'
-        ? 'Enregistrement supprimé'
-        : 'Recording deleted'
-    );
+    toast.success(t('recordingDeleted'));
   };
 
   const togglePlayback = (recording: Recording) => {
@@ -326,11 +302,7 @@ const VideoJournal: React.FC = () => {
       setPlayingId(null);
     } else {
       if (!recording.url) {
-        toast.error(
-          language === 'fr'
-            ? 'Fichier non disponible (session expirée)'
-            : 'File not available (session expired)'
-        );
+        toast.error(t('fileNotAvailable'));
         return;
       }
       setPlayingId(recording.id);
@@ -339,11 +311,7 @@ const VideoJournal: React.FC = () => {
 
   const downloadRecording = (recording: Recording) => {
     if (!recording.url) {
-      toast.error(
-        language === 'fr'
-          ? 'Fichier non disponible'
-          : 'File not available'
-      );
+      toast.error(t('fileNotAvailable'));
       return;
     }
     
@@ -365,7 +333,7 @@ const VideoJournal: React.FC = () => {
     });
     setEditingNoteId(null);
     setEditingNoteText('');
-    toast.success(language === 'fr' ? 'Note mise à jour' : 'Note updated');
+    toast.success(t('noteUpdated'));
   };
 
   const formatDuration = (seconds: number) => {
@@ -389,10 +357,10 @@ const VideoJournal: React.FC = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="font-display text-2xl md:text-3xl font-bold text-foreground">
-            {language === 'fr' ? 'Journal Vidéo/Audio' : 'Video/Audio Journal'}
+            {t('videoAudioJournal')}
           </h1>
           <p className="text-muted-foreground text-sm mt-1">
-            {language === 'fr' ? 'Enregistrez votre ressenti du jour (max 60s)' : 'Record your daily feelings (max 60s)'}
+            {t('recordFeelings')}
           </p>
         </div>
         <div className="w-12 h-12 rounded-lg bg-gradient-primary flex items-center justify-center shadow-neon">
@@ -404,7 +372,7 @@ const VideoJournal: React.FC = () => {
       <div className="glass-card p-6 animate-fade-in">
         <div className="flex items-center justify-between mb-6">
           <h3 className="font-display font-semibold text-foreground">
-            {language === 'fr' ? 'Nouvel Enregistrement' : 'New Recording'}
+            {t('newRecording')}
           </h3>
           
           {/* Camera Switch Button */}
@@ -415,9 +383,7 @@ const VideoJournal: React.FC = () => {
             className="gap-2"
           >
             <SwitchCamera className="w-4 h-4" />
-            {language === 'fr' 
-              ? (facingMode === 'user' ? 'Avant' : 'Arrière')
-              : (facingMode === 'user' ? 'Front' : 'Back')}
+            {facingMode === 'user' ? t('frontCamera') : t('backCamera')}
           </Button>
         </div>
 
