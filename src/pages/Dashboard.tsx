@@ -5,6 +5,7 @@ import { useChallenges } from '@/hooks/useChallenges';
 import { useTrades } from '@/hooks/useTrades';
 import { useAdvancedStats } from '@/hooks/useAdvancedStats';
 import { useCurrency } from '@/hooks/useCurrency';
+import { APP_VERSION } from '@/lib/version';
 import StatCard from '@/components/ui/StatCard';
 import GaugeChart from '@/components/ui/GaugeChart';
 import {
@@ -113,24 +114,24 @@ const Dashboard: React.FC = () => {
 
   // Position distribution data (always show, even with 0 values)
   const positionData = [
-    { name: 'Long', value: stats.buyPositions || 0.1, actualValue: stats.buyPositions, color: 'hsl(var(--profit))' },
-    { name: 'Short', value: stats.sellPositions || 0.1, actualValue: stats.sellPositions, color: 'hsl(var(--loss))' },
+    { name: t('longPositions'), value: stats.buyPositions || 0.1, actualValue: stats.buyPositions, color: 'hsl(var(--profit))' },
+    { name: t('shortPositions'), value: stats.sellPositions || 0.1, actualValue: stats.sellPositions, color: 'hsl(var(--loss))' },
   ];
 
   // Results distribution
   const resultsData = [
-    { name: 'Gagnants', value: stats.winningTrades || 0.1, actualValue: stats.winningTrades, color: 'hsl(var(--profit))' },
-    { name: 'Perdants', value: stats.losingTrades || 0.1, actualValue: stats.losingTrades, color: 'hsl(var(--loss))' },
-    { name: 'Break-even', value: stats.breakevenTrades || 0.1, actualValue: stats.breakevenTrades, color: 'hsl(var(--muted-foreground))' },
+    { name: t('winners'), value: stats.winningTrades || 0.1, actualValue: stats.winningTrades, color: 'hsl(var(--profit))' },
+    { name: t('losers'), value: stats.losingTrades || 0.1, actualValue: stats.losingTrades, color: 'hsl(var(--loss))' },
+    { name: t('breakeven'), value: stats.breakevenTrades || 0.1, actualValue: stats.breakevenTrades, color: 'hsl(var(--muted-foreground))' },
   ];
 
   // Radar chart data for performance overview
   const radarData = [
-    { subject: 'Winrate', A: Math.min(100, stats.winrate), fullMark: 100 },
-    { subject: 'Profit Factor', A: Math.min(100, stats.profitFactor * 25), fullMark: 100 },
-    { subject: 'R:R Ratio', A: Math.min(100, stats.avgRiskReward * 25), fullMark: 100 },
-    { subject: 'Consistance', A: stats.longestWinStreak > 0 ? Math.min(100, stats.longestWinStreak * 15) : 0, fullMark: 100 },
-    { subject: 'Gestion Risque', A: Math.max(0, 100 - stats.maxDrawdownPercent), fullMark: 100 },
+    { subject: t('winrate'), A: Math.min(100, stats.winrate), fullMark: 100 },
+    { subject: t('profitFactor'), A: Math.min(100, stats.profitFactor * 25), fullMark: 100 },
+    { subject: t('riskReward'), A: Math.min(100, stats.avgRiskReward * 25), fullMark: 100 },
+    { subject: t('consistency'), A: stats.longestWinStreak > 0 ? Math.min(100, stats.longestWinStreak * 15) : 0, fullMark: 100 },
+    { subject: t('riskManagement'), A: Math.max(0, 100 - stats.maxDrawdownPercent), fullMark: 100 },
   ];
 
   // No data message component
@@ -165,14 +166,14 @@ const Dashboard: React.FC = () => {
               {t('welcome')} {userNickname} 👋
             </h1>
             <p className="text-primary font-display font-semibold mt-1 neon-text text-sm sm:text-base">
-              {levelTitle} (Niveau {userLevel})
+              {levelTitle} ({t('level')} {userLevel})
             </p>
           </div>
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 rounded-lg bg-primary/20 border border-primary/30">
               <span className="text-xl sm:text-2xl">🏆</span>
               <div>
-                <p className="text-[10px] sm:text-xs text-muted-foreground">Niveau</p>
+                <p className="text-[10px] sm:text-xs text-muted-foreground">{t('level')}</p>
                 <p className="font-display font-bold text-primary text-sm sm:text-base">{userLevel}</p>
               </div>
             </div>
@@ -184,7 +185,7 @@ const Dashboard: React.FC = () => {
               }`}>
                 <Flame className={`w-5 h-5 ${stats.currentStreak.type === 'win' ? 'text-profit' : 'text-loss'}`} />
                 <div>
-                  <p className="text-[10px] text-muted-foreground">Série</p>
+                  <p className="text-[10px] text-muted-foreground">{t('streak')}</p>
                   <p className={`font-bold text-sm ${stats.currentStreak.type === 'win' ? 'text-profit' : 'text-loss'}`}>
                     {stats.currentStreak.count} {stats.currentStreak.type === 'win' ? 'W' : 'L'}
                   </p>
@@ -241,30 +242,30 @@ const Dashboard: React.FC = () => {
 
       {/* Section: Positions */}
       <div>
-        <SectionHeader icon={ArrowUpDown} title="Positions" delay={400} />
+        <SectionHeader icon={ArrowUpDown} title={t('positions')} delay={400} />
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <StatCard
-            title="Positions Buy"
+            title={t('buyPositions')}
             value={stats.buyPositions}
             icon={TrendingUp}
             variant="profit"
             delay={450}
           />
           <StatCard
-            title="Positions Sell"
+            title={t('sellPositions')}
             value={stats.sellPositions}
             icon={TrendingDown}
             variant="loss"
             delay={500}
           />
           <StatCard
-            title="Taille Moy. (Lots)"
+            title={t('avgLotSize')}
             value={stats.avgLotSize.toFixed(2)}
             icon={Layers}
             delay={550}
           />
           <StatCard
-            title="En Attente"
+            title={t('pending')}
             value={stats.pendingTrades}
             icon={Clock}
             variant="neutral"
@@ -275,45 +276,45 @@ const Dashboard: React.FC = () => {
 
       {/* Section: Profits & Pertes */}
       <div>
-        <SectionHeader icon={DollarSign} title="Profits & Pertes" delay={650} />
+        <SectionHeader icon={DollarSign} title={t('profitsAndLosses')} delay={650} />
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
           <StatCard
-            title="Meilleur Profit"
+            title={t('bestProfit')}
             value={formatAmount(stats.bestProfit)}
             icon={Trophy}
             variant="profit"
             delay={700}
           />
           <StatCard
-            title="Pire Perte"
+            title={t('worstLoss')}
             value={formatAmount(stats.worstLoss)}
             icon={AlertTriangle}
             variant="loss"
             delay={750}
           />
           <StatCard
-            title="Profit Moyen"
+            title={t('avgProfitPerTrade')}
             value={formatAmount(stats.avgProfitPerTrade)}
             icon={TrendingUp}
             variant="profit"
             delay={800}
           />
           <StatCard
-            title="Perte Moyenne"
+            title={t('avgLossPerTrade')}
             value={formatAmount(stats.avgLossPerTrade)}
             icon={TrendingDown}
             variant="loss"
             delay={850}
           />
           <StatCard
-            title="Profit Total"
+            title={t('totalProfit')}
             value={formatAmount(stats.totalProfit)}
             icon={DollarSign}
             variant="profit"
             delay={900}
           />
           <StatCard
-            title="Perte Totale"
+            title={t('totalLoss')}
             value={formatAmount(stats.totalLoss)}
             icon={DollarSign}
             variant="loss"
@@ -324,31 +325,31 @@ const Dashboard: React.FC = () => {
 
       {/* Section: Indicateurs de Performance */}
       <div>
-        <SectionHeader icon={Zap} title="Indicateurs de Performance" delay={1000} />
+        <SectionHeader icon={Zap} title={t('performanceIndicators')} delay={1000} />
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
           <StatCard
-            title="Bénéfice Net"
+            title={t('netProfit')}
             value={formatAmount(stats.netProfit)}
             icon={DollarSign}
             variant={stats.netProfit >= 0 ? 'profit' : 'loss'}
             delay={1050}
           />
           <StatCard
-            title="Facteur Profit"
+            title={t('profitFactorLabel')}
             value={stats.profitFactor.toFixed(2)}
             icon={Scale}
             variant={stats.profitFactor >= 1.5 ? 'profit' : stats.profitFactor >= 1 ? 'neutral' : 'loss'}
             delay={1100}
           />
           <StatCard
-            title="R:R Moyen"
+            title={t('avgRiskReward')}
             value={stats.avgRiskReward.toFixed(2)}
             icon={Scale}
             variant={stats.avgRiskReward >= 1.5 ? 'profit' : stats.avgRiskReward >= 1 ? 'neutral' : 'loss'}
             delay={1150}
           />
           <StatCard
-            title="Résultat Moyen"
+            title={t('avgTradeResult')}
             value={formatAmount(stats.avgTradeResult)}
             icon={BarChart3}
             variant={stats.avgTradeResult >= 0 ? 'profit' : 'loss'}
@@ -359,17 +360,17 @@ const Dashboard: React.FC = () => {
 
       {/* Section: Séries & Risque */}
       <div>
-        <SectionHeader icon={Flame} title="Séries" delay={1250} />
+        <SectionHeader icon={Flame} title={t('streaks')} delay={1250} />
         <div className="grid grid-cols-2 gap-3">
           <StatCard
-            title="Série Gagnante Max"
+            title={t('maxWinStreak')}
             value={stats.longestWinStreak}
             icon={Award}
             variant="profit"
             delay={1300}
           />
           <StatCard
-            title="Série Perdante Max"
+            title={t('maxLossStreak')}
             value={stats.longestLossStreak}
             icon={AlertTriangle}
             variant="loss"
@@ -380,16 +381,16 @@ const Dashboard: React.FC = () => {
 
       {/* Section: Durée */}
       <div>
-        <SectionHeader icon={Timer} title="Durée des Trades" delay={1400} />
+        <SectionHeader icon={Timer} title={t('tradeDuration')} delay={1400} />
         <div className="grid grid-cols-2 gap-3">
           <StatCard
-            title="Durée Moyenne"
+            title={t('avgTradeDuration')}
             value={stats.avgTradeDuration}
             icon={Clock}
             delay={1450}
           />
           <StatCard
-            title="Temps Total en Position"
+            title={t('totalTimeInPosition')}
             value={stats.totalTimeInPosition}
             icon={Timer}
             delay={1500}
@@ -441,7 +442,7 @@ const Dashboard: React.FC = () => {
         <div className="glass-card p-4 sm:p-6 animate-fade-in" style={{ animationDelay: '1800ms' }}>
           <h3 className="font-display font-semibold text-foreground mb-4 flex items-center gap-2">
             <Calendar className="w-5 h-5 text-primary" />
-            Performance Mensuelle
+            {t('monthlyPerformance')}
           </h3>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
@@ -457,7 +458,7 @@ const Dashboard: React.FC = () => {
                   }}
                   formatter={(value: number, name: string) => [
                     name === 'pnl' ? formatAmount(value) : value,
-                    name === 'pnl' ? 'P&L' : name === 'wins' ? 'Gagnants' : 'Perdants'
+                    name === 'pnl' ? 'P&L' : name === 'wins' ? t('winners') : t('losers')
                   ]}
                 />
                 <Bar dataKey="pnl" radius={[4, 4, 0, 0]}>
@@ -480,7 +481,7 @@ const Dashboard: React.FC = () => {
         <div className="glass-card p-6 animate-fade-in" style={{ animationDelay: '1850ms' }}>
           <h3 className="font-display font-semibold text-foreground mb-4 flex items-center gap-2">
             <ArrowUpDown className="w-5 h-5 text-primary" />
-            Distribution Positions
+            {t('positionDistribution')}
           </h3>
           <div className="h-48">
             <ResponsiveContainer width="100%" height="100%">
@@ -512,11 +513,11 @@ const Dashboard: React.FC = () => {
           <div className="flex justify-center gap-6 mt-2">
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full bg-profit" />
-              <span className="text-sm text-muted-foreground">Long ({stats.buyPositions})</span>
+              <span className="text-sm text-muted-foreground">{t('longPositions')} ({stats.buyPositions})</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full bg-loss" />
-              <span className="text-sm text-muted-foreground">Short ({stats.sellPositions})</span>
+              <span className="text-sm text-muted-foreground">{t('shortPositions')} ({stats.sellPositions})</span>
             </div>
           </div>
         </div>
@@ -525,7 +526,7 @@ const Dashboard: React.FC = () => {
         <div className="glass-card p-6 animate-fade-in" style={{ animationDelay: '1900ms' }}>
           <h3 className="font-display font-semibold text-foreground mb-4 flex items-center gap-2">
             <Target className="w-5 h-5 text-primary" />
-            Résultats
+            {t('resultsLabel')}
           </h3>
           <div className="h-48">
             <ResponsiveContainer width="100%" height="100%">
@@ -557,15 +558,15 @@ const Dashboard: React.FC = () => {
           <div className="flex justify-center gap-4 mt-2 flex-wrap">
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full bg-profit" />
-              <span className="text-xs text-muted-foreground">Gagnants ({stats.winningTrades})</span>
+              <span className="text-xs text-muted-foreground">{t('winners')} ({stats.winningTrades})</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full bg-loss" />
-              <span className="text-xs text-muted-foreground">Perdants ({stats.losingTrades})</span>
+              <span className="text-xs text-muted-foreground">{t('losers')} ({stats.losingTrades})</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full bg-muted-foreground" />
-              <span className="text-xs text-muted-foreground">BE ({stats.breakevenTrades})</span>
+              <span className="text-xs text-muted-foreground">{t('breakeven')} ({stats.breakevenTrades})</span>
             </div>
           </div>
         </div>
@@ -574,7 +575,7 @@ const Dashboard: React.FC = () => {
         <div className="glass-card p-6 animate-fade-in" style={{ animationDelay: '1950ms' }}>
           <h3 className="font-display font-semibold text-foreground mb-4 flex items-center gap-2">
             <Zap className="w-5 h-5 text-primary" />
-            Vue d'ensemble
+            {t('overview')}
           </h3>
           <div className="h-48">
             <ResponsiveContainer width="100%" height="100%">
@@ -606,37 +607,37 @@ const Dashboard: React.FC = () => {
       <div className="glass-card p-6 animate-fade-in" style={{ animationDelay: '2000ms' }}>
         <h3 className="font-display font-semibold text-foreground mb-6 flex items-center gap-2">
           <BarChart3 className="w-5 h-5 text-primary" />
-          Indicateurs Clés
+          {t('keyIndicators')}
         </h3>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-6 justify-items-center">
           <GaugeChart
             value={Math.min(100, stats.winrate)}
-            label="Winrate"
+            label={t('winrate')}
             variant={stats.winrate >= 60 ? 'profit' : stats.winrate >= 40 ? 'primary' : 'loss'}
           />
           <GaugeChart
             value={Math.min(100, stats.profitFactor * 25)}
-            label="Profit Factor"
+            label={t('profitFactor')}
             variant={stats.profitFactor >= 1.5 ? 'profit' : stats.profitFactor >= 1 ? 'primary' : 'loss'}
           />
           <GaugeChart
             value={Math.min(100, stats.avgRiskReward * 25)}
-            label="R:R Moyen"
+            label={t('avgRiskReward')}
             variant={stats.avgRiskReward >= 1.5 ? 'profit' : stats.avgRiskReward >= 1 ? 'primary' : 'loss'}
           />
           <GaugeChart
             value={stats.expectancy >= 0 ? Math.min(100, stats.expectancy * 10) : 0}
-            label="Espérance"
+            label={t('expectancy')}
             variant={stats.expectancy > 0 ? 'profit' : 'loss'}
           />
           <GaugeChart
             value={Math.max(0, 100 - stats.maxDrawdownPercent)}
-            label="Sécurité"
+            label={t('securityIndicator')}
             variant={stats.maxDrawdownPercent <= 10 ? 'profit' : stats.maxDrawdownPercent <= 20 ? 'primary' : 'loss'}
           />
           <GaugeChart
             value={stats.longestWinStreak > 0 ? Math.min(100, stats.longestWinStreak * 15) : 0}
-            label="Consistance"
+            label={t('consistency')}
             variant="primary"
           />
         </div>
@@ -648,7 +649,7 @@ const Dashboard: React.FC = () => {
           {t('slogan')}
         </p>
         <p className="text-xs text-muted-foreground mt-2">
-          Smart Trade Tracker <span className="text-primary font-semibold">V1.0.0</span>
+          Smart Trade Tracker <span className="text-primary font-semibold">V{APP_VERSION}</span>
         </p>
       </div>
     </div>

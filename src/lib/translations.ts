@@ -145,6 +145,10 @@ export const translations: Translations = {
   longPositions: { fr: 'Long', en: 'Long' },
   shortPositions: { fr: 'Short', en: 'Short' },
   streak: { fr: 'Série', en: 'Streak' },
+  overview: { fr: "Vue d'ensemble", en: 'Overview' },
+  keyIndicators: { fr: 'Indicateurs Clés', en: 'Key Indicators' },
+  securityIndicator: { fr: 'Sécurité', en: 'Security' },
+  resultsLabel: { fr: 'Résultats', en: 'Results' },
   
   // ============================================
   // TRADE FORM
