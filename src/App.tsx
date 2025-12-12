@@ -8,6 +8,7 @@ import { ThemeProvider } from "@/contexts/ThemeContext";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import Layout from "@/components/layout/Layout";
 import AIChatBot from "@/components/AIChatBot";
+import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import AddTrade from "./pages/AddTrade";
@@ -53,6 +54,9 @@ const AppContent = () => {
   return (
     <>
       <Routes>
+        {/* Public landing page */}
+        <Route path="/" element={<Landing />} />
+        
         {/* Auth page renders without layout */}
         <Route path="/auth" element={<Auth />} />
         
@@ -62,7 +66,6 @@ const AppContent = () => {
         <Route path="/about" element={<About />} />
         
         {/* All other routes with layout */}
-        <Route path="/" element={<ProtectedRoute><Layout><Dashboard /></Layout></ProtectedRoute>} />
         <Route path="/dashboard" element={<ProtectedRoute><Layout><Dashboard /></Layout></ProtectedRoute>} />
         <Route path="/add-trade" element={<ProtectedRoute><Layout><AddTrade /></Layout></ProtectedRoute>} />
         <Route path="/history" element={<ProtectedRoute><Layout><History /></Layout></ProtectedRoute>} />
