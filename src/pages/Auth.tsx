@@ -9,13 +9,9 @@ import { toast } from 'sonner';
 import { Eye, EyeOff, Mail, Lock, User, TrendingUp, Zap } from 'lucide-react';
 import { z } from 'zod';
 
-const emailSchema = z.string().email('Email invalide');
-const passwordSchema = z.string().min(6, 'Le mot de passe doit contenir au moins 6 caractères');
-const nicknameSchema = z.string().min(2, 'Le pseudo doit contenir au moins 2 caractères');
-
 const Auth: React.FC = () => {
   const { signIn, signUp, user, loading } = useAuth();
-  const { language } = useLanguage();
+  const { language, t } = useLanguage();
   const navigate = useNavigate();
   
   const [isLogin, setIsLogin] = useState(true);
@@ -25,6 +21,10 @@ const Auth: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string; nickname?: string }>({});
+
+  const emailSchema = z.string().email(t('invalidEmail'));
+  const passwordSchema = z.string().min(6, t('passwordMin6'));
+  const nicknameSchema = z.string().min(2, t('nicknameMin2'));
 
   useEffect(() => {
     if (user && !loading) {
@@ -77,29 +77,29 @@ const Auth: React.FC = () => {
         const { error } = await signIn(email, password);
         if (error) {
           if (error.message.includes('Invalid login credentials')) {
-            toast.error(language === 'fr' ? 'Email ou mot de passe incorrect' : 'Invalid email or password');
+            toast.error(t('invalidCredentials'));
           } else {
             toast.error(error.message);
           }
         } else {
-          toast.success(language === 'fr' ? 'Connexion réussie!' : 'Login successful!');
+          toast.success(t('loginSuccess'));
           navigate('/dashboard');
         }
       } else {
         const { error } = await signUp(email, password, nickname);
         if (error) {
           if (error.message.includes('User already registered')) {
-            toast.error(language === 'fr' ? 'Cet email est déjà utilisé' : 'This email is already registered');
+            toast.error(t('emailAlreadyUsed'));
           } else {
             toast.error(error.message);
           }
         } else {
-          toast.success(language === 'fr' ? 'Compte créé avec succès!' : 'Account created successfully!');
+          toast.success(t('accountCreated'));
           navigate('/dashboard');
         }
       }
     } catch (error) {
-      toast.error(language === 'fr' ? 'Une erreur est survenue' : 'An error occurred');
+      toast.error(t('error'));
     } finally {
       setIsSubmitting(false);
     }
@@ -145,7 +145,7 @@ const Auth: React.FC = () => {
                   : 'border-transparent text-muted-foreground hover:text-foreground'
               }`}
             >
-              {language === 'fr' ? 'Connexion' : 'Login'}
+              {t('login')}
             </button>
             <button
               onClick={() => setIsLogin(false)}
@@ -155,7 +155,7 @@ const Auth: React.FC = () => {
                   : 'border-transparent text-muted-foreground hover:text-foreground'
               }`}
             >
-              {language === 'fr' ? 'Inscription' : 'Sign Up'}
+              {t('signUp')}
             </button>
           </div>
 
@@ -163,7 +163,7 @@ const Auth: React.FC = () => {
             {!isLogin && (
               <div className="space-y-2">
                 <Label htmlFor="nickname" className="text-foreground">
-                  {language === 'fr' ? 'Pseudo' : 'Nickname'}
+                  {t('nickname')}
                 </Label>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -173,7 +173,7 @@ const Auth: React.FC = () => {
                     value={nickname}
                     onChange={(e) => setNickname(e.target.value)}
                     className={`pl-10 bg-secondary/50 border-border ${errors.nickname ? 'border-loss' : ''}`}
-                    placeholder={language === 'fr' ? 'Votre pseudo de trader' : 'Your trader nickname'}
+                    placeholder={t('yourTraderNickname')}
                   />
                 </div>
                 {errors.nickname && (
@@ -202,7 +202,7 @@ const Auth: React.FC = () => {
 
             <div className="space-y-2">
               <Label htmlFor="password" className="text-foreground">
-                {language === 'fr' ? 'Mot de passe' : 'Password'}
+                {t('password')}
               </Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -235,70 +235,45 @@ const Auth: React.FC = () => {
               {isSubmitting ? (
                 <div className="flex items-center gap-2">
                   <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
-                  {language === 'fr' ? 'Chargement...' : 'Loading...'}
+                  {t('loading')}
                 </div>
               ) : (
                 <div className="flex items-center gap-2">
                   <Zap className="w-4 h-4" />
-                  {isLogin 
-                    ? (language === 'fr' ? 'Se connecter' : 'Login')
-                    : (language === 'fr' ? 'Créer un compte' : 'Create Account')
-                  }
+                  {isLogin ? t('signIn') : t('createAccount')}
                 </div>
               )}
             </Button>
 
             {/* Legal consent message */}
             <p className="text-xs text-muted-foreground text-center mt-4">
-              {language === 'fr' ? (
-                <>
-                  En continuant, vous acceptez nos{' '}
-                  <Link to="/privacy-policy" className="text-profit hover:underline">
-                    règles de confidentialité
-                  </Link>
-                  {' '}et{' '}
-                  <Link to="/terms-of-use" className="text-profit hover:underline">
-                    conditions d'utilisation
-                  </Link>
-                  .
-                </>
-              ) : (
-                <>
-                  By continuing, you agree to our{' '}
-                  <Link to="/privacy-policy" className="text-profit hover:underline">
-                    privacy policy
-                  </Link>
-                  {' '}and{' '}
-                  <Link to="/terms-of-use" className="text-profit hover:underline">
-                    terms of use
-                  </Link>
-                  .
-                </>
-              )}
+              {t('consentMessage')}{' '}
+              <Link to="/privacy-policy" className="text-profit hover:underline">
+                {t('privacyRules')}
+              </Link>
+              {' '}{t('and_connector')}{' '}
+              <Link to="/terms-of-use" className="text-profit hover:underline">
+                {t('termsOfUse')}
+              </Link>
+              .
             </p>
           </form>
 
           <p className="text-center text-xs text-muted-foreground mt-6">
-            {isLogin 
-              ? (language === 'fr' ? "Pas encore de compte?" : "Don't have an account?")
-              : (language === 'fr' ? 'Déjà un compte?' : 'Already have an account?')
-            }
+            {isLogin ? t('noAccountYet') : t('alreadyHaveAccount')}
             {' '}
             <button
               onClick={() => setIsLogin(!isLogin)}
               className="text-primary hover:underline"
             >
-              {isLogin 
-                ? (language === 'fr' ? "S'inscrire" : 'Sign up')
-                : (language === 'fr' ? 'Se connecter' : 'Login')
-              }
+              {isLogin ? t('signUp') : t('signIn')}
             </button>
           </p>
         </div>
 
         {/* Footer */}
         <p className="text-center text-xs text-muted-foreground mt-8">
-          Créé par un trader pour les traders. ALPHA FX.
+          {t('slogan')}
         </p>
       </div>
     </div>

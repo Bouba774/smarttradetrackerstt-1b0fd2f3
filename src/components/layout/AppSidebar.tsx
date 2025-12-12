@@ -29,6 +29,7 @@ import {
   Info,
   X,
 } from 'lucide-react';
+import { APP_VERSION } from '@/lib/version';
 
 const AppSidebar: React.FC = () => {
   const { t } = useLanguage();
@@ -158,7 +159,7 @@ const AppSidebar: React.FC = () => {
         <SidebarFooter className="p-3 sm:p-4 border-t border-primary/20">
           <div className="text-center">
             <p className="text-[10px] text-muted-foreground">
-              Smart Trade Tracker v1.0
+              Smart Trade Tracker V{APP_VERSION}
             </p>
           </div>
         </SidebarFooter>
