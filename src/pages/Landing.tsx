@@ -22,7 +22,8 @@ import {
   Quote,
   Lock,
   Users,
-  FileText
+  FileText,
+  Globe
 } from 'lucide-react';
 import ScrollReveal from '@/components/landing/ScrollReveal';
 import heroDashboard from '@/assets/hero-dashboard.jpg';
@@ -32,7 +33,7 @@ import uniqueGrowth from '@/assets/unique-growth.jpg';
 import { APP_NAME, APP_VERSION } from '@/lib/version';
 
 const Landing = () => {
-  const { language } = useLanguage();
+  const { language, setLanguage } = useLanguage();
   const [activeTraders, setActiveTraders] = useState(0);
   const [averageRating, setAverageRating] = useState(0);
   const [tradesRecorded, setTradesRecorded] = useState(0);
@@ -124,9 +125,35 @@ const Landing = () => {
               <button onClick={() => scrollToSection('unique')} className="text-muted-foreground hover:text-foreground transition-colors">{language === 'fr' ? 'Ce qui nous rend unique' : 'What makes us unique'}</button>
             </nav>
             
-            <Link to="/auth">
-              <Button className="bg-gradient-primary hover:opacity-90 text-primary-foreground shadow-neon">{language === 'fr' ? 'Commencer' : 'Get Started'}</Button>
-            </Link>
+            <div className="flex items-center gap-3">
+              {/* Language Selector */}
+              <div className="flex items-center gap-1 p-1 rounded-lg bg-secondary/50 border border-border/50">
+                <button
+                  onClick={() => setLanguage('fr')}
+                  className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+                    language === 'fr' 
+                      ? 'bg-primary text-primary-foreground shadow-sm' 
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  FR
+                </button>
+                <button
+                  onClick={() => setLanguage('en')}
+                  className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+                    language === 'en' 
+                      ? 'bg-primary text-primary-foreground shadow-sm' 
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  EN
+                </button>
+              </div>
+              
+              <Link to="/auth">
+                <Button className="bg-gradient-primary hover:opacity-90 text-primary-foreground shadow-neon">{language === 'fr' ? 'Commencer' : 'Get Started'}</Button>
+              </Link>
+            </div>
           </div>
         </div>
       </header>
