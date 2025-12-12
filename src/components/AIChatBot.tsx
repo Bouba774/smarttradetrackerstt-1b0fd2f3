@@ -153,6 +153,7 @@ const AIChatBot: React.FC = () => {
         body: JSON.stringify({
           messages: newMessages,
           userData,
+          language,
         }),
       });
 

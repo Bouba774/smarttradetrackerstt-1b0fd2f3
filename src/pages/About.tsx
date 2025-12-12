@@ -3,6 +3,7 @@ import { ArrowLeft, TrendingUp, Target, Eye, Sparkles, Shield, Heart, Rocket, Ba
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { AppVersionFooter } from '@/components/AppVersionFooter';
 
 const About: React.FC = () => {
   const features = [
@@ -222,10 +223,11 @@ const About: React.FC = () => {
           </section>
 
           {/* Footer */}
-          <div className="text-center py-4">
+          <div className="text-center py-4 space-y-2">
             <p className="text-sm text-muted-foreground">
               Created by a trader for traders. <span className="text-profit font-semibold">ALPHA FX.</span>
             </p>
+            <AppVersionFooter />
           </div>
         </div>
       </ScrollArea>

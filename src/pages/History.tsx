@@ -151,12 +151,12 @@ const History: React.FC = () => {
 
   const handleDeleteTrade = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (window.confirm('Êtes-vous sûr de vouloir supprimer ce trade?')) {
+    if (window.confirm(language === 'fr' ? 'Êtes-vous sûr de vouloir supprimer ce trade?' : 'Are you sure you want to delete this trade?')) {
       try {
         await deleteTrade.mutateAsync(id);
-        toast.success('Trade supprimé');
+        toast.success(language === 'fr' ? 'Trade supprimé' : 'Trade deleted');
       } catch (error) {
-        toast.error('Erreur lors de la suppression');
+        toast.error(language === 'fr' ? 'Erreur lors de la suppression' : 'Error deleting trade');
       }
     }
   };
@@ -178,7 +178,7 @@ const History: React.FC = () => {
             {t('history')}
           </h1>
           <p className="text-muted-foreground text-sm mt-1">
-            Retrouvez tous vos trades passés ({filteredTrades.length} trades)
+            {language === 'fr' ? `Retrouvez tous vos trades passés (${filteredTrades.length} trades)` : `View all your past trades (${filteredTrades.length} trades)`}
           </p>
         </div>
       </div>
@@ -218,12 +218,12 @@ const History: React.FC = () => {
               <SelectValue placeholder="Période" />
             </SelectTrigger>
             <SelectContent className="bg-popover border-border">
-              <SelectItem value="all">Tout</SelectItem>
-              <SelectItem value="day">Aujourd'hui</SelectItem>
-              <SelectItem value="week">Cette semaine</SelectItem>
-              <SelectItem value="month">Ce mois</SelectItem>
-              <SelectItem value="year">Cette année</SelectItem>
-              <SelectItem value="custom">Personnalisé</SelectItem>
+              <SelectItem value="all">{t('all')}</SelectItem>
+              <SelectItem value="day">{t('today')}</SelectItem>
+              <SelectItem value="week">{t('thisWeek')}</SelectItem>
+              <SelectItem value="month">{t('thisMonth')}</SelectItem>
+              <SelectItem value="year">{t('thisYear')}</SelectItem>
+              <SelectItem value="custom">{t('custom')}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -232,12 +232,12 @@ const History: React.FC = () => {
         {periodFilter === 'custom' && (
           <div className="flex flex-wrap gap-4 p-4 bg-secondary/30 rounded-lg">
             <div className="space-y-2">
-              <Label className="text-xs text-muted-foreground">Date début</Label>
+              <Label className="text-xs text-muted-foreground">{language === 'fr' ? 'Date début' : 'Start date'}</Label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button variant="outline" className="gap-2">
                     <CalendarIcon className="w-4 h-4" />
-                    {startDate ? format(startDate, 'dd/MM/yyyy') : 'Sélectionner'}
+                    {startDate ? format(startDate, 'dd/MM/yyyy') : t('select')}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0 bg-card border-border">
@@ -252,12 +252,12 @@ const History: React.FC = () => {
             </div>
             <div className="flex items-end pb-2 text-muted-foreground">→</div>
             <div className="space-y-2">
-              <Label className="text-xs text-muted-foreground">Date fin</Label>
+              <Label className="text-xs text-muted-foreground">{language === 'fr' ? 'Date fin' : 'End date'}</Label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button variant="outline" className="gap-2">
                     <CalendarIcon className="w-4 h-4" />
-                    {endDate ? format(endDate, 'dd/MM/yyyy') : 'Sélectionner'}
+                    {endDate ? format(endDate, 'dd/MM/yyyy') : t('select')}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0 bg-card border-border">
@@ -277,10 +277,10 @@ const History: React.FC = () => {
         <div className="flex flex-wrap gap-2">
           <Select value={filterDirection} onValueChange={setFilterDirection}>
             <SelectTrigger className="w-28">
-              <SelectValue placeholder="Direction" />
+              <SelectValue placeholder={t('direction')} />
             </SelectTrigger>
             <SelectContent className="bg-popover border-border">
-              <SelectItem value="all">Tous</SelectItem>
+              <SelectItem value="all">{t('all')}</SelectItem>
               <SelectItem value="long">Long</SelectItem>
               <SelectItem value="short">Short</SelectItem>
             </SelectContent>
@@ -288,23 +288,23 @@ const History: React.FC = () => {
 
           <Select value={filterResult} onValueChange={setFilterResult}>
             <SelectTrigger className="w-32">
-              <SelectValue placeholder="Résultat" />
+              <SelectValue placeholder={language === 'fr' ? 'Résultat' : 'Result'} />
             </SelectTrigger>
             <SelectContent className="bg-popover border-border">
-              <SelectItem value="all">Tous</SelectItem>
-              <SelectItem value="win">Gain</SelectItem>
-              <SelectItem value="loss">Perte</SelectItem>
-              <SelectItem value="breakeven">Break-even</SelectItem>
-              <SelectItem value="pending">En cours</SelectItem>
+              <SelectItem value="all">{t('all')}</SelectItem>
+              <SelectItem value="win">{language === 'fr' ? 'Gain' : 'Win'}</SelectItem>
+              <SelectItem value="loss">{language === 'fr' ? 'Perte' : 'Loss'}</SelectItem>
+              <SelectItem value="breakeven">{t('breakeven')}</SelectItem>
+              <SelectItem value="pending">{language === 'fr' ? 'En cours' : 'Pending'}</SelectItem>
             </SelectContent>
           </Select>
 
           <Select value={filterAsset} onValueChange={setFilterAsset}>
             <SelectTrigger className="w-32">
-              <SelectValue placeholder="Actif" />
+              <SelectValue placeholder={t('asset')} />
             </SelectTrigger>
             <SelectContent className="bg-popover border-border">
-              <SelectItem value="all">Tous</SelectItem>
+              <SelectItem value="all">{t('all')}</SelectItem>
               {uniqueAssets.map(asset => (
                 <SelectItem key={asset} value={asset}>{asset}</SelectItem>
               ))}
@@ -313,10 +313,10 @@ const History: React.FC = () => {
 
           <Select value={filterSetup} onValueChange={setFilterSetup}>
             <SelectTrigger className="w-36">
-              <SelectValue placeholder="Setup" />
+              <SelectValue placeholder={t('setup')} />
             </SelectTrigger>
             <SelectContent className="bg-popover border-border">
-              <SelectItem value="all">Tous</SelectItem>
+              <SelectItem value="all">{t('all')}</SelectItem>
               {uniqueSetups.map(setup => (
                 <SelectItem key={setup as string} value={setup as string}>{setup}</SelectItem>
               ))}
@@ -325,12 +325,12 @@ const History: React.FC = () => {
 
           <Select value={sortBy} onValueChange={setSortBy}>
             <SelectTrigger className="w-32">
-              <SelectValue placeholder="Trier par" />
+              <SelectValue placeholder={language === 'fr' ? 'Trier par' : 'Sort by'} />
             </SelectTrigger>
             <SelectContent className="bg-popover border-border">
-              <SelectItem value="date">Date</SelectItem>
+              <SelectItem value="date">{language === 'fr' ? 'Date' : 'Date'}</SelectItem>
               <SelectItem value="pnl">PnL</SelectItem>
-              <SelectItem value="asset">Actif</SelectItem>
+              <SelectItem value="asset">{t('asset')}</SelectItem>
             </SelectContent>
           </Select>
 
@@ -344,7 +344,7 @@ const History: React.FC = () => {
 
           <Button variant="ghost" size="sm" onClick={clearFilters} className="text-muted-foreground">
             <X className="w-4 h-4 mr-1" />
-            Réinitialiser
+            {t('reset')}
           </Button>
         </div>
       </div>
@@ -354,17 +354,17 @@ const History: React.FC = () => {
         <div className="glass-card p-12 text-center animate-fade-in">
           <FileX className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
           <h3 className="font-display text-xl font-semibold text-foreground mb-2">
-            Aucun trade trouvé
+            {language === 'fr' ? 'Aucun trade trouvé' : 'No trades found'}
           </h3>
           <p className="text-muted-foreground mb-4">
             {trades.length === 0 
-              ? "Commencez à enregistrer vos trades pour les voir ici"
-              : "Essayez de modifier vos filtres"
+              ? (language === 'fr' ? 'Commencez à enregistrer vos trades pour les voir ici' : 'Start recording your trades to see them here')
+              : (language === 'fr' ? 'Essayez de modifier vos filtres' : 'Try adjusting your filters')
             }
           </p>
           {trades.length > 0 && (
             <Button variant="outline" onClick={clearFilters}>
-              Réinitialiser les filtres
+              {language === 'fr' ? 'Réinitialiser les filtres' : 'Reset filters'}
             </Button>
           )}
         </div>
@@ -419,7 +419,7 @@ const History: React.FC = () => {
                       )}>
                         {trade.profit_loss !== null 
                           ? formatAmount(trade.profit_loss, true)
-                          : 'En cours'
+                          : (language === 'fr' ? 'En cours' : 'Pending')
                         }
                       </p>
                       <p className="text-xs text-muted-foreground">
@@ -448,19 +448,19 @@ const History: React.FC = () => {
                 <div className="px-4 pb-4 pt-2 border-t border-border bg-secondary/20">
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div>
-                      <p className="text-xs text-muted-foreground">Prix d'entrée</p>
+                      <p className="text-xs text-muted-foreground">{t('entryPrice')}</p>
                       <p className="font-medium text-foreground">{trade.entry_price}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground">Prix de sortie</p>
+                      <p className="text-xs text-muted-foreground">{t('exitPrice')}</p>
                       <p className="font-medium text-foreground">{trade.exit_price || '-'}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground">Stop Loss</p>
+                      <p className="text-xs text-muted-foreground">{t('stopLoss')}</p>
                       <p className="font-medium text-loss">{trade.stop_loss || '-'}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground">Take Profit</p>
+                      <p className="text-xs text-muted-foreground">{t('takeProfit')}</p>
                       <p className="font-medium text-profit">{trade.take_profit || '-'}</p>
                     </div>
                   </div>
@@ -468,7 +468,7 @@ const History: React.FC = () => {
                   {/* Trade Images */}
                   {trade.images && trade.images.length > 0 && (
                     <div className="mt-4 pt-4 border-t border-border/50">
-                      <p className="text-xs text-muted-foreground mb-2">Captures ({trade.images.length})</p>
+                      <p className="text-xs text-muted-foreground mb-2">{language === 'fr' ? 'Captures' : 'Screenshots'} ({trade.images.length})</p>
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                         {trade.images.map((imageUrl, imgIndex) => (
                           <a
@@ -493,13 +493,13 @@ const History: React.FC = () => {
                     <div className="mt-4 pt-4 border-t border-border/50 space-y-3">
                       {trade.setup && (
                         <div>
-                          <p className="text-xs text-muted-foreground">Setup</p>
+                          <p className="text-xs text-muted-foreground">{t('setup')}</p>
                           <p className="font-medium text-foreground">{trade.setup}</p>
                         </div>
                       )}
                       {trade.emotions && (
                         <div>
-                          <p className="text-xs text-muted-foreground">Émotion</p>
+                          <p className="text-xs text-muted-foreground">{t('emotion')}</p>
                           <Badge variant="outline" className="capitalize">{trade.emotions}</Badge>
                         </div>
                       )}
