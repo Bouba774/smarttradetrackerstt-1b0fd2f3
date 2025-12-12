@@ -1,6 +1,7 @@
-// App versioning system - automatically read from package.json at build time
+// App versioning system
 // Version follows semantic versioning: Major.Minor.Patch
-export const APP_VERSION = '1.0.0';
+// UPDATE THIS VERSION when releasing new features!
+export const APP_VERSION = '1.1.0';
 export const APP_NAME = 'Smart Trade Tracker';
 export const BUILD_DATE = new Date().toISOString().split('T')[0];
 

@@ -8,6 +8,7 @@ import { ThemeProvider } from "@/contexts/ThemeContext";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import Layout from "@/components/layout/Layout";
 import AIChatBot from "@/components/AIChatBot";
+import ChangelogModal from "@/components/ChangelogModal";
 import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
@@ -82,6 +83,7 @@ const AppContent = () => {
         <Route path="*" element={<NotFound />} />
       </Routes>
       {user && <AIChatBot />}
+      {user && <ChangelogModal />}
     </>
   );
 };
