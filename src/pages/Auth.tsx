@@ -9,6 +9,8 @@ import { toast } from 'sonner';
 import { Eye, EyeOff, Mail, Lock, User, TrendingUp, Zap, ArrowLeft } from 'lucide-react';
 import { z } from 'zod';
 import { supabase } from '@/integrations/supabase/client';
+import { createPasswordSchema, validatePassword } from '@/lib/passwordValidation';
+import PasswordStrengthIndicator from '@/components/PasswordStrengthIndicator';
 
 const Auth: React.FC = () => {
   const { signIn, signUp, user, loading } = useAuth();
@@ -25,7 +27,7 @@ const Auth: React.FC = () => {
   const [errors, setErrors] = useState<{ email?: string; password?: string; nickname?: string }>({});
 
   const emailSchema = z.string().email(t('invalidEmail'));
-  const passwordSchema = z.string().min(6, t('passwordMin6'));
+  const passwordSchema = createPasswordSchema(language);
   const nicknameSchema = z.string().min(2, t('nicknameMin2'));
 
   useEffect(() => {
@@ -46,11 +48,18 @@ const Auth: React.FC = () => {
     }
 
     if (!isForgotPassword) {
-      try {
-        passwordSchema.parse(password);
-      } catch (e) {
-        if (e instanceof z.ZodError) {
-          newErrors.password = e.errors[0].message;
+      // Only apply strict password validation on signup
+      if (!isLogin) {
+        const passwordValidation = validatePassword(password);
+        if (!passwordValidation.isValid) {
+          newErrors.password = language === 'fr' 
+            ? 'Le mot de passe ne respecte pas les critères de sécurité'
+            : 'Password does not meet security requirements';
+        }
+      } else {
+        // For login, just check minimum length
+        if (password.length < 6) {
+          newErrors.password = t('passwordMin6');
         }
       }
 
@@ -265,6 +274,8 @@ const Auth: React.FC = () => {
                 {errors.password && (
                   <p className="text-loss text-xs">{errors.password}</p>
                 )}
+                {/* Show password strength indicator only on signup */}
+                {!isLogin && <PasswordStrengthIndicator password={password} />}
               </div>
             )}
 

@@ -6,8 +6,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { Eye, EyeOff, Lock, TrendingUp, CheckCircle } from 'lucide-react';
-import { z } from 'zod';
 import { supabase } from '@/integrations/supabase/client';
+import { validatePassword } from '@/lib/passwordValidation';
+import PasswordStrengthIndicator from '@/components/PasswordStrengthIndicator';
 
 const ResetPassword: React.FC = () => {
   const { language, t } = useLanguage();
@@ -20,8 +21,6 @@ const ResetPassword: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [errors, setErrors] = useState<{ password?: string; confirmPassword?: string }>({});
-
-  const passwordSchema = z.string().min(6, t('passwordMin6'));
 
   useEffect(() => {
     // Check if we have a valid session from the reset link
@@ -40,12 +39,11 @@ const ResetPassword: React.FC = () => {
   const validateForm = () => {
     const newErrors: typeof errors = {};
 
-    try {
-      passwordSchema.parse(password);
-    } catch (e) {
-      if (e instanceof z.ZodError) {
-        newErrors.password = e.errors[0].message;
-      }
+    const passwordValidation = validatePassword(password);
+    if (!passwordValidation.isValid) {
+      newErrors.password = language === 'fr' 
+        ? 'Le mot de passe ne respecte pas les critères de sécurité'
+        : 'Password does not meet security requirements';
     }
 
     if (password !== confirmPassword) {
@@ -172,6 +170,7 @@ const ResetPassword: React.FC = () => {
               {errors.password && (
                 <p className="text-loss text-xs">{errors.password}</p>
               )}
+              <PasswordStrengthIndicator password={password} />
             </div>
 
             <div className="space-y-2">
