@@ -268,10 +268,10 @@ const Reports: React.FC = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="font-display text-2xl md:text-3xl font-bold text-foreground">
-            {language === 'fr' ? 'Rapports' : 'Reports'}
+            {t('reports')}
           </h1>
           <p className="text-muted-foreground text-sm mt-1">
-            {language === 'fr' ? 'Analyse de vos performances' : 'Performance analysis'}
+            {t('performanceAnalysis')}
           </p>
         </div>
         <div className="w-12 h-12 rounded-lg bg-gradient-primary flex items-center justify-center shadow-neon">
@@ -290,7 +290,7 @@ const Reports: React.FC = () => {
               onClick={() => setViewMode('week')}
               className={cn(viewMode === 'week' && 'bg-primary text-primary-foreground')}
             >
-              {language === 'fr' ? 'Semaine' : 'Week'}
+              {t('week')}
             </Button>
             <Button
               variant={viewMode === 'month' ? 'default' : 'ghost'}
@@ -298,7 +298,7 @@ const Reports: React.FC = () => {
               onClick={() => setViewMode('month')}
               className={cn(viewMode === 'month' && 'bg-primary text-primary-foreground')}
             >
-              {language === 'fr' ? 'Mois' : 'Month'}
+              {t('month')}
             </Button>
           </div>
 
@@ -341,12 +341,10 @@ const Reports: React.FC = () => {
         <div className="glass-card p-12 text-center animate-fade-in">
           <FileText className="w-16 h-16 mx-auto text-muted-foreground/50 mb-4" />
           <h3 className="text-xl font-display font-semibold text-foreground mb-2">
-            {language === 'fr' ? 'Aucune donnée' : 'No data yet'}
+            {t('noData')}
           </h3>
           <p className="text-muted-foreground">
-            {language === 'fr' 
-              ? 'Ajoutez des trades pour voir vos rapports de performance'
-              : 'Add trades to see your performance reports'}
+            {t('addTradesToSeeReports')}
           </p>
         </div>
       ) : (
@@ -395,7 +393,7 @@ const Reports: React.FC = () => {
             {/* Daily PnL */}
             <div className="glass-card p-6 animate-fade-in" style={{ animationDelay: '200ms' }}>
               <h3 className="font-display font-semibold text-foreground mb-4">
-                {language === 'fr' ? 'PnL Journalier' : 'Daily PnL'}
+                {t('dailyPnL')}
               </h3>
               {periodTrades.length > 0 ? (
                 <div className="h-[200px]">
@@ -425,7 +423,7 @@ const Reports: React.FC = () => {
                 </div>
               ) : (
                 <div className="h-[200px] flex items-center justify-center text-muted-foreground">
-                  {language === 'fr' ? 'Pas de trades sur cette période' : 'No trades in this period'}
+                  {t('noTradesInPeriod')}
                 </div>
               )}
             </div>
@@ -433,7 +431,7 @@ const Reports: React.FC = () => {
             {/* Emotion Distribution */}
             <div className="glass-card p-6 animate-fade-in" style={{ animationDelay: '250ms' }}>
               <h3 className="font-display font-semibold text-foreground mb-4">
-                {language === 'fr' ? 'Répartition Émotionnelle' : 'Emotion Distribution'}
+                {t('emotionDistribution')}
               </h3>
               {emotionDistribution.length > 0 ? (
                 <>
@@ -475,7 +473,7 @@ const Reports: React.FC = () => {
                 </>
               ) : (
                 <div className="h-[200px] flex items-center justify-center text-muted-foreground">
-                  {language === 'fr' ? 'Pas de données émotionnelles' : 'No emotion data'}
+                  {t('noData')}
                 </div>
               )}
             </div>
@@ -487,7 +485,7 @@ const Reports: React.FC = () => {
               <div className="flex items-center gap-2 mb-3">
                 <TrendingUp className="w-4 h-4 text-profit" />
                 <span className="text-sm font-medium text-foreground">
-                  {language === 'fr' ? 'Meilleur Jour' : 'Best Day'}
+                  {t('bestDayLabel')}
                 </span>
               </div>
               <p className="font-display text-lg font-bold text-profit">{stats.bestDay.day}</p>
@@ -497,7 +495,7 @@ const Reports: React.FC = () => {
               <div className="flex items-center gap-2 mb-3">
                 <TrendingDown className="w-4 h-4 text-loss" />
                 <span className="text-sm font-medium text-foreground">
-                  {language === 'fr' ? 'Pire Jour' : 'Worst Day'}
+                  {t('worstDayLabel')}
                 </span>
               </div>
               <p className="font-display text-lg font-bold text-loss">{stats.worstDay.day}</p>
@@ -507,7 +505,7 @@ const Reports: React.FC = () => {
               <div className="flex items-center gap-2 mb-3">
                 <Award className="w-4 h-4 text-primary" />
                 <span className="text-sm font-medium text-foreground">
-                  {language === 'fr' ? 'Meilleur Setup' : 'Best Setup'}
+                  {t('bestSetup')}
                 </span>
               </div>
               <p className="font-display text-lg font-bold text-primary">{stats.bestSetup}</p>
@@ -517,7 +515,7 @@ const Reports: React.FC = () => {
               <div className="flex items-center gap-2 mb-3">
                 <Brain className="w-4 h-4 text-primary" />
                 <span className="text-sm font-medium text-foreground">
-                  {language === 'fr' ? 'Émotion Dominante' : 'Dominant Emotion'}
+                  {t('dominantEmotion')}
                 </span>
               </div>
               <p className="font-display text-lg font-bold text-foreground">{stats.dominantEmotion}</p>
@@ -528,7 +526,7 @@ const Reports: React.FC = () => {
           {viewMode === 'month' && monthlyData.length > 0 && (
             <div className="glass-card p-6 animate-fade-in" style={{ animationDelay: '500ms' }}>
               <h3 className="font-display font-semibold text-foreground mb-4">
-                {language === 'fr' ? 'Performance Mensuelle' : 'Monthly Performance'}
+                {t('monthlyPerformance')}
               </h3>
               <div className="h-[250px]">
                 <ResponsiveContainer width="100%" height="100%">

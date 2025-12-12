@@ -499,7 +499,67 @@ export const translations: Translations = {
   last30Days: { fr: '30 derniers jours', en: 'Last 30 days' },
   last90Days: { fr: '90 derniers jours', en: 'Last 90 days' },
   customRange: { fr: 'Plage personnalisée', en: 'Custom range' },
+
+  // ============================================
+  // CALCULATOR - Additional
+  // ============================================
+  calculatorDesc: { fr: 'Calculatrice de taille de position professionnelle', en: 'Professional position size calculator' },
+  searchAssetCalc: { fr: 'Rechercher un actif', en: 'Search asset' },
+  searchPlaceholder: { fr: 'Rechercher...', en: 'Search...' },
+  category: { fr: 'Catégorie', en: 'Category' },
+  required: { fr: 'obligatoire', en: 'required' },
+  optional: { fr: 'optionnel', en: 'optional' },
+  parameters: { fr: 'Paramètres', en: 'Parameters' },
+  results: { fr: 'Résultats', en: 'Results' },
+  recommendedLotSize: { fr: 'Taille de Lot Recommandée', en: 'Recommended Lot Size' },
+  standardLots: { fr: 'Standard Lots', en: 'Standard Lots' },
+  mini: { fr: 'Mini', en: 'Mini' },
+  micro: { fr: 'Micro', en: 'Micro' },
+  maxLoss: { fr: 'Perte max', en: 'Max loss' },
+  potentialGain: { fr: 'Gain potentiel', en: 'Potential gain' },
+  visualization: { fr: 'Visualisation', en: 'Visualization' },
+  warnings: { fr: 'Avertissements', en: 'Warnings' },
+  bestPractices: { fr: 'Bonnes Pratiques', en: 'Best Practices' },
+  formulasUsed: { fr: 'Formules utilisées', en: 'Formulas used' },
+  fillAllFields: { fr: 'Veuillez remplir tous les champs obligatoires', en: 'Please fill all required fields' },
+  calculationDone: { fr: 'Calcul effectué!', en: 'Calculation done!' },
+  warningRisk2: { fr: 'Risque > 2% : Position agressive', en: 'Risk > 2%: Aggressive position' },
+  warningRisk5: { fr: 'Risque > 5% : Très dangereux!', en: 'Risk > 5%: Very dangerous!' },
+  warningSLTight: { fr: 'SL très serré (< 5 pips) : Trade risqué', en: 'Very tight SL (< 5 pips): Risky trade' },
+  warningSpread: { fr: 'SL serré : Attention au spread', en: 'Tight SL: Watch the spread' },
+  warningRRBad: { fr: 'R:R < 1:1 : Ratio défavorable', en: 'R:R < 1:1: Unfavorable ratio' },
+  warningLotHigh: { fr: 'Lot size > 10 : Vérifiez votre calcul', en: 'Lot size > 10: Check your calculation' },
+  tipNeverRisk2: { fr: 'Ne risquez jamais plus de 2% par trade', en: 'Never risk more than 2% per trade' },
+  tipUseAlwaysSL: { fr: 'Utilisez toujours un Stop Loss', en: 'Always use a Stop Loss' },
+  tipAimRR2: { fr: 'Visez un R:R minimum de 1:2', en: 'Aim for a minimum R:R of 1:2' },
+  tipAdaptLot: { fr: 'Adaptez votre lot à votre capital', en: 'Adapt your lot to your capital' },
+
+  // ============================================
+  // PSYCHOLOGY - Additional
+  // ============================================
+  understandEmotionsImpact: { fr: 'Comprenez vos émotions et leur impact', en: 'Understand your emotions and their impact' },
+  disciplineFactors: { fr: 'Facteurs de Discipline', en: 'Discipline Factors' },
+  followingPlan: { fr: 'Respect du plan', en: 'Following plan' },
+  noOvertrading: { fr: "Pas d'overtrading", en: 'No overtrading' },
+  slAlwaysSet: { fr: 'SL toujours en place', en: 'SL always set' },
+  noRevengeTrading: { fr: 'Pas de revenge trading', en: 'No revenge trading' },
+  winrateByEmotion: { fr: 'Winrate par Émotion', en: 'Winrate by Emotion' },
+  emotionDistributionChart: { fr: 'Répartition des Émotions', en: 'Emotion Distribution' },
+  weeklyEmotionTrends: { fr: 'Tendances Émotionnelles Hebdomadaires', en: 'Weekly Emotion Trends' },
+  mentalSummary: { fr: 'Bilan Mental', en: 'Mental Summary' },
+  positiveSigns: { fr: 'Points Positifs', en: 'Positive Signs' },
+  areasToImprove: { fr: "Points d'Amélioration", en: 'Areas to Improve' },
+  addTradesWithEmotions: { fr: "Ajoutez des trades avec vos émotions pour voir l'analyse psychologique", en: 'Add trades with your emotions to see psychological analysis' },
+  gains: { fr: 'Gains', en: 'Gains' },
+
+  // ============================================
+  // CHALLENGES - Additional
+  // ============================================
+  challengesTakeOn: { fr: 'Relevez des défis et montez en niveau', en: 'Take on challenges and level up' },
+  niv: { fr: 'Niv.', en: 'Lv.' },
 };
+
+
 
 export const getTranslation = (key: string, language: Language): string => {
   const translation = translations[key];

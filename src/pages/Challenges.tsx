@@ -39,7 +39,7 @@ const iconMap: { [key: string]: React.ElementType } = {
 };
 
 const Challenges: React.FC = () => {
-  const { language } = useLanguage();
+  const { language, t } = useLanguage();
   const { profile } = useAuth();
   const {
     challenges,
@@ -95,7 +95,7 @@ const Challenges: React.FC = () => {
     return (
       <div className="py-4 flex items-center justify-center min-h-[400px]">
         <div className="animate-pulse text-primary">
-          {language === 'fr' ? 'Chargement...' : 'Loading...'}
+          {t('loading')}
         </div>
       </div>
     );
@@ -113,18 +113,18 @@ const Challenges: React.FC = () => {
               </div>
             </div>
             <DialogTitle className="text-xl sm:text-2xl font-display text-center">
-              🎉 {language === 'fr' ? 'Bravo!' : 'Congratulations!'}
+              🎉 {t('congratulations')}
             </DialogTitle>
           </DialogHeader>
           <div className="py-3 sm:py-4">
             <p className="text-base sm:text-lg text-foreground mb-2">
-              {language === 'fr' ? 'Vous avez complété' : 'You have completed'}:
+              {t('youHaveCompleted')}:
             </p>
             <p className="text-lg sm:text-xl font-display font-bold text-primary mb-4 break-words">
               {completedChallenge && (language === 'fr' ? completedChallenge.title : completedChallenge.titleEn)}
             </p>
             <p className="text-muted-foreground text-sm sm:text-base break-words">
-              {completedChallenge?.reward}
+              {t('reward')}: {completedChallenge?.reward}
             </p>
             <p className="text-profit font-bold mt-2">
               +{completedChallenge?.points} points!
@@ -134,7 +134,7 @@ const Challenges: React.FC = () => {
             onClick={() => setShowCongrats(false)}
             className="w-full bg-gradient-primary hover:opacity-90 font-display touch-target"
           >
-            {language === 'fr' ? 'Continuer!' : 'Continue!'}
+            {t('continue')}
           </Button>
         </DialogContent>
       </Dialog>
@@ -143,10 +143,10 @@ const Challenges: React.FC = () => {
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0 flex-1">
           <h1 className="font-display text-xl sm:text-2xl md:text-3xl font-bold text-foreground truncate">
-            {language === 'fr' ? 'Défis' : 'Challenges'}
+            {t('challenges')}
           </h1>
           <p className="text-muted-foreground text-xs sm:text-sm mt-1 break-words">
-            {language === 'fr' ? 'Relevez des défis et montez en niveau' : 'Take on challenges and level up'}
+            {t('challengesTakeOn')}
           </p>
         </div>
         <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gradient-primary flex items-center justify-center shadow-neon shrink-0">
@@ -163,7 +163,7 @@ const Challenges: React.FC = () => {
               <span className="text-3xl sm:text-4xl">{currentLevel.badge}</span>
             </div>
             <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-primary text-primary-foreground text-xs font-bold whitespace-nowrap">
-              Niv. {currentLevel.level}
+              {t('niv')} {currentLevel.level}
             </div>
           </div>
 
@@ -173,7 +173,7 @@ const Challenges: React.FC = () => {
               {language === 'fr' ? currentLevel.title : currentLevel.titleEn}
             </h2>
             <p className="text-muted-foreground text-xs sm:text-sm mb-4">
-              {totalPoints} points • {completedCount} {language === 'fr' ? 'défis complétés' : 'challenges completed'}
+              {totalPoints} {t('points')} • {completedCount} {t('challengesCompleted')}
             </p>
             
             {nextLevel && (
@@ -189,7 +189,7 @@ const Challenges: React.FC = () => {
                   />
                 </div>
                 <p className="text-xs text-muted-foreground text-center">
-                  {nextLevel.minPoints - totalPoints} {language === 'fr' ? 'points restants' : 'points remaining'}
+                  {nextLevel.minPoints - totalPoints} {t('pointsRemaining')}
                 </p>
               </div>
             )}
@@ -200,7 +200,7 @@ const Challenges: React.FC = () => {
             <div className="glass-card p-2 sm:p-3 rounded-lg">
               <p className="font-display text-lg sm:text-xl md:text-2xl font-bold text-profit">{completedCount}</p>
               <p className="text-[10px] sm:text-xs text-muted-foreground">
-                {language === 'fr' ? 'Complétés' : 'Completed'}
+                {t('completedLabel')}
               </p>
             </div>
             <div className="glass-card p-2 sm:p-3 rounded-lg">
@@ -208,7 +208,7 @@ const Challenges: React.FC = () => {
                 {challenges.length - completedCount}
               </p>
               <p className="text-[10px] sm:text-xs text-muted-foreground">
-                {language === 'fr' ? 'En cours' : 'In Progress'}
+                {t('inProgress')}
               </p>
             </div>
             <div className="glass-card p-2 sm:p-3 rounded-lg">
@@ -283,7 +283,7 @@ const Challenges: React.FC = () => {
                         <div className="space-y-2">
                           <div className="flex justify-between text-[10px] sm:text-xs">
                             <span className="text-muted-foreground">
-                              {language === 'fr' ? 'Progression' : 'Progress'}
+                              {t('progress')}
                             </span>
                             <span className={cn(
                               "font-medium",
@@ -306,7 +306,7 @@ const Challenges: React.FC = () => {
                         {/* Reward */}
                         <div className="mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-border flex flex-wrap items-center justify-between gap-1">
                           <p className="text-[10px] sm:text-xs text-muted-foreground break-words">
-                            {language === 'fr' ? 'Récompense' : 'Reward'}: 
+                            {t('reward')}: 
                             <span className="text-foreground ml-1">{challenge.reward}</span>
                           </p>
                           <span className="text-[10px] sm:text-xs font-bold text-profit whitespace-nowrap">
@@ -326,7 +326,7 @@ const Challenges: React.FC = () => {
       {/* Level Roadmap - Mobile Optimized */}
       <div className="glass-card p-4 sm:p-6 animate-fade-in w-full" style={{ animationDelay: '500ms' }}>
         <h3 className="font-display font-semibold text-foreground mb-4 sm:mb-6 text-sm sm:text-base">
-          {language === 'fr' ? 'Progression des Niveaux' : 'Level Progression'}
+          {t('levelProgression')}
         </h3>
         <div className="flex items-center gap-2 overflow-x-auto pb-4 scrollbar-thin -mx-4 px-4 sm:mx-0 sm:px-0">
           {USER_LEVELS.map((level, index) => {

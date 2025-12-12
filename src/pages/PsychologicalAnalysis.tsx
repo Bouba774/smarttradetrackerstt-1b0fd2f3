@@ -24,7 +24,7 @@ const DAYS_FR = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
 const DAYS_EN = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 const PsychologicalAnalysis: React.FC = () => {
-  const { language } = useLanguage();
+  const { language, t } = useLanguage();
   const { trades, isLoading } = useTrades();
 
   // Calculate emotion statistics from real data
@@ -282,10 +282,10 @@ const PsychologicalAnalysis: React.FC = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="font-display text-2xl md:text-3xl font-bold text-foreground">
-            {language === 'fr' ? 'Analyse Psychologique' : 'Psychological Analysis'}
+            {t('psychology')}
           </h1>
           <p className="text-muted-foreground text-sm mt-1">
-            {language === 'fr' ? 'Comprenez vos émotions et leur impact' : 'Understand your emotions and their impact'}
+            {t('understandEmotionsImpact')}
           </p>
         </div>
         <div className="w-12 h-12 rounded-lg bg-gradient-primary flex items-center justify-center shadow-neon">
@@ -297,12 +297,10 @@ const PsychologicalAnalysis: React.FC = () => {
         <div className="glass-card p-12 text-center animate-fade-in">
           <Brain className="w-16 h-16 mx-auto text-muted-foreground/50 mb-4" />
           <h3 className="text-xl font-display font-semibold text-foreground mb-2">
-            {language === 'fr' ? 'Aucune donnée' : 'No data yet'}
+            {t('noData')}
           </h3>
           <p className="text-muted-foreground">
-            {language === 'fr' 
-              ? 'Ajoutez des trades avec vos émotions pour voir l\'analyse psychologique'
-              : 'Add trades with your emotions to see psychological analysis'}
+            {t('addTradesWithEmotions')}
           </p>
         </div>
       ) : (
@@ -321,7 +319,7 @@ const PsychologicalAnalysis: React.FC = () => {
               </div>
               <div className="flex-1 w-full">
                 <h3 className="font-display font-semibold text-foreground mb-4">
-                  {language === 'fr' ? 'Facteurs de Discipline' : 'Discipline Factors'}
+                  {t('disciplineFactors')}
                 </h3>
                 <div className="space-y-4">
                   {disciplineBreakdown.factors.map((factor) => {
@@ -362,7 +360,7 @@ const PsychologicalAnalysis: React.FC = () => {
             {/* Winrate by Emotion */}
             <div className="glass-card p-6 animate-fade-in" style={{ animationDelay: '100ms' }}>
               <h3 className="font-display font-semibold text-foreground mb-4">
-                {language === 'fr' ? 'Winrate par Émotion' : 'Winrate by Emotion'}
+                {t('winrateByEmotion')}
               </h3>
               {emotionStats.length > 0 ? (
                 <div className="h-[250px]">
@@ -379,13 +377,13 @@ const PsychologicalAnalysis: React.FC = () => {
                         }}
                         formatter={(value: number) => [`${value}%`, '']}
                       />
-                      <Bar dataKey="wins" fill="hsl(var(--profit))" name="Gains" radius={[0, 4, 4, 0]} />
+                      <Bar dataKey="wins" fill="hsl(var(--profit))" name={t('gains')} radius={[0, 4, 4, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
               ) : (
                 <div className="h-[250px] flex items-center justify-center text-muted-foreground">
-                  {language === 'fr' ? 'Pas de données' : 'No data'}
+                  {t('noData')}
                 </div>
               )}
             </div>
@@ -393,7 +391,7 @@ const PsychologicalAnalysis: React.FC = () => {
             {/* Emotion Distribution */}
             <div className="glass-card p-6 animate-fade-in" style={{ animationDelay: '150ms' }}>
               <h3 className="font-display font-semibold text-foreground mb-4">
-                {language === 'fr' ? 'Répartition des Émotions' : 'Emotion Distribution'}
+                {t('emotionDistributionChart')}
               </h3>
               {emotionDistribution.length > 0 ? (
                 <>
@@ -435,7 +433,7 @@ const PsychologicalAnalysis: React.FC = () => {
                 </>
               ) : (
                 <div className="h-[200px] flex items-center justify-center text-muted-foreground">
-                  {language === 'fr' ? 'Pas de données' : 'No data'}
+                  {t('noData')}
                 </div>
               )}
             </div>
@@ -444,7 +442,7 @@ const PsychologicalAnalysis: React.FC = () => {
           {/* Weekly Emotion Trend - All Emotions */}
           <div className="glass-card p-6 animate-fade-in" style={{ animationDelay: '200ms' }}>
             <h3 className="font-display font-semibold text-foreground mb-4">
-              {language === 'fr' ? 'Tendance Émotionnelle (Semaine)' : 'Emotional Trend (Week)'}
+              {t('weeklyEmotionTrends')}
             </h3>
             {weeklyEmotionsByType.emotions.length > 0 ? (
               <>
@@ -491,7 +489,7 @@ const PsychologicalAnalysis: React.FC = () => {
               </>
             ) : (
               <div className="h-[250px] flex items-center justify-center text-muted-foreground">
-                {language === 'fr' ? 'Pas de données cette semaine' : 'No data this week'}
+                {t('noData')}
               </div>
             )}
           </div>
@@ -527,7 +525,7 @@ const PsychologicalAnalysis: React.FC = () => {
                   <TrendingUp className="w-5 h-5 text-profit" />
                 </div>
                 <h3 className="font-display font-semibold text-foreground">
-                  {language === 'fr' ? 'Points Forts' : 'Strengths'}
+                  {t('positiveSigns')}
                 </h3>
               </div>
               <div className="space-y-3">
@@ -550,7 +548,7 @@ const PsychologicalAnalysis: React.FC = () => {
                   <AlertTriangle className="w-5 h-5 text-loss" />
                 </div>
                 <h3 className="font-display font-semibold text-foreground">
-                  {language === 'fr' ? 'Points à Améliorer' : 'Areas to Improve'}
+                  {t('areasToImprove')}
                 </h3>
               </div>
               <div className="space-y-3">
