@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -24,10 +24,20 @@ import {
   FileText,
   Check,
   Star,
-  Quote
+  Quote,
+  ChevronUp,
+  Plus,
+  Minus,
+  HelpCircle
 } from 'lucide-react';
 import ScrollReveal from '@/components/landing/ScrollReveal';
 import { APP_NAME, APP_VERSION } from '@/lib/version';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
 const Landing = () => {
   const { language, setLanguage } = useLanguage();
@@ -36,6 +46,14 @@ const Landing = () => {
   const [averageRating, setAverageRating] = useState(0);
   const [tradesRecorded, setTradesRecorded] = useState(0);
   const [countersStarted, setCountersStarted] = useState(false);
+  const [scrollY, setScrollY] = useState(0);
+
+  // Parallax effect
+  useEffect(() => {
+    const handleScroll = () => setScrollY(window.scrollY);
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   // Counter animation with intersection observer
   useEffect(() => {
@@ -138,16 +156,66 @@ const Landing = () => {
     { icon: Users, title: language === 'fr' ? 'Support' : 'Support', desc: language === 'fr' ? 'Aide disponible' : 'Help available' },
   ];
 
+  const faqs = [
+    {
+      question: language === 'fr' ? 'Smart Trade Tracker est-il gratuit ?' : 'Is Smart Trade Tracker free?',
+      answer: language === 'fr' 
+        ? 'Oui, Smart Trade Tracker est entièrement gratuit. Vous pouvez enregistrer un nombre illimité de trades et accéder à toutes les fonctionnalités sans aucun frais.'
+        : 'Yes, Smart Trade Tracker is completely free. You can record unlimited trades and access all features without any fees.'
+    },
+    {
+      question: language === 'fr' ? 'Mes données sont-elles sécurisées ?' : 'Is my data secure?',
+      answer: language === 'fr'
+        ? 'Absolument. Vos données sont cryptées et stockées de manière sécurisée. Nous ne partageons jamais vos informations avec des tiers et vous gardez le contrôle total de vos données.'
+        : 'Absolutely. Your data is encrypted and stored securely. We never share your information with third parties and you keep full control of your data.'
+    },
+    {
+      question: language === 'fr' ? 'Quels marchés puis-je suivre ?' : 'What markets can I track?',
+      answer: language === 'fr'
+        ? 'Vous pouvez suivre tous les marchés : Forex, Crypto, Indices, Métaux, Actions et plus encore. Le calculateur de lot s\'adapte automatiquement à chaque type d\'actif.'
+        : 'You can track all markets: Forex, Crypto, Indices, Metals, Stocks and more. The lot calculator automatically adapts to each asset type.'
+    },
+    {
+      question: language === 'fr' ? 'Comment fonctionne l\'assistant IA ?' : 'How does the AI assistant work?',
+      answer: language === 'fr'
+        ? 'L\'assistant IA analyse vos trades et votre comportement pour vous fournir des insights personnalisés. Il peut répondre à vos questions sur vos performances et vous aider à identifier des patterns.'
+        : 'The AI assistant analyzes your trades and behavior to provide personalized insights. It can answer questions about your performance and help you identify patterns.'
+    },
+    {
+      question: language === 'fr' ? 'Puis-je exporter mes données ?' : 'Can I export my data?',
+      answer: language === 'fr'
+        ? 'Oui, vous pouvez exporter vos données en PDF professionnel avec toutes vos statistiques, graphiques et analyses pour une période de votre choix.'
+        : 'Yes, you can export your data as a professional PDF with all your statistics, charts and analyses for a period of your choice.'
+    },
+    {
+      question: language === 'fr' ? 'L\'application fonctionne-t-elle sur mobile ?' : 'Does the app work on mobile?',
+      answer: language === 'fr'
+        ? 'Oui, Smart Trade Tracker est entièrement responsive et fonctionne parfaitement sur tous les appareils : smartphone, tablette et ordinateur.'
+        : 'Yes, Smart Trade Tracker is fully responsive and works perfectly on all devices: smartphone, tablet and computer.'
+    }
+  ];
+
   return (
     <div className="min-h-screen bg-background relative overflow-x-hidden">
-      {/* Clean Background with subtle gradient */}
+      {/* Clean Background with subtle gradient and parallax */}
       <div className="fixed inset-0 pointer-events-none">
         <div 
-          className="absolute inset-0"
+          className="absolute inset-0 transition-transform duration-100"
           style={{
             background: resolvedTheme === 'dark' 
               ? 'radial-gradient(ellipse 80% 50% at 50% -20%, hsl(190 100% 50% / 0.08), transparent)'
-              : 'radial-gradient(ellipse 80% 50% at 50% -20%, hsl(200 100% 45% / 0.06), transparent)'
+              : 'radial-gradient(ellipse 80% 50% at 50% -20%, hsl(200 100% 45% / 0.06), transparent)',
+            transform: `translateY(${scrollY * 0.1}px)`
+          }}
+        />
+        {/* Secondary parallax layer */}
+        <div 
+          className="absolute inset-0"
+          style={{
+            background: resolvedTheme === 'dark'
+              ? 'radial-gradient(ellipse 60% 40% at 80% 80%, hsl(160 100% 40% / 0.04), transparent)'
+              : 'radial-gradient(ellipse 60% 40% at 80% 80%, hsl(160 100% 40% / 0.03), transparent)',
+            transform: `translateY(${scrollY * -0.05}px)`
           }}
         />
       </div>
@@ -427,6 +495,44 @@ const Landing = () => {
                 </ScrollReveal>
               ))}
             </div>
+          </div>
+        </section>
+
+        {/* FAQ Section */}
+        <section id="faq" className="py-24 sm:py-32">
+          <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+            <ScrollReveal animation="fade-up">
+              <div className="text-center mb-16">
+                <span className="text-sm text-primary font-medium mb-4 block">
+                  {language === 'fr' ? 'FAQ' : 'FAQ'}
+                </span>
+                <h2 className="text-3xl sm:text-4xl font-bold text-foreground">
+                  {language === 'fr' ? 'Questions fréquentes' : 'Frequently asked questions'}
+                </h2>
+              </div>
+            </ScrollReveal>
+            
+            <ScrollReveal animation="fade-up" delay={100}>
+              <Accordion type="single" collapsible className="space-y-3">
+                {faqs.map((faq, index) => (
+                  <AccordionItem 
+                    key={index} 
+                    value={`faq-${index}`}
+                    className="border border-border/50 rounded-2xl bg-card/30 px-6 overflow-hidden data-[state=open]:bg-card/60 transition-colors"
+                  >
+                    <AccordionTrigger className="text-left text-foreground hover:no-underline py-5 [&[data-state=open]>svg]:rotate-180">
+                      <span className="flex items-center gap-3">
+                        <HelpCircle className="w-5 h-5 text-primary flex-shrink-0" />
+                        <span className="font-medium">{faq.question}</span>
+                      </span>
+                    </AccordionTrigger>
+                    <AccordionContent className="text-muted-foreground pb-5 pl-8">
+                      {faq.answer}
+                    </AccordionContent>
+                  </AccordionItem>
+                ))}
+              </Accordion>
+            </ScrollReveal>
           </div>
         </section>
 
