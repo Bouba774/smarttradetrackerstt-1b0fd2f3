@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Eye, EyeOff, Lock, TrendingUp, CheckCircle } from 'lucide-react';
+import { Eye, EyeOff, Lock, TrendingUp, CheckCircle, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { validatePassword } from '@/lib/passwordValidation';
 import PasswordStrengthIndicator from '@/components/PasswordStrengthIndicator';
@@ -20,20 +20,62 @@ const ResetPassword: React.FC = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isValidToken, setIsValidToken] = useState(false);
   const [errors, setErrors] = useState<{ password?: string; confirmPassword?: string }>({});
 
   useEffect(() => {
-    // Check if we have a valid session from the reset link
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        toast.error(language === 'fr' 
-          ? 'Lien invalide ou expiré. Veuillez réessayer.' 
-          : 'Invalid or expired link. Please try again.');
-        navigate('/auth');
+    // Handle the password reset token from URL hash
+    const handlePasswordReset = async () => {
+      setIsLoading(true);
+      
+      // Check if we have hash parameters (from email link)
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      const accessToken = hashParams.get('access_token');
+      const refreshToken = hashParams.get('refresh_token');
+      const type = hashParams.get('type');
+      
+      console.log('Reset password - type:', type, 'has access token:', !!accessToken);
+      
+      if (type === 'recovery' && accessToken && refreshToken) {
+        // Set the session with the tokens from the URL
+        const { data, error } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        });
+        
+        if (error) {
+          console.error('Error setting session:', error);
+          toast.error(language === 'fr' 
+            ? 'Lien invalide ou expiré. Veuillez réessayer.' 
+            : 'Invalid or expired link. Please try again.');
+          navigate('/auth');
+          return;
+        }
+        
+        if (data.session) {
+          setIsValidToken(true);
+          // Clear the hash from URL for cleaner display
+          window.history.replaceState(null, '', window.location.pathname);
+        }
+      } else {
+        // Check if there's already a valid session (e.g., from previous token exchange)
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (session) {
+          setIsValidToken(true);
+        } else {
+          toast.error(language === 'fr' 
+            ? 'Lien invalide ou expiré. Veuillez réessayer.' 
+            : 'Invalid or expired link. Please try again.');
+          navigate('/auth');
+        }
       }
+      
+      setIsLoading(false);
     };
-    checkSession();
+    
+    handlePasswordReset();
   }, [navigate, language]);
 
   const validateForm = () => {
@@ -86,6 +128,26 @@ const ResetPassword: React.FC = () => {
     }
   };
 
+  // Loading state while checking token
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-profit/5" />
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-3xl" />
+        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-profit/10 rounded-full blur-3xl" />
+
+        <div className="w-full max-w-md relative z-10 text-center">
+          <div className="glass-card p-8 animate-fade-in">
+            <Loader2 className="w-8 h-8 text-primary animate-spin mx-auto mb-4" />
+            <p className="text-muted-foreground text-sm">
+              {language === 'fr' ? 'Vérification du lien...' : 'Verifying link...'}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (isSuccess) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4 relative overflow-hidden">
@@ -110,6 +172,11 @@ const ResetPassword: React.FC = () => {
         </div>
       </div>
     );
+  }
+
+  // If token is not valid, don't show the form (user will be redirected)
+  if (!isValidToken) {
+    return null;
   }
 
   return (
