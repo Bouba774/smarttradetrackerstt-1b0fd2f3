@@ -33,6 +33,7 @@ import {
   Moon
 } from 'lucide-react';
 import ScrollReveal from '@/components/landing/ScrollReveal';
+import ParticleBackground from '@/components/landing/ParticleBackground';
 import { APP_NAME, APP_VERSION } from '@/lib/version';
 import {
   Accordion,
@@ -50,28 +51,41 @@ const Landing = () => {
   const [countersStarted, setCountersStarted] = useState(false);
   const [scrollY, setScrollY] = useState(0);
   const [typedText, setTypedText] = useState('');
-  const [isTypingComplete, setIsTypingComplete] = useState(false);
+  const [wordIndex, setWordIndex] = useState(0);
+  const [isDeleting, setIsDeleting] = useState(false);
 
-  const fullText = language === 'fr' ? 'discipline' : 'discipline';
+  const words = language === 'fr' 
+    ? ['discipline', 'précision', 'constance', 'confiance', 'maîtrise']
+    : ['discipline', 'precision', 'consistency', 'confidence', 'mastery'];
 
-  // Typing effect
+  // Typing effect with rotating words
   useEffect(() => {
-    setTypedText('');
-    setIsTypingComplete(false);
-    let currentIndex = 0;
-    
-    const typingInterval = setInterval(() => {
-      if (currentIndex < fullText.length) {
-        setTypedText(fullText.slice(0, currentIndex + 1));
-        currentIndex++;
-      } else {
-        setIsTypingComplete(true);
-        clearInterval(typingInterval);
-      }
-    }, 100);
+    const currentWord = words[wordIndex];
+    const typingSpeed = isDeleting ? 50 : 100;
+    const pauseTime = 2000;
 
-    return () => clearInterval(typingInterval);
-  }, [language, fullText]);
+    const timeout = setTimeout(() => {
+      if (!isDeleting) {
+        // Typing
+        if (typedText.length < currentWord.length) {
+          setTypedText(currentWord.slice(0, typedText.length + 1));
+        } else {
+          // Pause before deleting
+          setTimeout(() => setIsDeleting(true), pauseTime);
+        }
+      } else {
+        // Deleting
+        if (typedText.length > 0) {
+          setTypedText(currentWord.slice(0, typedText.length - 1));
+        } else {
+          setIsDeleting(false);
+          setWordIndex((prev) => (prev + 1) % words.length);
+        }
+      }
+    }, typingSpeed);
+
+    return () => clearTimeout(timeout);
+  }, [typedText, isDeleting, wordIndex, words]);
 
   // Parallax effect
   useEffect(() => {
@@ -222,6 +236,8 @@ const Landing = () => {
 
   return (
     <div className="min-h-screen bg-background relative overflow-x-hidden">
+      {/* Floating Particles Background */}
+      <ParticleBackground />
       {/* Clean Background with subtle gradient and parallax */}
       <div className="fixed inset-0 pointer-events-none">
         <div 
@@ -332,7 +348,7 @@ const Landing = () => {
                 <span className="text-foreground">{language === 'fr' ? 'Tradez avec ' : 'Trade with '}</span>
                 <span className="text-gradient-primary">
                   {typedText}
-                  <span className={`inline-block w-[3px] h-[0.9em] bg-primary ml-1 align-middle ${isTypingComplete ? 'animate-pulse' : 'animate-[blink_0.7s_infinite]'}`} />
+                  <span className="inline-block w-[3px] h-[0.9em] bg-primary ml-1 align-middle animate-[blink_0.7s_infinite]" />
                 </span>
               </h1>
             </ScrollReveal>
