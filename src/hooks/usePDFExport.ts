@@ -45,11 +45,42 @@ interface ExportStats {
   totalVolume: number;
 }
 
+// PDF-safe number formatter that uses simple ASCII characters only
+const formatNumberForPDF = (value: number, decimals: number = 2): string => {
+  if (value === null || value === undefined || isNaN(value)) return '0';
+  
+  const absValue = Math.abs(value);
+  const fixedValue = absValue.toFixed(decimals);
+  
+  // Split into integer and decimal parts
+  const [intPart, decPart] = fixedValue.split('.');
+  
+  // Add thousand separators using simple space (ASCII 32)
+  const formattedInt = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+  
+  // Combine with decimal part
+  const formatted = decPart ? `${formattedInt}.${decPart}` : formattedInt;
+  
+  // Add sign if negative
+  return value < 0 ? `-${formatted}` : formatted;
+};
+
 export const usePDFExport = () => {
   const { language } = useLanguage();
-  const { currency, formatAmount, getCurrencySymbol } = useCurrency();
+  const { currency, getCurrencySymbol, convertFromBase, decimals } = useCurrency();
   const { triggerFeedback } = useFeedback();
   const locale = language === 'fr' ? fr : enUS;
+
+  // PDF-specific amount formatter using raw numeric values
+  const formatAmountForPDF = useCallback((amount: number | null | undefined, convertValue = true): string => {
+    if (amount === null || amount === undefined) return '-';
+    
+    const displayAmount = convertValue ? convertFromBase(amount) : amount;
+    const symbol = getCurrencySymbol();
+    const formatted = formatNumberForPDF(displayAmount, decimals);
+    
+    return `${formatted} ${symbol}`;
+  }, [convertFromBase, getCurrencySymbol, decimals]);
 
   const calculateStats = (trades: Trade[]): ExportStats => {
     if (trades.length === 0) {
@@ -181,8 +212,8 @@ export const usePDFExport = () => {
     // Draw start and end values
     doc.setFontSize(8);
     doc.setTextColor(100, 100, 100);
-    doc.text(formatAmount(minValue), chartX + 2, chartY + chartHeight - 2);
-    doc.text(formatAmount(maxValue), chartX + 2, chartY + 6);
+    doc.text(formatAmountForPDF(minValue), chartX + 2, chartY + chartHeight - 2);
+    doc.text(formatAmountForPDF(maxValue), chartX + 2, chartY + 6);
 
     // Draw final equity value
     const finalEquity = equityData[equityData.length - 1].equity;
@@ -193,7 +224,7 @@ export const usePDFExport = () => {
     } else {
       doc.setTextColor(239, 68, 68);
     }
-    doc.text(formatAmount(finalEquity), chartX + chartWidth - 30, chartY + 10);
+    doc.text(formatAmountForPDF(finalEquity), chartX + chartWidth - 30, chartY + 10);
 
     return chartY + chartHeight + 15;
   };
@@ -344,10 +375,10 @@ export const usePDFExport = () => {
       const statsCards = [
         { label: 'Total Trades', value: stats.totalTrades.toString(), color: [59, 130, 246] as [number, number, number] },
         { label: 'Winrate', value: `${stats.winrate}%`, color: stats.winrate >= 50 ? [34, 197, 94] as [number, number, number] : [239, 68, 68] as [number, number, number] },
-        { label: 'Profit Factor', value: stats.profitFactor === Infinity ? '∞' : stats.profitFactor.toFixed(2), color: stats.profitFactor >= 1 ? [34, 197, 94] as [number, number, number] : [239, 68, 68] as [number, number, number] },
-        { label: language === 'fr' ? 'PnL Total' : 'Total PnL', value: formatAmount(stats.totalPnL), color: stats.totalPnL >= 0 ? [34, 197, 94] as [number, number, number] : [239, 68, 68] as [number, number, number] },
-        { label: language === 'fr' ? 'Meilleur Trade' : 'Best Trade', value: formatAmount(stats.bestTrade), color: [34, 197, 94] as [number, number, number] },
-        { label: language === 'fr' ? 'Pire Trade' : 'Worst Trade', value: formatAmount(stats.worstTrade), color: [239, 68, 68] as [number, number, number] },
+        { label: 'Profit Factor', value: stats.profitFactor === Infinity ? 'Inf' : formatNumberForPDF(stats.profitFactor, 2), color: stats.profitFactor >= 1 ? [34, 197, 94] as [number, number, number] : [239, 68, 68] as [number, number, number] },
+        { label: language === 'fr' ? 'PnL Total' : 'Total PnL', value: formatAmountForPDF(stats.totalPnL), color: stats.totalPnL >= 0 ? [34, 197, 94] as [number, number, number] : [239, 68, 68] as [number, number, number] },
+        { label: language === 'fr' ? 'Meilleur Trade' : 'Best Trade', value: formatAmountForPDF(stats.bestTrade), color: [34, 197, 94] as [number, number, number] },
+        { label: language === 'fr' ? 'Pire Trade' : 'Worst Trade', value: formatAmountForPDF(stats.worstTrade), color: [239, 68, 68] as [number, number, number] },
       ];
 
       statsCards.forEach((card, i) => {
@@ -380,9 +411,9 @@ export const usePDFExport = () => {
 
       // Additional stats row
       const additionalStats = [
-        { label: language === 'fr' ? 'Lot Moyen' : 'Avg Lot', value: stats.avgLotSize.toFixed(2) },
-        { label: language === 'fr' ? 'Volume Total' : 'Total Volume', value: stats.totalVolume.toFixed(2) },
-        { label: language === 'fr' ? 'Profit Moyen' : 'Avg Profit', value: formatAmount(stats.avgProfit) },
+        { label: language === 'fr' ? 'Lot Moyen' : 'Avg Lot', value: formatNumberForPDF(stats.avgLotSize, 2) },
+        { label: language === 'fr' ? 'Volume Total' : 'Total Volume', value: formatNumberForPDF(stats.totalVolume, 2) },
+        { label: language === 'fr' ? 'Profit Moyen' : 'Avg Profit', value: formatAmountForPDF(stats.avgProfit) },
       ];
 
       doc.setFontSize(9);
@@ -434,11 +465,11 @@ export const usePDFExport = () => {
         format(new Date(trade.trade_date), 'dd/MM/yy'),
         trade.asset.length > 10 ? trade.asset.substring(0, 10) + '...' : trade.asset,
         trade.direction.toUpperCase().substring(0, 1),
-        trade.entry_price.toFixed(2),
-        trade.exit_price?.toFixed(2) || '-',
-        trade.lot_size.toFixed(2),
-        formatAmount(trade.profit_loss || 0),
-        trade.result === 'win' ? '✓' : trade.result === 'loss' ? '✗' : '○',
+        formatNumberForPDF(trade.entry_price, 2),
+        trade.exit_price ? formatNumberForPDF(trade.exit_price, 2) : '-',
+        formatNumberForPDF(trade.lot_size, 2),
+        formatAmountForPDF(trade.profit_loss || 0),
+        trade.result === 'win' ? 'W' : trade.result === 'loss' ? 'L' : 'BE',
       ]);
 
       autoTable(doc, {
@@ -486,10 +517,10 @@ export const usePDFExport = () => {
           }
           // Color result column
           if (data.column.index === 7 && data.section === 'body') {
-            if (data.cell.text[0] === '✓') {
+            if (data.cell.text[0] === 'W') {
               data.cell.styles.textColor = [34, 197, 94];
               data.cell.styles.fontStyle = 'bold';
-            } else if (data.cell.text[0] === '✗') {
+            } else if (data.cell.text[0] === 'L') {
               data.cell.styles.textColor = [239, 68, 68];
               data.cell.styles.fontStyle = 'bold';
             } else {
@@ -536,7 +567,7 @@ export const usePDFExport = () => {
       triggerFeedback('error');
       toast.error(language === 'fr' ? 'Erreur lors de l\'export PDF' : 'PDF export error');
     }
-  }, [language, currency, formatAmount, getCurrencySymbol, triggerFeedback, locale]);
+  }, [language, currency, formatAmountForPDF, getCurrencySymbol, triggerFeedback, locale, convertFromBase, decimals]);
 
   return { exportToPDF };
 };

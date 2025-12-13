@@ -42,6 +42,7 @@ const VideoJournal: React.FC = () => {
   const [note, setNote] = useState('');
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [editingNoteText, setEditingNoteText] = useState('');
+  const [isCameraReady, setIsCameraReady] = useState(false);
   
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -50,6 +51,8 @@ const VideoJournal: React.FC = () => {
   const playbackAudioRef = useRef<HTMLAudioElement>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const chunksRef = useRef<Blob[]>([]);
+  const recordingDurationRef = useRef<number>(0); // Track actual duration in ref
+  const recordingStartTimeRef = useRef<number>(0); // Track start time for accurate duration
 
   const MAX_DURATION = 60; // 60 seconds max
 
@@ -93,20 +96,25 @@ const VideoJournal: React.FC = () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(metadata));
   };
 
-  const startRecording = async (type: 'video' | 'audio') => {
+  const initializeCamera = async (type: 'video' | 'audio', cameraMode: 'user' | 'environment') => {
     try {
-      // Higher quality constraints
+      // Stop any existing stream first
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+      }
+
       const constraints = type === 'video'
         ? { 
             video: { 
-              facingMode: facingMode, 
-              width: { ideal: 1920, min: 1280 }, 
-              height: { ideal: 1080, min: 720 },
-              frameRate: { ideal: 30 }
+              facingMode: { ideal: cameraMode },
+              width: { ideal: 1920, min: 640 }, 
+              height: { ideal: 1080, min: 480 },
+              frameRate: { ideal: 30, min: 15 }
             }, 
             audio: {
               echoCancellation: true,
               noiseSuppression: true,
+              autoGainControl: true,
               sampleRate: 48000
             }
           }
@@ -114,6 +122,7 @@ const VideoJournal: React.FC = () => {
             audio: {
               echoCancellation: true,
               noiseSuppression: true,
+              autoGainControl: true,
               sampleRate: 48000
             }
           };
@@ -123,31 +132,72 @@ const VideoJournal: React.FC = () => {
 
       if (type === 'video' && videoPreviewRef.current) {
         videoPreviewRef.current.srcObject = stream;
-        // Ensure preview plays immediately
-        await videoPreviewRef.current.play().catch(() => {});
+        videoPreviewRef.current.muted = true;
+        videoPreviewRef.current.playsInline = true;
+        
+        // Wait for video to be ready before playing
+        await new Promise<void>((resolve, reject) => {
+          if (!videoPreviewRef.current) return reject('No video element');
+          
+          videoPreviewRef.current.onloadedmetadata = () => {
+            videoPreviewRef.current?.play()
+              .then(() => {
+                setIsCameraReady(true);
+                resolve();
+              })
+              .catch(reject);
+          };
+          
+          // Timeout fallback
+          setTimeout(() => resolve(), 2000);
+        });
       }
 
-      // Better quality encoding
+      return stream;
+    } catch (error) {
+      console.error('Camera initialization error:', error);
+      throw error;
+    }
+  };
+
+  const startRecording = async (type: 'video' | 'audio') => {
+    try {
+      setIsCameraReady(false);
+      
+      // Initialize camera and wait for it to be ready
+      const stream = await initializeCamera(type, facingMode);
+      
+      if (!stream) {
+        throw new Error('Failed to get media stream');
+      }
+
+      // Determine best supported MIME type
       const mimeType = type === 'video' 
         ? (MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus') 
             ? 'video/webm;codecs=vp9,opus' 
             : MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus')
               ? 'video/webm;codecs=vp8,opus'
-              : 'video/webm')
+              : MediaRecorder.isTypeSupported('video/mp4')
+                ? 'video/mp4'
+                : 'video/webm')
         : (MediaRecorder.isTypeSupported('audio/webm;codecs=opus') 
             ? 'audio/webm;codecs=opus' 
             : 'audio/webm');
 
-      // Higher bitrate for better quality
+      // Configure recorder with quality settings
       const options: MediaRecorderOptions = { 
         mimeType,
-        videoBitsPerSecond: type === 'video' ? 2500000 : undefined, // 2.5 Mbps for video
-        audioBitsPerSecond: 128000 // 128 kbps for audio
+        videoBitsPerSecond: type === 'video' ? 2500000 : undefined,
+        audioBitsPerSecond: 128000
       };
 
       const mediaRecorder = new MediaRecorder(stream, options);
       mediaRecorderRef.current = mediaRecorder;
       chunksRef.current = [];
+      
+      // Reset duration tracking
+      recordingDurationRef.current = 0;
+      recordingStartTimeRef.current = Date.now();
 
       mediaRecorder.ondataavailable = (e) => {
         if (e.data.size > 0) {
@@ -156,6 +206,10 @@ const VideoJournal: React.FC = () => {
       };
 
       mediaRecorder.onstop = () => {
+        // Calculate final duration from actual elapsed time
+        const finalDuration = Math.floor((Date.now() - recordingStartTimeRef.current) / 1000);
+        const actualDuration = Math.max(1, Math.min(finalDuration, MAX_DURATION));
+        
         const blob = new Blob(chunksRef.current, {
           type: type === 'video' ? 'video/webm' : 'audio/webm',
         });
@@ -165,7 +219,7 @@ const VideoJournal: React.FC = () => {
           id: Date.now().toString(),
           type,
           date: new Date().toISOString().split('T')[0],
-          duration: recordingTime,
+          duration: actualDuration,
           url,
           blob,
           note: note.trim() || undefined,
@@ -187,33 +241,37 @@ const VideoJournal: React.FC = () => {
       setRecordingType(type);
       setRecordingTime(0);
 
+      // Use more accurate timer based on actual elapsed time
       timerRef.current = setInterval(() => {
-        setRecordingTime(prev => {
-          if (prev >= MAX_DURATION - 1) {
-            stopRecording();
-            return prev;
-          }
-          return prev + 1;
-        });
-      }, 1000);
+        const elapsed = Math.floor((Date.now() - recordingStartTimeRef.current) / 1000);
+        recordingDurationRef.current = elapsed;
+        setRecordingTime(elapsed);
+        
+        if (elapsed >= MAX_DURATION) {
+          stopRecording();
+        }
+      }, 100); // Update more frequently for smoother display
 
     } catch (error) {
       console.error('Error starting recording:', error);
+      setIsCameraReady(false);
       toast.error(t('cameraError'));
     }
   };
 
   const stopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
       mediaRecorderRef.current.stop();
     }
 
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => track.stop());
-    }
-
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
+      streamRef.current = null;
     }
 
     if (videoPreviewRef.current) {
@@ -222,50 +280,54 @@ const VideoJournal: React.FC = () => {
 
     setIsRecording(false);
     setRecordingType(null);
+    setIsCameraReady(false);
   };
 
   const switchCamera = async () => {
     const newFacingMode = facingMode === 'user' ? 'environment' : 'user';
     
-    if (isRecording && recordingType === 'video' && mediaRecorderRef.current) {
-      // Seamless camera switch: replace video track without stopping the recorder
+    if (isRecording && recordingType === 'video' && streamRef.current) {
+      // Seamless camera switch during recording
       try {
         // Get new video stream with new camera
         const newVideoStream = await navigator.mediaDevices.getUserMedia({
           video: { 
-            facingMode: newFacingMode, 
-            width: { ideal: 1920, min: 1280 }, 
-            height: { ideal: 1080, min: 720 },
-            frameRate: { ideal: 30 }
+            facingMode: { ideal: newFacingMode },
+            width: { ideal: 1920, min: 640 }, 
+            height: { ideal: 1080, min: 480 },
+            frameRate: { ideal: 30, min: 15 }
           }
         });
         
         const newVideoTrack = newVideoStream.getVideoTracks()[0];
         
-        if (streamRef.current) {
+        if (streamRef.current && newVideoTrack) {
           // Get the old video track and stop it
           const oldVideoTrack = streamRef.current.getVideoTracks()[0];
           
           // Replace the video track in the current stream
-          streamRef.current.removeTrack(oldVideoTrack);
+          if (oldVideoTrack) {
+            streamRef.current.removeTrack(oldVideoTrack);
+            oldVideoTrack.stop();
+          }
           streamRef.current.addTrack(newVideoTrack);
-          oldVideoTrack.stop();
           
           // Update preview with new stream
           if (videoPreviewRef.current) {
             videoPreviewRef.current.srcObject = streamRef.current;
             await videoPreviewRef.current.play().catch(() => {});
           }
+          
+          setFacingMode(newFacingMode);
+          const cameraLabel = newFacingMode === 'user' ? t('frontCamera') : t('backCamera');
+          toast.success(`${cameraLabel} ${language === 'fr' ? 'activée' : 'activated'}`);
         }
-        
-        setFacingMode(newFacingMode);
-        const cameraLabel = newFacingMode === 'user' ? t('frontCamera') : t('backCamera');
-        toast.success(`${cameraLabel} ${language === 'fr' ? 'activée' : 'activated'}`);
       } catch (error) {
         console.error('Error switching camera:', error);
         toast.error(t('cameraSwitchUnavailable'));
       }
     } else {
+      // Not recording, just update the preference
       setFacingMode(newFacingMode);
       const cameraLabel = newFacingMode === 'user' ? t('frontCamera') : t('backCamera');
       toast.info(`${cameraLabel} ${language === 'fr' ? 'sélectionnée' : 'selected'}`);
@@ -390,18 +452,32 @@ const VideoJournal: React.FC = () => {
         {/* Video Preview */}
         {recordingType === 'video' && (
           <div className="mb-6 rounded-lg overflow-hidden bg-black aspect-video max-w-md mx-auto relative">
+            {/* Loading overlay when camera is initializing */}
+            {!isCameraReady && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/80 z-10">
+                <div className="text-center">
+                  <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+                  <span className="text-xs text-muted-foreground">
+                    {language === 'fr' ? 'Initialisation de la caméra...' : 'Initializing camera...'}
+                  </span>
+                </div>
+              </div>
+            )}
             <video
               ref={videoPreviewRef}
               className="w-full h-full object-cover"
               muted
               playsInline
+              autoPlay
               style={{ transform: facingMode === 'user' ? 'scaleX(-1)' : 'none' }}
             />
             {/* Recording indicator */}
-            <div className="absolute top-4 left-4 flex items-center gap-2 px-3 py-1 rounded-full bg-loss/80">
-              <div className="w-2 h-2 rounded-full bg-white animate-pulse" />
-              <span className="text-xs text-white font-medium">REC</span>
-            </div>
+            {isRecording && (
+              <div className="absolute top-4 left-4 flex items-center gap-2 px-3 py-1 rounded-full bg-loss/80">
+                <div className="w-2 h-2 rounded-full bg-white animate-pulse" />
+                <span className="text-xs text-white font-medium">REC</span>
+              </div>
+            )}
             
             {/* Camera indicator */}
             <div className="absolute top-4 right-4 flex items-center gap-2 px-3 py-1 rounded-full bg-secondary/80">
