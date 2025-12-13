@@ -1,14 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Eye, EyeOff, Lock, TrendingUp, CheckCircle, Loader2 } from 'lucide-react';
+import { Eye, EyeOff, Lock, TrendingUp, CheckCircle, Loader2, Clock, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { validatePassword } from '@/lib/passwordValidation';
 import PasswordStrengthIndicator from '@/components/PasswordStrengthIndicator';
+
+// Token validity duration in seconds (Supabase default is 1 hour)
+const TOKEN_VALIDITY_SECONDS = 3600;
 
 const ResetPassword: React.FC = () => {
   const { language, t } = useLanguage();
@@ -23,6 +26,37 @@ const ResetPassword: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isValidToken, setIsValidToken] = useState(false);
   const [errors, setErrors] = useState<{ password?: string; confirmPassword?: string }>({});
+  const [timeRemaining, setTimeRemaining] = useState<number>(TOKEN_VALIDITY_SECONDS);
+  const [tokenExpiredAt, setTokenExpiredAt] = useState<number | null>(null);
+
+  // Format time remaining as MM:SS
+  const formatTimeRemaining = useCallback((seconds: number): string => {
+    if (seconds <= 0) return '00:00';
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  }, []);
+
+  // Countdown timer effect
+  useEffect(() => {
+    if (!isValidToken || !tokenExpiredAt || isSuccess) return;
+
+    const interval = setInterval(() => {
+      const now = Date.now();
+      const remaining = Math.max(0, Math.floor((tokenExpiredAt - now) / 1000));
+      setTimeRemaining(remaining);
+
+      if (remaining <= 0) {
+        clearInterval(interval);
+        toast.error(language === 'fr' 
+          ? 'Le lien a expiré. Veuillez demander un nouveau lien.' 
+          : 'Link has expired. Please request a new link.');
+        navigate('/auth');
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [isValidToken, tokenExpiredAt, isSuccess, language, navigate]);
 
   useEffect(() => {
     // Handle the password reset token from URL hash
@@ -34,6 +68,7 @@ const ResetPassword: React.FC = () => {
       const accessToken = hashParams.get('access_token');
       const refreshToken = hashParams.get('refresh_token');
       const type = hashParams.get('type');
+      const expiresAt = hashParams.get('expires_at');
       
       console.log('Reset password - type:', type, 'has access token:', !!accessToken);
       
@@ -55,6 +90,23 @@ const ResetPassword: React.FC = () => {
         
         if (data.session) {
           setIsValidToken(true);
+          
+          // Calculate expiration time
+          if (expiresAt) {
+            // Use the expires_at from the URL if available
+            setTokenExpiredAt(parseInt(expiresAt) * 1000);
+            setTimeRemaining(Math.max(0, parseInt(expiresAt) - Math.floor(Date.now() / 1000)));
+          } else if (data.session.expires_at) {
+            // Use session expiration
+            setTokenExpiredAt(data.session.expires_at * 1000);
+            setTimeRemaining(Math.max(0, data.session.expires_at - Math.floor(Date.now() / 1000)));
+          } else {
+            // Fallback: assume 1 hour from now
+            const expiry = Date.now() + TOKEN_VALIDITY_SECONDS * 1000;
+            setTokenExpiredAt(expiry);
+            setTimeRemaining(TOKEN_VALIDITY_SECONDS);
+          }
+          
           // Clear the hash from URL for cleaner display
           window.history.replaceState(null, '', window.location.pathname);
         }
@@ -64,6 +116,17 @@ const ResetPassword: React.FC = () => {
         
         if (session) {
           setIsValidToken(true);
+          
+          // Use session expiration for countdown
+          if (session.expires_at) {
+            setTokenExpiredAt(session.expires_at * 1000);
+            setTimeRemaining(Math.max(0, session.expires_at - Math.floor(Date.now() / 1000)));
+          } else {
+            // Fallback: 10 minutes from now for existing sessions
+            const expiry = Date.now() + 600 * 1000;
+            setTokenExpiredAt(expiry);
+            setTimeRemaining(600);
+          }
         } else {
           toast.error(language === 'fr' 
             ? 'Lien invalide ou expiré. Veuillez réessayer.' 
@@ -205,11 +268,37 @@ const ResetPassword: React.FC = () => {
           <h2 className="text-xl font-bold text-foreground mb-2">
             {language === 'fr' ? 'Nouveau mot de passe' : 'New password'}
           </h2>
-          <p className="text-sm text-muted-foreground mb-6">
+          <p className="text-sm text-muted-foreground mb-4">
             {language === 'fr' 
               ? 'Entrez votre nouveau mot de passe ci-dessous.' 
               : 'Enter your new password below.'}
           </p>
+
+          {/* Expiration Timer */}
+          <div className={`flex items-center gap-2 p-3 rounded-lg mb-6 ${
+            timeRemaining <= 300 
+              ? 'bg-loss/10 border border-loss/20' 
+              : 'bg-primary/10 border border-primary/20'
+          }`}>
+            {timeRemaining <= 300 ? (
+              <AlertTriangle className="w-4 h-4 text-loss flex-shrink-0" />
+            ) : (
+              <Clock className="w-4 h-4 text-primary flex-shrink-0" />
+            )}
+            <div className="flex-1">
+              <p className={`text-xs font-medium ${timeRemaining <= 300 ? 'text-loss' : 'text-primary'}`}>
+                {language === 'fr' ? 'Temps restant' : 'Time remaining'}
+              </p>
+              <p className={`text-lg font-mono font-bold ${timeRemaining <= 300 ? 'text-loss' : 'text-foreground'}`}>
+                {formatTimeRemaining(timeRemaining)}
+              </p>
+            </div>
+            {timeRemaining <= 300 && (
+              <p className="text-xs text-loss">
+                {language === 'fr' ? 'Dépêchez-vous !' : 'Hurry up!'}
+              </p>
+            )}
+          </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-2">
