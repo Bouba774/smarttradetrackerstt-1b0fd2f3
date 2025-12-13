@@ -22,7 +22,9 @@ import {
   Lock,
   Users,
   FileText,
-  Check
+  Check,
+  Star,
+  Quote
 } from 'lucide-react';
 import ScrollReveal from '@/components/landing/ScrollReveal';
 import { APP_NAME, APP_VERSION } from '@/lib/version';
@@ -33,27 +35,77 @@ const Landing = () => {
   const [activeTraders, setActiveTraders] = useState(0);
   const [averageRating, setAverageRating] = useState(0);
   const [tradesRecorded, setTradesRecorded] = useState(0);
+  const [countersStarted, setCountersStarted] = useState(false);
 
+  // Counter animation with intersection observer
   useEffect(() => {
-    const duration = 2000;
-    const steps = 60;
-    const interval = duration / steps;
-    
-    let step = 0;
-    const timer = setInterval(() => {
-      step++;
-      const progress = step / steps;
-      const easeOut = 1 - Math.pow(1 - progress, 3);
-      
-      setActiveTraders(Math.floor(2500 * easeOut));
-      setAverageRating(parseFloat((4.8 * easeOut).toFixed(1)));
-      setTradesRecorded(Math.floor(150 * easeOut));
-      
-      if (step >= steps) clearInterval(timer);
-    }, interval);
-    
-    return () => clearInterval(timer);
-  }, []);
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting && !countersStarted) {
+            setCountersStarted(true);
+            const duration = 2000;
+            const steps = 60;
+            const interval = duration / steps;
+            
+            let step = 0;
+            const timer = setInterval(() => {
+              step++;
+              const progress = step / steps;
+              const easeOut = 1 - Math.pow(1 - progress, 3);
+              
+              setActiveTraders(Math.floor(2500 * easeOut));
+              setAverageRating(parseFloat((4.8 * easeOut).toFixed(1)));
+              setTradesRecorded(Math.floor(150 * easeOut));
+              
+              if (step >= steps) clearInterval(timer);
+            }, interval);
+          }
+        });
+      },
+      { threshold: 0.5 }
+    );
+
+    const statsElement = document.getElementById('stats-section');
+    if (statsElement) observer.observe(statsElement);
+
+    return () => observer.disconnect();
+  }, [countersStarted]);
+
+  const testimonials = [
+    {
+      name: 'Marc D.',
+      role: language === 'fr' ? 'Trader Forex' : 'Forex Trader',
+      rating: 5,
+      text: language === 'fr' 
+        ? 'Cet outil a transformé ma façon de trader. Mon winrate a augmenté de 15% en 3 mois grâce au suivi psychologique.'
+        : 'This tool has transformed my trading. My winrate increased by 15% in 3 months thanks to the psychological tracking.'
+    },
+    {
+      name: 'Sophie L.',
+      role: language === 'fr' ? 'Day Trader' : 'Day Trader',
+      rating: 5,
+      text: language === 'fr'
+        ? 'Enfin un journal de trading qui comprend l\'importance des émotions. L\'assistant IA est incroyablement utile.'
+        : 'Finally a trading journal that understands the importance of emotions. The AI assistant is incredibly useful.'
+    },
+    {
+      name: 'Thomas B.',
+      role: language === 'fr' ? 'Swing Trader' : 'Swing Trader',
+      rating: 5,
+      text: language === 'fr'
+        ? 'Interface intuitive et statistiques complètes. Je recommande à tous les traders sérieux.'
+        : 'Intuitive interface and comprehensive statistics. I recommend it to all serious traders.'
+    },
+    {
+      name: 'Emma R.',
+      role: language === 'fr' ? 'Crypto Trader' : 'Crypto Trader',
+      rating: 4,
+      text: language === 'fr'
+        ? 'Le calculateur de lot et la conversion de devises en temps réel sont des game changers.'
+        : 'The lot calculator and real-time currency conversion are game changers.'
+    }
+  ];
 
   const scrollToSection = (id: string) => {
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
@@ -201,16 +253,20 @@ const Landing = () => {
               </div>
             </ScrollReveal>
             
-            {/* Stats */}
-            <div className="grid grid-cols-3 gap-6 max-w-xl mx-auto">
+            {/* Stats with counter animation */}
+            <div id="stats-section" className="grid grid-cols-3 gap-6 max-w-xl mx-auto">
               {[
-                { value: `${activeTraders}+`, label: language === 'fr' ? 'Traders' : 'Traders' },
-                { value: `${averageRating}`, label: language === 'fr' ? 'Note' : 'Rating' },
-                { value: `${tradesRecorded}K`, label: language === 'fr' ? 'Trades' : 'Trades' },
+                { value: activeTraders, suffix: '+', label: language === 'fr' ? 'Traders' : 'Traders' },
+                { value: averageRating, suffix: '', label: language === 'fr' ? 'Note' : 'Rating', isRating: true },
+                { value: tradesRecorded, suffix: 'K', label: language === 'fr' ? 'Trades' : 'Trades' },
               ].map((stat, index) => (
                 <ScrollReveal key={index} animation="scale" delay={400 + index * 100}>
                   <div className="text-center">
-                    <div className="text-2xl sm:text-3xl font-bold text-foreground mb-1">{stat.value}</div>
+                    <div className="text-2xl sm:text-3xl font-bold text-foreground mb-1 flex items-center justify-center gap-1">
+                      <span className="tabular-nums">{stat.value}</span>
+                      <span>{stat.suffix}</span>
+                      {stat.isRating && <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />}
+                    </div>
                     <div className="text-xs sm:text-sm text-muted-foreground">{stat.label}</div>
                   </div>
                 </ScrollReveal>
@@ -322,6 +378,51 @@ const Landing = () => {
                     </div>
                     <h3 className="font-semibold text-foreground mb-1">{item.title}</h3>
                     <p className="text-sm text-muted-foreground">{item.desc}</p>
+                  </div>
+                </ScrollReveal>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Testimonials Section */}
+        <section id="testimonials" className="py-24 sm:py-32 bg-card/20">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <ScrollReveal animation="fade-up">
+              <div className="text-center mb-16">
+                <span className="text-sm text-primary font-medium mb-4 block">
+                  {language === 'fr' ? 'Témoignages' : 'Testimonials'}
+                </span>
+                <h2 className="text-3xl sm:text-4xl font-bold text-foreground">
+                  {language === 'fr' ? 'Ce que disent nos traders' : 'What our traders say'}
+                </h2>
+              </div>
+            </ScrollReveal>
+            
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {testimonials.map((testimonial, index) => (
+                <ScrollReveal key={index} animation="fade-up" delay={index * 100}>
+                  <div className="p-6 rounded-2xl border border-border/50 bg-card/30 hover:bg-card/60 transition-all duration-300 h-full flex flex-col">
+                    <Quote className="w-8 h-8 text-primary/30 mb-4" />
+                    
+                    {/* Stars */}
+                    <div className="flex gap-1 mb-4">
+                      {Array.from({ length: 5 }).map((_, i) => (
+                        <Star 
+                          key={i} 
+                          className={`w-4 h-4 ${i < testimonial.rating ? 'text-yellow-500 fill-yellow-500' : 'text-muted-foreground/30'}`} 
+                        />
+                      ))}
+                    </div>
+                    
+                    <p className="text-sm text-muted-foreground leading-relaxed mb-4 flex-grow">
+                      "{testimonial.text}"
+                    </p>
+                    
+                    <div className="border-t border-border/50 pt-4">
+                      <div className="font-semibold text-foreground text-sm">{testimonial.name}</div>
+                      <div className="text-xs text-muted-foreground">{testimonial.role}</div>
+                    </div>
                   </div>
                 </ScrollReveal>
               ))}
