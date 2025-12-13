@@ -29,14 +29,20 @@ import {
   Loader2,
   Trash2,
   FileX,
+  Pencil,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import EditTradeDialog from '@/components/EditTradeDialog';
 
 const History: React.FC = () => {
   const { t, language } = useLanguage();
-  const { trades, isLoading, deleteTrade } = useTrades();
+  const { trades, isLoading, deleteTrade, updateTrade } = useTrades();
   const { formatAmount } = useCurrency();
   const locale = language === 'fr' ? fr : enUS;
+
+  // Edit trade state
+  const [editingTrade, setEditingTrade] = useState<Trade | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [filterDirection, setFilterDirection] = useState<string>('all');
@@ -159,6 +165,16 @@ const History: React.FC = () => {
         toast.error(language === 'fr' ? 'Erreur lors de la suppression' : 'Error deleting trade');
       }
     }
+  };
+
+  const handleEditTrade = (trade: Trade, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditingTrade(trade);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleSaveEdit = async (id: string, updates: Partial<Trade>) => {
+    await updateTrade.mutateAsync({ id, ...updates });
   };
 
   if (isLoading) {
@@ -429,6 +445,14 @@ const History: React.FC = () => {
                     <Button
                       variant="ghost"
                       size="icon"
+                      className="text-muted-foreground hover:text-primary"
+                      onClick={(e) => handleEditTrade(trade, e)}
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
                       className="text-muted-foreground hover:text-loss"
                       onClick={(e) => handleDeleteTrade(trade.id, e)}
                     >
@@ -517,6 +541,14 @@ const History: React.FC = () => {
           ))}
         </div>
       )}
+
+      {/* Edit Trade Dialog */}
+      <EditTradeDialog
+        trade={editingTrade}
+        open={isEditDialogOpen}
+        onOpenChange={setIsEditDialogOpen}
+        onSave={handleSaveEdit}
+      />
     </div>
   );
 };
