@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Trade } from '@/hooks/useTrades';
+import { useTradeImages } from '@/hooks/useTradeImages';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -29,9 +30,12 @@ import {
   TrendingDown,
   Save,
   Loader2,
+  Upload,
+  X,
+  Image as ImageIcon,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { sanitizeText } from '@/lib/tradeValidation';
+import { sanitizeText, validateImageFiles } from '@/lib/tradeValidation';
 
 const DEFAULT_SETUPS = [
   'Breakout', 'Pullback', 'Reversal', 'Range', 'Trend Following',
@@ -67,12 +71,19 @@ const EditTradeDialog: React.FC<EditTradeDialogProps> = ({
   onSave,
 }) => {
   const { t, language } = useLanguage();
+  const { uploadImages, deleteImage } = useTradeImages();
   const locale = language === 'fr' ? fr : enUS;
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [date, setDate] = useState<Date>(new Date());
   const [direction, setDirection] = useState<'long' | 'short'>('long');
   const [exitMethod, setExitMethod] = useState<'sl' | 'tp' | 'manual'>('manual');
+  
+  // Image state
+  const [existingImages, setExistingImages] = useState<string[]>([]);
+  const [imagesToDelete, setImagesToDelete] = useState<string[]>([]);
+  const [newImageFiles, setNewImageFiles] = useState<File[]>([]);
+  const [newImagePreviews, setNewImagePreviews] = useState<string[]>([]);
   
   const [formData, setFormData] = useState({
     asset: '',
@@ -94,6 +105,10 @@ const EditTradeDialog: React.FC<EditTradeDialogProps> = ({
       setDate(parseISO(trade.trade_date));
       setDirection(trade.direction as 'long' | 'short');
       setExitMethod((trade.exit_method as 'sl' | 'tp' | 'manual') || 'manual');
+      setExistingImages(trade.images || []);
+      setImagesToDelete([]);
+      setNewImageFiles([]);
+      setNewImagePreviews([]);
       setFormData({
         asset: trade.asset || '',
         setup: trade.setup || '',
@@ -112,6 +127,48 @@ const EditTradeDialog: React.FC<EditTradeDialogProps> = ({
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleNewImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+
+    const newFiles = Array.from(files);
+    const totalImages = existingImages.length - imagesToDelete.length + newImageFiles.length + newFiles.length;
+    
+    if (totalImages > 4) {
+      toast.error(language === 'fr' ? 'Maximum 4 images par trade' : 'Maximum 4 images per trade');
+      return;
+    }
+    
+    const validation = validateImageFiles([...newImageFiles, ...newFiles]);
+    if (!validation.valid) {
+      validation.errors.forEach(error => toast.error(error));
+      return;
+    }
+
+    setNewImageFiles(prev => [...prev, ...newFiles]);
+
+    newFiles.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        setNewImagePreviews(prev => [...prev, reader.result as string]);
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const removeExistingImage = (imageUrl: string) => {
+    setImagesToDelete(prev => [...prev, imageUrl]);
+  };
+
+  const restoreExistingImage = (imageUrl: string) => {
+    setImagesToDelete(prev => prev.filter(url => url !== imageUrl));
+  };
+
+  const removeNewImage = (index: number) => {
+    setNewImageFiles(prev => prev.filter((_, i) => i !== index));
+    setNewImagePreviews(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -154,6 +211,23 @@ const EditTradeDialog: React.FC<EditTradeDialogProps> = ({
         finalExitPrice = parseFloat(formData.takeProfit);
       }
 
+      // Handle image deletions
+      for (const imageUrl of imagesToDelete) {
+        await deleteImage(imageUrl);
+      }
+
+      // Upload new images
+      let uploadedImageUrls: string[] = [];
+      if (newImageFiles.length > 0) {
+        uploadedImageUrls = await uploadImages(newImageFiles);
+      }
+
+      // Combine remaining existing images with new uploads
+      const finalImages = [
+        ...existingImages.filter(url => !imagesToDelete.includes(url)),
+        ...uploadedImageUrls
+      ];
+
       await onSave(trade.id, {
         asset: formData.asset,
         direction,
@@ -170,6 +244,7 @@ const EditTradeDialog: React.FC<EditTradeDialogProps> = ({
         trade_date: date.toISOString(),
         exit_method: finalExitPrice ? exitMethod : null,
         timeframe: formData.timeframe || null,
+        images: finalImages.length > 0 ? finalImages : null,
       });
 
       toast.success(language === 'fr' ? 'Trade mis à jour' : 'Trade updated');
@@ -397,6 +472,114 @@ const EditTradeDialog: React.FC<EditTradeDialogProps> = ({
               placeholder={language === 'fr' ? 'Notes sur ce trade...' : 'Notes about this trade...'}
               rows={3}
             />
+          </div>
+
+          {/* Images Section */}
+          <div className="space-y-4">
+            <Label className="flex items-center gap-2">
+              <ImageIcon className="w-4 h-4" />
+              {language === 'fr' ? 'Images' : 'Images'}
+            </Label>
+            
+            {/* Existing Images */}
+            {existingImages.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground">
+                  {language === 'fr' ? 'Images actuelles' : 'Current images'}
+                </p>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                  {existingImages.map((imageUrl, index) => {
+                    const isMarkedForDeletion = imagesToDelete.includes(imageUrl);
+                    return (
+                      <div key={index} className={cn(
+                        "relative aspect-video rounded-lg overflow-hidden border",
+                        isMarkedForDeletion ? "border-loss/50 opacity-50" : "border-border"
+                      )}>
+                        <img
+                          src={imageUrl}
+                          alt={`Trade image ${index + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => isMarkedForDeletion ? restoreExistingImage(imageUrl) : removeExistingImage(imageUrl)}
+                          className={cn(
+                            "absolute top-1 right-1 w-6 h-6 rounded-full flex items-center justify-center transition-colors",
+                            isMarkedForDeletion 
+                              ? "bg-profit text-profit-foreground hover:bg-profit/80"
+                              : "bg-loss/80 text-loss-foreground hover:bg-loss"
+                          )}
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                        {isMarkedForDeletion && (
+                          <div className="absolute inset-0 flex items-center justify-center bg-background/50">
+                            <span className="text-xs text-loss font-medium">
+                              {language === 'fr' ? 'Supprimée' : 'Deleted'}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* New Images Preview */}
+            {newImagePreviews.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground">
+                  {language === 'fr' ? 'Nouvelles images' : 'New images'}
+                </p>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                  {newImagePreviews.map((preview, index) => (
+                    <div key={index} className="relative aspect-video rounded-lg overflow-hidden border border-primary/30">
+                      <img
+                        src={preview}
+                        alt={`New image ${index + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeNewImage(index)}
+                        className="absolute top-1 right-1 w-6 h-6 bg-loss/80 text-loss-foreground rounded-full flex items-center justify-center hover:bg-loss"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Upload Button */}
+            {(existingImages.length - imagesToDelete.length + newImageFiles.length) < 4 && (
+              <div>
+                <input
+                  type="file"
+                  id="edit-image-upload"
+                  accept="image/jpeg,image/png,image/gif,image/webp"
+                  multiple
+                  onChange={handleNewImageUpload}
+                  className="hidden"
+                />
+                <label htmlFor="edit-image-upload">
+                  <Button type="button" variant="outline" className="gap-2" asChild>
+                    <span>
+                      <Upload className="w-4 h-4" />
+                      {language === 'fr' ? 'Ajouter des images' : 'Add images'}
+                    </span>
+                  </Button>
+                </label>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {language === 'fr' 
+                    ? `${4 - (existingImages.length - imagesToDelete.length + newImageFiles.length)} image(s) restante(s)`
+                    : `${4 - (existingImages.length - imagesToDelete.length + newImageFiles.length)} image(s) remaining`
+                  }
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Submit Button */}
