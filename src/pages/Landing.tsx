@@ -28,7 +28,9 @@ import {
   ChevronUp,
   Plus,
   Minus,
-  HelpCircle
+  HelpCircle,
+  Sun,
+  Moon
 } from 'lucide-react';
 import ScrollReveal from '@/components/landing/ScrollReveal';
 import { APP_NAME, APP_VERSION } from '@/lib/version';
@@ -41,12 +43,35 @@ import {
 
 const Landing = () => {
   const { language, setLanguage } = useLanguage();
-  const { resolvedTheme } = useTheme();
+  const { theme, setTheme, resolvedTheme } = useTheme();
   const [activeTraders, setActiveTraders] = useState(0);
   const [averageRating, setAverageRating] = useState(0);
   const [tradesRecorded, setTradesRecorded] = useState(0);
   const [countersStarted, setCountersStarted] = useState(false);
   const [scrollY, setScrollY] = useState(0);
+  const [typedText, setTypedText] = useState('');
+  const [isTypingComplete, setIsTypingComplete] = useState(false);
+
+  const fullText = language === 'fr' ? 'discipline' : 'discipline';
+
+  // Typing effect
+  useEffect(() => {
+    setTypedText('');
+    setIsTypingComplete(false);
+    let currentIndex = 0;
+    
+    const typingInterval = setInterval(() => {
+      if (currentIndex < fullText.length) {
+        setTypedText(fullText.slice(0, currentIndex + 1));
+        currentIndex++;
+      } else {
+        setIsTypingComplete(true);
+        clearInterval(typingInterval);
+      }
+    }, 100);
+
+    return () => clearInterval(typingInterval);
+  }, [language, fullText]);
 
   // Parallax effect
   useEffect(() => {
@@ -243,7 +268,21 @@ const Landing = () => {
               </button>
             </nav>
             
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              {/* Theme Toggle */}
+              <button
+                onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
+                className="w-9 h-9 rounded-lg border border-border/50 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-card/50 transition-all"
+                aria-label="Toggle theme"
+              >
+                {resolvedTheme === 'dark' ? (
+                  <Sun className="w-4 h-4" />
+                ) : (
+                  <Moon className="w-4 h-4" />
+                )}
+              </button>
+
+              {/* Language Selector */}
               <div className="flex items-center rounded-lg border border-border/50 p-0.5">
                 <button
                   onClick={() => setLanguage('fr')}
@@ -291,7 +330,10 @@ const Landing = () => {
             <ScrollReveal animation="fade-up" delay={100}>
               <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-6 leading-[1.1] tracking-tight">
                 <span className="text-foreground">{language === 'fr' ? 'Tradez avec ' : 'Trade with '}</span>
-                <span className="text-gradient-primary">{language === 'fr' ? 'discipline' : 'discipline'}</span>
+                <span className="text-gradient-primary">
+                  {typedText}
+                  <span className={`inline-block w-[3px] h-[0.9em] bg-primary ml-1 align-middle ${isTypingComplete ? 'animate-pulse' : 'animate-[blink_0.7s_infinite]'}`} />
+                </span>
               </h1>
             </ScrollReveal>
             
