@@ -9,6 +9,7 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import Layout from "@/components/layout/Layout";
 import AIChatBot from "@/components/AIChatBot";
 import ChangelogModal from "@/components/ChangelogModal";
+import { CookieConsent } from "@/components/CookieConsent";
 import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
@@ -98,6 +99,7 @@ const App = () => (
             <Sonner />
             <BrowserRouter>
               <AppContent />
+              <CookieConsent />
             </BrowserRouter>
           </TooltipProvider>
         </AuthProvider>
