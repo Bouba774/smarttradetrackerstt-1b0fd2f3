@@ -51,6 +51,22 @@ const TermsOfUse: React.FC = () => {
 
       <h2 className="text-xl font-bold text-foreground mt-8 mb-4">8. Modifications</h2>
       <p className="text-muted-foreground mb-4">Possibles selon évolutions légales ou fonctionnelles</p>
+
+      <h2 className="text-xl font-bold text-foreground mt-8 mb-4">9. Publicités et Cookies</h2>
+      <ul className="list-disc list-inside mb-4 space-y-1 text-muted-foreground">
+        <li>L'application affiche des publicités de tiers pour financer son développement</li>
+        <li>Des cookies publicitaires sont utilisés pour personnaliser les annonces</li>
+        <li>En utilisant l'application, vous acceptez l'affichage de publicités</li>
+        <li>Vous pouvez gérer vos préférences de cookies via la bannière de consentement</li>
+        <li>Le blocage des publicités peut affecter certaines fonctionnalités</li>
+      </ul>
+
+      <h2 className="text-xl font-bold text-foreground mt-8 mb-4">10. Contenu publicitaire</h2>
+      <ul className="list-disc list-inside mb-4 space-y-1 text-muted-foreground">
+        <li>Nous ne contrôlons pas le contenu des publicités affichées</li>
+        <li>Les annonces sont fournies par des réseaux publicitaires tiers</li>
+        <li>Nous déclinons toute responsabilité pour les produits ou services annoncés</li>
+      </ul>
     </>
   );
 
@@ -96,6 +112,22 @@ const TermsOfUse: React.FC = () => {
 
       <h2 className="text-xl font-bold text-foreground mt-8 mb-4">8. Changes</h2>
       <p className="text-muted-foreground mb-4">May update Terms or Privacy Policy</p>
+
+      <h2 className="text-xl font-bold text-foreground mt-8 mb-4">9. Advertising and Cookies</h2>
+      <ul className="list-disc list-inside mb-4 space-y-1 text-muted-foreground">
+        <li>The application displays third-party advertisements to fund its development</li>
+        <li>Advertising cookies are used to personalize ads</li>
+        <li>By using the application, you agree to the display of advertisements</li>
+        <li>You can manage your cookie preferences via the consent banner</li>
+        <li>Blocking ads may affect some features</li>
+      </ul>
+
+      <h2 className="text-xl font-bold text-foreground mt-8 mb-4">10. Advertising Content</h2>
+      <ul className="list-disc list-inside mb-4 space-y-1 text-muted-foreground">
+        <li>We do not control the content of displayed advertisements</li>
+        <li>Ads are provided by third-party advertising networks</li>
+        <li>We disclaim any responsibility for advertised products or services</li>
+      </ul>
     </>
   );
 
