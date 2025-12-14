@@ -42,6 +42,12 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 
+// Import application images
+import heroDashboard from '@/assets/hero-dashboard.jpg';
+import missionPsychology from '@/assets/mission-psychology.jpg';
+import featuresAnalytics from '@/assets/features-analytics.jpg';
+import uniqueGrowth from '@/assets/unique-growth.jpg';
+
 const Landing = () => {
   const { language, setLanguage } = useLanguage();
   const { theme, setTheme, resolvedTheme } = useTheme();
@@ -382,7 +388,7 @@ const Landing = () => {
             </ScrollReveal>
             
             {/* Stats with counter animation */}
-            <div id="stats-section" className="grid grid-cols-3 gap-6 max-w-xl mx-auto">
+            <div id="stats-section" className="grid grid-cols-3 gap-6 max-w-xl mx-auto mb-16">
               {[
                 { value: activeTraders, suffix: '+', label: language === 'fr' ? 'Traders' : 'Traders' },
                 { value: averageRating, suffix: '', label: language === 'fr' ? 'Note' : 'Rating', isRating: true },
@@ -400,6 +406,21 @@ const Landing = () => {
                 </ScrollReveal>
               ))}
             </div>
+
+            {/* Hero Dashboard Image */}
+            <ScrollReveal animation="fade-up" delay={500}>
+              <div className="relative max-w-4xl mx-auto">
+                <div className="absolute -inset-4 bg-gradient-to-r from-primary/20 via-profit/20 to-primary/20 rounded-3xl blur-2xl opacity-50" />
+                <div className="relative rounded-2xl overflow-hidden border border-border/50 shadow-2xl">
+                  <img 
+                    src={heroDashboard} 
+                    alt={language === 'fr' ? 'Tableau de bord Smart Trade Tracker' : 'Smart Trade Tracker Dashboard'}
+                    className="w-full h-auto"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-transparent" />
+                </div>
+              </div>
+            </ScrollReveal>
           </div>
         </section>
 
@@ -414,6 +435,20 @@ const Landing = () => {
                 <h2 className="text-3xl sm:text-4xl font-bold text-foreground">
                   {language === 'fr' ? 'Tout ce qu\'il vous faut' : 'Everything you need'}
                 </h2>
+              </div>
+            </ScrollReveal>
+
+            {/* Features Image Showcase */}
+            <ScrollReveal animation="fade-up" delay={100}>
+              <div className="relative max-w-5xl mx-auto mb-16">
+                <div className="absolute -inset-4 bg-gradient-to-r from-profit/10 via-primary/10 to-profit/10 rounded-3xl blur-xl" />
+                <div className="relative rounded-2xl overflow-hidden border border-border/50 shadow-xl">
+                  <img 
+                    src={featuresAnalytics} 
+                    alt={language === 'fr' ? 'Analyses et statistiques avancées' : 'Advanced analytics and statistics'}
+                    className="w-full h-auto"
+                  />
+                </div>
               </div>
             </ScrollReveal>
             
@@ -466,16 +501,13 @@ const Landing = () => {
               
               <ScrollReveal animation="fade-left">
                 <div className="relative">
-                  <div className="aspect-square rounded-3xl bg-gradient-to-br from-primary/10 to-profit/10 border border-border/50 flex items-center justify-center">
-                    <div className="text-center p-8">
-                      <div className="w-20 h-20 rounded-2xl bg-gradient-primary mx-auto mb-6 flex items-center justify-center">
-                        <TrendingUp className="w-10 h-10 text-primary-foreground" />
-                      </div>
-                      <div className="text-4xl font-bold text-foreground mb-2">100%</div>
-                      <div className="text-muted-foreground text-sm">
-                        {language === 'fr' ? 'Données sécurisées' : 'Secured data'}
-                      </div>
-                    </div>
+                  <div className="absolute -inset-4 bg-gradient-to-br from-primary/10 to-profit/10 rounded-3xl blur-xl" />
+                  <div className="relative rounded-2xl overflow-hidden border border-border/50 shadow-xl">
+                    <img 
+                      src={uniqueGrowth} 
+                      alt={language === 'fr' ? 'Croissance avec Smart Trade Tracker' : 'Growth with Smart Trade Tracker'}
+                      className="w-full h-auto"
+                    />
                   </div>
                 </div>
               </ScrollReveal>
@@ -513,8 +545,44 @@ const Landing = () => {
           </div>
         </section>
 
+        {/* Psychology/Mission Image Section */}
+        <section className="py-24 sm:py-32 bg-card/20">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="grid lg:grid-cols-2 gap-16 items-center">
+              <ScrollReveal animation="fade-right">
+                <div className="relative">
+                  <div className="absolute -inset-4 bg-gradient-to-br from-primary/10 to-loss/10 rounded-3xl blur-xl" />
+                  <div className="relative rounded-2xl overflow-hidden border border-border/50 shadow-xl">
+                    <img 
+                      src={missionPsychology} 
+                      alt={language === 'fr' ? 'Analyse psychologique du trading' : 'Trading psychological analysis'}
+                      className="w-full h-auto"
+                    />
+                  </div>
+                </div>
+              </ScrollReveal>
+
+              <ScrollReveal animation="fade-left">
+                <div>
+                  <span className="text-sm text-primary font-medium mb-4 block">
+                    {language === 'fr' ? 'Psychologie du Trading' : 'Trading Psychology'}
+                  </span>
+                  <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-6">
+                    {language === 'fr' ? 'Maîtrisez vos émotions' : 'Master your emotions'}
+                  </h2>
+                  <p className="text-muted-foreground leading-relaxed">
+                    {language === 'fr' 
+                      ? 'La psychologie représente 80% du succès en trading. Notre outil vous aide à identifier vos patterns émotionnels, comprendre vos biais et développer une discipline de fer pour prendre de meilleures décisions.' 
+                      : 'Psychology represents 80% of trading success. Our tool helps you identify your emotional patterns, understand your biases and develop iron discipline to make better decisions.'}
+                  </p>
+                </div>
+              </ScrollReveal>
+            </div>
+          </div>
+        </section>
+
         {/* Testimonials Section */}
-        <section id="testimonials" className="py-24 sm:py-32 bg-card/20">
+        <section id="testimonials" className="py-24 sm:py-32">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <ScrollReveal animation="fade-up">
               <div className="text-center mb-16">
