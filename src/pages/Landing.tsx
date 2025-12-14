@@ -42,11 +42,16 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 
-// Import application images
-import heroDashboard from '@/assets/hero-dashboard.jpg';
-import missionPsychology from '@/assets/mission-psychology.jpg';
-import featuresAnalytics from '@/assets/features-analytics.jpg';
-import uniqueGrowth from '@/assets/unique-growth.jpg';
+// Import real application screenshots
+import screenshotDashboard1 from '@/assets/screenshot-dashboard-1.jpg';
+import screenshotDashboard2 from '@/assets/screenshot-dashboard-2.jpg';
+import screenshotAddTrade from '@/assets/screenshot-add-trade.jpg';
+import screenshotHistory from '@/assets/screenshot-history.jpg';
+import screenshotReports from '@/assets/screenshot-reports.jpg';
+import screenshotPsychology from '@/assets/screenshot-psychology.jpg';
+import screenshotJournal from '@/assets/screenshot-journal.jpg';
+import screenshotChallenges from '@/assets/screenshot-challenges.jpg';
+import screenshotProfile from '@/assets/screenshot-profile.jpg';
 
 const Landing = () => {
   const { language, setLanguage } = useLanguage();
@@ -407,17 +412,51 @@ const Landing = () => {
               ))}
             </div>
 
-            {/* Hero Dashboard Image */}
+            {/* Hero Dashboard Images - Responsive showcase */}
             <ScrollReveal animation="fade-up" delay={500}>
-              <div className="relative max-w-4xl mx-auto">
+              <div className="relative max-w-6xl mx-auto">
                 <div className="absolute -inset-4 bg-gradient-to-r from-primary/20 via-profit/20 to-primary/20 rounded-3xl blur-2xl opacity-50" />
-                <div className="relative rounded-2xl overflow-hidden border border-border/50 shadow-2xl">
+                
+                {/* Mobile: Single image */}
+                <div className="block md:hidden relative rounded-2xl overflow-hidden border border-border/50 shadow-2xl">
                   <img 
-                    src={heroDashboard} 
+                    src={screenshotDashboard1} 
                     alt={language === 'fr' ? 'Tableau de bord Smart Trade Tracker' : 'Smart Trade Tracker Dashboard'}
-                    className="w-full h-auto"
+                    className="w-full h-auto object-cover"
+                    loading="lazy"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-transparent" />
+                </div>
+
+                {/* Desktop: Multiple images showcase */}
+                <div className="hidden md:grid grid-cols-3 gap-4">
+                  <div className="relative rounded-2xl overflow-hidden border border-border/50 shadow-2xl transform hover:scale-[1.02] transition-transform duration-300">
+                    <img 
+                      src={screenshotDashboard1} 
+                      alt={language === 'fr' ? 'Statistiques principales' : 'Main statistics'}
+                      className="w-full h-auto object-cover"
+                      loading="lazy"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-background/60 via-transparent to-transparent" />
+                  </div>
+                  <div className="relative rounded-2xl overflow-hidden border border-border/50 shadow-2xl transform hover:scale-[1.02] transition-transform duration-300 translate-y-4">
+                    <img 
+                      src={screenshotReports} 
+                      alt={language === 'fr' ? 'Rapports de trading' : 'Trading reports'}
+                      className="w-full h-auto object-cover"
+                      loading="lazy"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-background/60 via-transparent to-transparent" />
+                  </div>
+                  <div className="relative rounded-2xl overflow-hidden border border-border/50 shadow-2xl transform hover:scale-[1.02] transition-transform duration-300">
+                    <img 
+                      src={screenshotHistory} 
+                      alt={language === 'fr' ? 'Historique des trades' : 'Trade history'}
+                      className="w-full h-auto object-cover"
+                      loading="lazy"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-background/60 via-transparent to-transparent" />
+                  </div>
                 </div>
               </div>
             </ScrollReveal>
@@ -438,16 +477,45 @@ const Landing = () => {
               </div>
             </ScrollReveal>
 
-            {/* Features Image Showcase */}
+            {/* Features Image Showcase - Responsive grid */}
             <ScrollReveal animation="fade-up" delay={100}>
-              <div className="relative max-w-5xl mx-auto mb-16">
+              <div className="relative max-w-6xl mx-auto mb-16">
                 <div className="absolute -inset-4 bg-gradient-to-r from-profit/10 via-primary/10 to-profit/10 rounded-3xl blur-xl" />
-                <div className="relative rounded-2xl overflow-hidden border border-border/50 shadow-xl">
-                  <img 
-                    src={featuresAnalytics} 
-                    alt={language === 'fr' ? 'Analyses et statistiques avancées' : 'Advanced analytics and statistics'}
-                    className="w-full h-auto"
-                  />
+                
+                {/* Mobile: 2 columns */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+                  <div className="relative rounded-xl md:rounded-2xl overflow-hidden border border-border/50 shadow-xl transform hover:scale-[1.03] transition-transform duration-300">
+                    <img 
+                      src={screenshotDashboard2} 
+                      alt={language === 'fr' ? 'Graphiques de performance' : 'Performance charts'}
+                      className="w-full h-32 sm:h-40 md:h-48 lg:h-56 object-cover object-top"
+                      loading="lazy"
+                    />
+                  </div>
+                  <div className="relative rounded-xl md:rounded-2xl overflow-hidden border border-border/50 shadow-xl transform hover:scale-[1.03] transition-transform duration-300">
+                    <img 
+                      src={screenshotAddTrade} 
+                      alt={language === 'fr' ? 'Ajout de trade' : 'Add trade'}
+                      className="w-full h-32 sm:h-40 md:h-48 lg:h-56 object-cover object-top"
+                      loading="lazy"
+                    />
+                  </div>
+                  <div className="relative rounded-xl md:rounded-2xl overflow-hidden border border-border/50 shadow-xl transform hover:scale-[1.03] transition-transform duration-300">
+                    <img 
+                      src={screenshotPsychology} 
+                      alt={language === 'fr' ? 'Analyse psychologique' : 'Psychological analysis'}
+                      className="w-full h-32 sm:h-40 md:h-48 lg:h-56 object-cover object-top"
+                      loading="lazy"
+                    />
+                  </div>
+                  <div className="relative rounded-xl md:rounded-2xl overflow-hidden border border-border/50 shadow-xl transform hover:scale-[1.03] transition-transform duration-300">
+                    <img 
+                      src={screenshotChallenges} 
+                      alt={language === 'fr' ? 'Défis et gamification' : 'Challenges and gamification'}
+                      className="w-full h-32 sm:h-40 md:h-48 lg:h-56 object-cover object-top"
+                      loading="lazy"
+                    />
+                  </div>
                 </div>
               </div>
             </ScrollReveal>
@@ -502,12 +570,24 @@ const Landing = () => {
               <ScrollReveal animation="fade-left">
                 <div className="relative">
                   <div className="absolute -inset-4 bg-gradient-to-br from-primary/10 to-profit/10 rounded-3xl blur-xl" />
-                  <div className="relative rounded-2xl overflow-hidden border border-border/50 shadow-xl">
-                    <img 
-                      src={uniqueGrowth} 
-                      alt={language === 'fr' ? 'Croissance avec Smart Trade Tracker' : 'Growth with Smart Trade Tracker'}
-                      className="w-full h-auto"
-                    />
+                  {/* Stack 2 images on desktop, single on mobile */}
+                  <div className="grid gap-4">
+                    <div className="relative rounded-xl md:rounded-2xl overflow-hidden border border-border/50 shadow-xl transform hover:scale-[1.02] transition-transform duration-300">
+                      <img 
+                        src={screenshotJournal} 
+                        alt={language === 'fr' ? 'Journal de trading' : 'Trading journal'}
+                        className="w-full h-48 sm:h-56 md:h-64 object-cover object-top"
+                        loading="lazy"
+                      />
+                    </div>
+                    <div className="relative rounded-xl md:rounded-2xl overflow-hidden border border-border/50 shadow-xl transform hover:scale-[1.02] transition-transform duration-300">
+                      <img 
+                        src={screenshotProfile} 
+                        alt={language === 'fr' ? 'Profil utilisateur' : 'User profile'}
+                        className="w-full h-48 sm:h-56 md:h-64 object-cover object-top"
+                        loading="lazy"
+                      />
+                    </div>
                   </div>
                 </div>
               </ScrollReveal>
@@ -552,11 +632,12 @@ const Landing = () => {
               <ScrollReveal animation="fade-right">
                 <div className="relative">
                   <div className="absolute -inset-4 bg-gradient-to-br from-primary/10 to-loss/10 rounded-3xl blur-xl" />
-                  <div className="relative rounded-2xl overflow-hidden border border-border/50 shadow-xl">
+                  <div className="relative rounded-xl md:rounded-2xl overflow-hidden border border-border/50 shadow-xl transform hover:scale-[1.02] transition-transform duration-300">
                     <img 
-                      src={missionPsychology} 
+                      src={screenshotPsychology} 
                       alt={language === 'fr' ? 'Analyse psychologique du trading' : 'Trading psychological analysis'}
-                      className="w-full h-auto"
+                      className="w-full h-64 sm:h-80 md:h-96 object-cover object-top"
+                      loading="lazy"
                     />
                   </div>
                 </div>
