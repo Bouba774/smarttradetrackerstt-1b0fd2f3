@@ -12,10 +12,10 @@ import { z } from 'zod';
 import { supabase } from '@/integrations/supabase/client';
 import { createPasswordSchema, validatePassword } from '@/lib/passwordValidation';
 import PasswordStrengthIndicator from '@/components/PasswordStrengthIndicator';
-import TurnstileWidget from '@/components/TurnstileWidget';
+import ReCaptchaWidget from '@/components/ReCaptchaWidget';
 
-// Cloudflare Turnstile Site Key - Replace with your own key from https://dash.cloudflare.com/turnstile
-const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY || '';
+// Google reCAPTCHA v2 Site Key - Replace with your own key from https://www.google.com/recaptcha/admin
+const RECAPTCHA_SITE_KEY = import.meta.env.VITE_RECAPTCHA_SITE_KEY || '';
 
 const Auth: React.FC = () => {
   const { signIn, signUp, user, loading } = useAuth();
@@ -91,7 +91,7 @@ const Auth: React.FC = () => {
     if (!validateForm()) return;
 
     // Check captcha if site key is configured
-    if (TURNSTILE_SITE_KEY && !captchaToken) {
+    if (RECAPTCHA_SITE_KEY && !captchaToken) {
       toast.error(language === 'fr' ? 'Veuillez compléter le captcha' : 'Please complete the captcha');
       return;
     }
@@ -305,21 +305,21 @@ const Auth: React.FC = () => {
               </div>
             )}
 
-            {/* Cloudflare Turnstile CAPTCHA */}
-            {TURNSTILE_SITE_KEY && (
-              <TurnstileWidget
-                siteKey={TURNSTILE_SITE_KEY}
+            {/* Google reCAPTCHA v2 */}
+            {RECAPTCHA_SITE_KEY && (
+              <ReCaptchaWidget
+                siteKey={RECAPTCHA_SITE_KEY}
                 onVerify={(token) => setCaptchaToken(token)}
                 onExpire={() => setCaptchaToken(null)}
                 onError={() => setCaptchaToken(null)}
-                theme={theme === 'dark' ? 'dark' : theme === 'light' ? 'light' : 'auto'}
+                theme={theme === 'dark' ? 'dark' : 'light'}
                 language={language === 'fr' ? 'fr' : 'en'}
               />
             )}
 
             <Button
               type="submit"
-              disabled={isSubmitting || (TURNSTILE_SITE_KEY && !captchaToken)}
+              disabled={isSubmitting || (RECAPTCHA_SITE_KEY && !captchaToken)}
               className="w-full bg-gradient-primary hover:opacity-90 font-display h-12"
             >
               {isSubmitting ? (
