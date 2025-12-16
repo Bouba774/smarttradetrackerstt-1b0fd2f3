@@ -102,6 +102,16 @@ export const useExchangeRates = (): UseExchangeRatesReturn => {
 
   useEffect(() => {
     fetchRates();
+    
+    // Auto-refresh rates every hour
+    const intervalId = setInterval(() => {
+      console.log('Auto-refreshing exchange rates...');
+      // Clear cache to force refresh
+      localStorage.removeItem(CACHE_KEY);
+      fetchRates();
+    }, CACHE_DURATION);
+
+    return () => clearInterval(intervalId);
   }, [fetchRates]);
 
   const convert = useCallback((amount: number, fromCurrency: string, toCurrency: string): number => {
