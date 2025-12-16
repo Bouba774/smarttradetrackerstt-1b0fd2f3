@@ -32,6 +32,8 @@ const Auth: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string; nickname?: string }>({});
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [remainingAttempts, setRemainingAttempts] = useState<number | null>(null);
+  const [blockedUntil, setBlockedUntil] = useState<Date | null>(null);
 
   const emailSchema = z.string().email(t('invalidEmail'));
   const passwordSchema = createPasswordSchema(language);
@@ -90,6 +92,15 @@ const Auth: React.FC = () => {
     
     if (!validateForm()) return;
 
+    // Check if currently blocked
+    if (blockedUntil && blockedUntil > new Date()) {
+      const minutesLeft = Math.ceil((blockedUntil.getTime() - Date.now()) / 60000);
+      toast.error(language === 'fr' 
+        ? `Trop de tentatives. Réessayez dans ${minutesLeft} minute(s).`
+        : `Too many attempts. Try again in ${minutesLeft} minute(s).`);
+      return;
+    }
+
     // Check captcha if site key is configured
     if (TURNSTILE_SITE_KEY && !captchaToken) {
       toast.error(language === 'fr' ? 'Veuillez compléter le captcha' : 'Please complete the captcha');
@@ -97,6 +108,40 @@ const Auth: React.FC = () => {
     }
     
     setIsSubmitting(true);
+
+    // Check rate limit before login attempt
+    if (isLogin && !isForgotPassword) {
+      try {
+        const { data: rateLimitResult, error: rateLimitError } = await supabase.rpc('check_rate_limit', {
+          p_identifier: email.toLowerCase(),
+          p_attempt_type: 'login',
+          p_max_attempts: 5,
+          p_window_minutes: 15,
+          p_block_minutes: 30
+        });
+
+        if (rateLimitError) {
+          console.error('Rate limit check error:', rateLimitError);
+        } else if (rateLimitResult) {
+          const result = rateLimitResult as { allowed: boolean; blocked: boolean; blocked_until?: string; remaining_attempts: number };
+          
+          if (!result.allowed) {
+            const blockedTime = result.blocked_until ? new Date(result.blocked_until) : null;
+            setBlockedUntil(blockedTime);
+            const minutesLeft = blockedTime ? Math.ceil((blockedTime.getTime() - Date.now()) / 60000) : 30;
+            toast.error(language === 'fr' 
+              ? `Trop de tentatives. Réessayez dans ${minutesLeft} minute(s).`
+              : `Too many attempts. Try again in ${minutesLeft} minute(s).`);
+            setIsSubmitting(false);
+            return;
+          }
+          
+          setRemainingAttempts(result.remaining_attempts);
+        }
+      } catch (err) {
+        console.error('Rate limit error:', err);
+      }
+    }
 
     // Backend verification of Turnstile token
     if (TURNSTILE_SITE_KEY && captchaToken) {
@@ -141,12 +186,26 @@ const Auth: React.FC = () => {
       } else if (isLogin) {
         const { error } = await signIn(email, password);
         if (error) {
+          // Show remaining attempts warning
+          if (remainingAttempts !== null && remainingAttempts <= 2) {
+            toast.warning(language === 'fr' 
+              ? `Attention: ${remainingAttempts} tentative(s) restante(s)`
+              : `Warning: ${remainingAttempts} attempt(s) remaining`);
+          }
+          
           if (error.message.includes('Invalid login credentials')) {
             toast.error(t('invalidCredentials'));
           } else {
             toast.error(error.message);
           }
         } else {
+          // Reset rate limit on successful login
+          await supabase.rpc('reset_rate_limit', {
+            p_identifier: email.toLowerCase(),
+            p_attempt_type: 'login'
+          });
+          setBlockedUntil(null);
+          setRemainingAttempts(null);
           toast.success(t('loginSuccess'));
           navigate('/dashboard');
         }
