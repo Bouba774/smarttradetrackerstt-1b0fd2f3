@@ -13,6 +13,7 @@ interface LayoutProps {
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const location = useLocation();
   const isDashboard = location.pathname === '/dashboard';
+  const isAuthPage = location.pathname === '/auth';
 
   return (
     <SidebarProvider defaultOpen={false}>
@@ -35,8 +36,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             {isDashboard && <Footer />}
           </main>
           
-          {/* Ad Banner at bottom */}
-          <AdBanner />
+          {/* Ad Banner at bottom - hidden on auth page */}
+          {!isAuthPage && <AdBanner />}
         </SidebarInset>
       </div>
     </SidebarProvider>
