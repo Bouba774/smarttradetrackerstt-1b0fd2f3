@@ -12,10 +12,11 @@ import { z } from 'zod';
 import { supabase } from '@/integrations/supabase/client';
 import { createPasswordSchema, validatePassword } from '@/lib/passwordValidation';
 import PasswordStrengthIndicator from '@/components/PasswordStrengthIndicator';
-import ReCaptchaWidget from '@/components/ReCaptchaWidget';
+import TurnstileWidget from '@/components/TurnstileWidget';
 
-// Google reCAPTCHA v2 Site Key
-const RECAPTCHA_SITE_KEY = '6LeIvSwsAAAAAF5HpWY9U8WiJBVSr2JarAtJpkFH';
+// Cloudflare Turnstile Site Key - Get your free key from https://dash.cloudflare.com/
+// Leave empty to disable captcha temporarily
+const TURNSTILE_SITE_KEY = '';
 
 const Auth: React.FC = () => {
   const { signIn, signUp, user, loading } = useAuth();
@@ -91,22 +92,22 @@ const Auth: React.FC = () => {
     if (!validateForm()) return;
 
     // Check captcha if site key is configured
-    if (RECAPTCHA_SITE_KEY && !captchaToken) {
+    if (TURNSTILE_SITE_KEY && !captchaToken) {
       toast.error(language === 'fr' ? 'Veuillez compléter le captcha' : 'Please complete the captcha');
       return;
     }
     
     setIsSubmitting(true);
 
-    // Backend verification of reCAPTCHA token
-    if (RECAPTCHA_SITE_KEY && captchaToken) {
+    // Backend verification of Turnstile token
+    if (TURNSTILE_SITE_KEY && captchaToken) {
       try {
-        const { data, error } = await supabase.functions.invoke('verify-recaptcha', {
+        const { data, error } = await supabase.functions.invoke('verify-turnstile', {
           body: { token: captchaToken }
         });
 
         if (error || !data?.success) {
-          console.error('reCAPTCHA verification failed:', error || data);
+          console.error('Turnstile verification failed:', error || data);
           toast.error(language === 'fr' 
             ? 'Vérification captcha échouée. Veuillez réessayer.' 
             : 'Captcha verification failed. Please try again.');
@@ -115,7 +116,7 @@ const Auth: React.FC = () => {
           return;
         }
       } catch (err) {
-        console.error('Error verifying reCAPTCHA:', err);
+        console.error('Error verifying Turnstile:', err);
         toast.error(language === 'fr' 
           ? 'Erreur de vérification. Veuillez réessayer.' 
           : 'Verification error. Please try again.');
@@ -331,10 +332,10 @@ const Auth: React.FC = () => {
               </div>
             )}
 
-            {/* Google reCAPTCHA v2 */}
-            {RECAPTCHA_SITE_KEY && (
-              <ReCaptchaWidget
-                siteKey={RECAPTCHA_SITE_KEY}
+            {/* Cloudflare Turnstile */}
+            {TURNSTILE_SITE_KEY && (
+              <TurnstileWidget
+                siteKey={TURNSTILE_SITE_KEY}
                 onVerify={(token) => setCaptchaToken(token)}
                 onExpire={() => setCaptchaToken(null)}
                 onError={() => setCaptchaToken(null)}
@@ -345,7 +346,7 @@ const Auth: React.FC = () => {
 
             <Button
               type="submit"
-              disabled={isSubmitting || (RECAPTCHA_SITE_KEY && !captchaToken)}
+              disabled={isSubmitting || (!!TURNSTILE_SITE_KEY && !captchaToken)}
               className="w-full bg-gradient-primary hover:opacity-90 font-display h-12"
             >
               {isSubmitting ? (
