@@ -17,14 +17,14 @@ interface UseExchangeRatesReturn {
 const CACHE_KEY = 'exchange-rates-cache';
 const CACHE_DURATION = 60 * 60 * 1000; // 1 hour in milliseconds
 
-// Fallback rates in case API fails (approximate rates as of 2024)
+// Fallback rates in case API fails (approximate rates as of December 2024)
 const FALLBACK_RATES: ExchangeRates = {
   USD: 1,
-  EUR: 0.92,
+  EUR: 0.95,
   GBP: 0.79,
-  JPY: 149.50,
-  XAF: 602.50,
-  XOF: 602.50,
+  JPY: 153.50,
+  XAF: 623.30,
+  XOF: 623.30,
 };
 
 export const useExchangeRates = (): UseExchangeRatesReturn => {
