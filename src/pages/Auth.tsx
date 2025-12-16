@@ -98,6 +98,32 @@ const Auth: React.FC = () => {
     
     setIsSubmitting(true);
 
+    // Backend verification of reCAPTCHA token
+    if (RECAPTCHA_SITE_KEY && captchaToken) {
+      try {
+        const { data, error } = await supabase.functions.invoke('verify-recaptcha', {
+          body: { token: captchaToken }
+        });
+
+        if (error || !data?.success) {
+          console.error('reCAPTCHA verification failed:', error || data);
+          toast.error(language === 'fr' 
+            ? 'Vérification captcha échouée. Veuillez réessayer.' 
+            : 'Captcha verification failed. Please try again.');
+          setIsSubmitting(false);
+          setCaptchaToken(null);
+          return;
+        }
+      } catch (err) {
+        console.error('Error verifying reCAPTCHA:', err);
+        toast.error(language === 'fr' 
+          ? 'Erreur de vérification. Veuillez réessayer.' 
+          : 'Verification error. Please try again.');
+        setIsSubmitting(false);
+        return;
+      }
+    }
+
     try {
       if (isForgotPassword) {
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
