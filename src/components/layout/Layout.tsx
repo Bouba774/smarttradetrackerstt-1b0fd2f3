@@ -13,7 +13,7 @@ interface LayoutProps {
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const location = useLocation();
   const isDashboard = location.pathname === '/dashboard';
-  const isAuthPage = location.pathname === '/auth';
+  const isAuthPage = location.pathname === '/auth' || location.pathname === '/reset-password';
 
   return (
     <SidebarProvider defaultOpen={false}>
