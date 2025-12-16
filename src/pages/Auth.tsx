@@ -14,9 +14,9 @@ import { createPasswordSchema, validatePassword } from '@/lib/passwordValidation
 import PasswordStrengthIndicator from '@/components/PasswordStrengthIndicator';
 import TurnstileWidget from '@/components/TurnstileWidget';
 
-// Cloudflare Turnstile Site Key from environment variables
-const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY as string | undefined;
-const HAS_TURNSTILE = !!TURNSTILE_SITE_KEY && TURNSTILE_SITE_KEY.trim() !== '';
+// Cloudflare Turnstile Site Key (public key, safe to expose in client code)
+const TURNSTILE_SITE_KEY = '0x4AAAAAACG-_s2EZYR5V8_J';
+const HAS_TURNSTILE = true;
 
 const Auth: React.FC = () => {
   const { signIn, signUp, user, loading } = useAuth();

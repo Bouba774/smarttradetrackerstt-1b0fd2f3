@@ -56,28 +56,53 @@ const TurnstileWidget: React.FC<TurnstileWidgetProps> = ({
 
     const loadScript = (): Promise<void> => {
       return new Promise((resolve, reject) => {
+        // Check if turnstile already exists
+        if (window.turnstile) {
+          resolve();
+          return;
+        }
+
         // Check if script already exists
-        const existingScript = document.querySelector('script[src*="challenges.cloudflare.com/turnstile"]');
+        const existingScript = document.querySelector('script[src*="challenges.cloudflare.com/turnstile"]') as HTMLScriptElement;
         if (existingScript) {
-          if (window.turnstile) {
-            resolve();
-          } else {
-            // Wait for it to load
-            existingScript.addEventListener('load', () => resolve());
-            existingScript.addEventListener('error', () => reject(new Error('Script load failed')));
-          }
+          const checkTurnstile = setInterval(() => {
+            if (window.turnstile) {
+              clearInterval(checkTurnstile);
+              resolve();
+            }
+          }, 100);
+          
+          // Timeout after 5 seconds
+          setTimeout(() => {
+            clearInterval(checkTurnstile);
+            if (!window.turnstile) {
+              reject(new Error('Turnstile failed to initialize'));
+            }
+          }, 5000);
           return;
         }
 
         const script = document.createElement('script');
         script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
         script.async = true;
-        script.defer = true;
         
         script.onload = () => {
-          // Give a small delay for turnstile to initialize
-          setTimeout(() => resolve(), 100);
+          // Wait for turnstile to be available
+          const checkTurnstile = setInterval(() => {
+            if (window.turnstile) {
+              clearInterval(checkTurnstile);
+              resolve();
+            }
+          }, 50);
+          
+          setTimeout(() => {
+            clearInterval(checkTurnstile);
+            if (!window.turnstile) {
+              reject(new Error('Turnstile object not found after script load'));
+            }
+          }, 3000);
         };
+        
         script.onerror = () => reject(new Error('Failed to load Turnstile script'));
         
         document.head.appendChild(script);
