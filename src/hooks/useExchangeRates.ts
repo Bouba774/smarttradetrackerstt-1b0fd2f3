@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react';
-import { BASE_CURRENCY } from '@/data/currencies';
 
 interface ExchangeRates {
   [key: string]: number;
@@ -54,26 +53,55 @@ export const useExchangeRates = (): UseExchangeRatesReturn => {
         }
       }
 
-      // Fetch from frankfurter.app (free, no API key required)
-      const response = await fetch(
-        `https://api.frankfurter.app/latest?from=${BASE_CURRENCY}&to=EUR,GBP,JPY`
-      );
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch exchange rates');
+      // Try primary API: fawazahmed0/currency-api (free, no limits, CDN hosted)
+      let data = null;
+      
+      try {
+        const response = await fetch(
+          'https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/usd.json'
+        );
+        if (response.ok) {
+          data = await response.json();
+        }
+      } catch {
+        console.log('Primary API failed, trying fallback...');
       }
 
-      const data = await response.json();
-      
+      // Fallback API: exchangerate-api (free tier)
+      if (!data?.usd) {
+        try {
+          const fallbackResponse = await fetch(
+            'https://open.er-api.com/v6/latest/USD'
+          );
+          if (fallbackResponse.ok) {
+            const fallbackData = await fallbackResponse.json();
+            if (fallbackData.rates) {
+              data = { usd: {} };
+              // Convert to lowercase keys
+              Object.keys(fallbackData.rates).forEach(key => {
+                data.usd[key.toLowerCase()] = fallbackData.rates[key];
+              });
+            }
+          }
+        } catch {
+          console.log('Fallback API also failed');
+        }
+      }
+
+      if (!data?.usd) {
+        throw new Error('All exchange rate APIs failed');
+      }
+
       // Build rates object with USD as base (rate = 1)
+      const eurRate = data.usd.eur || FALLBACK_RATES.EUR;
       const newRates: ExchangeRates = {
         USD: 1,
-        EUR: data.rates.EUR || FALLBACK_RATES.EUR,
-        GBP: data.rates.GBP || FALLBACK_RATES.GBP,
-        JPY: data.rates.JPY || FALLBACK_RATES.JPY,
+        EUR: eurRate,
+        GBP: data.usd.gbp || FALLBACK_RATES.GBP,
+        JPY: data.usd.jpy || FALLBACK_RATES.JPY,
         // XAF and XOF are pegged to EUR at fixed rate: 1 EUR = 655.957 XAF/XOF
-        XAF: (data.rates.EUR || FALLBACK_RATES.EUR) * 655.957,
-        XOF: (data.rates.EUR || FALLBACK_RATES.EUR) * 655.957,
+        XAF: eurRate * 655.957,
+        XOF: eurRate * 655.957,
       };
 
       // Cache the rates
