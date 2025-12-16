@@ -14,8 +14,8 @@ import { createPasswordSchema, validatePassword } from '@/lib/passwordValidation
 import PasswordStrengthIndicator from '@/components/PasswordStrengthIndicator';
 import ReCaptchaWidget from '@/components/ReCaptchaWidget';
 
-// Google reCAPTCHA v2 Site Key - Replace with your own key from https://www.google.com/recaptcha/admin
-const RECAPTCHA_SITE_KEY = import.meta.env.VITE_RECAPTCHA_SITE_KEY || '';
+// Google reCAPTCHA v2 Site Key
+const RECAPTCHA_SITE_KEY = '6LeIvSwsAAAAAF5HpWY9U8WiJBVSr2JarAtJpkFH';
 
 const Auth: React.FC = () => {
   const { signIn, signUp, user, loading } = useAuth();
