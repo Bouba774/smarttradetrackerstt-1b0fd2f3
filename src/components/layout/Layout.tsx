@@ -2,6 +2,7 @@ import React from 'react';
 import Header from './Header';
 import AppSidebar from './AppSidebar';
 import Footer from './Footer';
+import AdBanner from '@/components/AdBanner';
 import { useLocation } from 'react-router-dom';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 
@@ -33,6 +34,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             </div>
             {isDashboard && <Footer />}
           </main>
+          
+          {/* Ad Banner at bottom */}
+          <AdBanner />
         </SidebarInset>
       </div>
     </SidebarProvider>
