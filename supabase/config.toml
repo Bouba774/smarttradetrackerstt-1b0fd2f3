@@ -1,1 +1,4 @@
 project_id = "sfdudueswogeusuofbbi"
+
+[functions.verify-recaptcha]
+verify_jwt = false
