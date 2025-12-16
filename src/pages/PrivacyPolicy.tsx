@@ -74,35 +74,16 @@ const PrivacyPolicy: React.FC = () => {
       <p className="text-muted-foreground mb-4">Accès, rectification, opposition, effacement, portabilité, limitation</p>
 
       <h2 className="text-xl font-bold text-foreground mt-8 mb-4">8. Cookies</h2>
-      <p className="mb-4">Notre application utilise différents types de cookies :</p>
+      <p className="mb-4">Notre application utilise uniquement des cookies fonctionnels essentiels :</p>
       
-      <h3 className="text-lg font-semibold text-foreground mt-6 mb-3">8.1 Cookies fonctionnels</h3>
       <ul className="list-disc list-inside mb-4 space-y-1 text-muted-foreground">
         <li>Préférences utilisateur (langue, thème, devise)</li>
         <li>État de connexion et authentification</li>
         <li>Consentement aux cookies</li>
       </ul>
 
-      <h3 className="text-lg font-semibold text-foreground mt-6 mb-3">8.2 Cookies publicitaires</h3>
-      <ul className="list-disc list-inside mb-4 space-y-1 text-muted-foreground">
-        <li>Notre application utilise des cookies publicitaires de tiers (Adsterra/Monetag)</li>
-        <li>Ces cookies permettent d'afficher des publicités personnalisées</li>
-        <li>Ils peuvent collecter des informations sur votre navigation</li>
-        <li>Ces données sont utilisées pour vous proposer des annonces pertinentes</li>
-      </ul>
-
-      <h3 className="text-lg font-semibold text-foreground mt-6 mb-3">8.3 Gestion des cookies</h3>
-      <ul className="list-disc list-inside mb-4 space-y-1 text-muted-foreground">
-        <li>Vous pouvez accepter ou refuser les cookies lors de votre première visite</li>
-        <li>Vous pouvez modifier vos préférences dans les paramètres de votre navigateur</li>
-        <li>Le refus des cookies publicitaires peut affecter votre expérience</li>
-      </ul>
-
-      <h2 className="text-xl font-bold text-foreground mt-8 mb-4">9. Partenaires publicitaires</h2>
       <p className="text-muted-foreground mb-4">
-        Nous travaillons avec des réseaux publicitaires tiers qui peuvent utiliser des technologies de suivi. 
-        Ces partenaires ont leurs propres politiques de confidentialité. En utilisant notre application, 
-        vous acceptez également leurs conditions.
+        Aucun cookie publicitaire ou de suivi tiers n'est utilisé. Nous respectons votre vie privée.
       </p>
     </>
   );
@@ -173,35 +154,16 @@ const PrivacyPolicy: React.FC = () => {
       <p className="text-muted-foreground mb-4">Access, correction, deletion, objection, portability</p>
 
       <h2 className="text-xl font-bold text-foreground mt-8 mb-4">8. Cookies</h2>
-      <p className="mb-4">Our application uses different types of cookies:</p>
+      <p className="mb-4">Our application uses only essential functional cookies:</p>
       
-      <h3 className="text-lg font-semibold text-foreground mt-6 mb-3">8.1 Functional Cookies</h3>
       <ul className="list-disc list-inside mb-4 space-y-1 text-muted-foreground">
         <li>User preferences (language, theme, currency)</li>
         <li>Login state and authentication</li>
         <li>Cookie consent status</li>
       </ul>
 
-      <h3 className="text-lg font-semibold text-foreground mt-6 mb-3">8.2 Advertising Cookies</h3>
-      <ul className="list-disc list-inside mb-4 space-y-1 text-muted-foreground">
-        <li>Our application uses third-party advertising cookies (Adsterra/Monetag)</li>
-        <li>These cookies enable personalized advertisements</li>
-        <li>They may collect information about your browsing activity</li>
-        <li>This data is used to show you relevant ads</li>
-      </ul>
-
-      <h3 className="text-lg font-semibold text-foreground mt-6 mb-3">8.3 Cookie Management</h3>
-      <ul className="list-disc list-inside mb-4 space-y-1 text-muted-foreground">
-        <li>You can accept or decline cookies on your first visit</li>
-        <li>You can change your preferences in your browser settings</li>
-        <li>Declining advertising cookies may affect your experience</li>
-      </ul>
-
-      <h2 className="text-xl font-bold text-foreground mt-8 mb-4">9. Advertising Partners</h2>
       <p className="text-muted-foreground mb-4">
-        We work with third-party advertising networks that may use tracking technologies. 
-        These partners have their own privacy policies. By using our application, 
-        you also agree to their terms.
+        No advertising or third-party tracking cookies are used. We respect your privacy.
       </p>
     </>
   );
