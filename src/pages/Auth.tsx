@@ -14,9 +14,8 @@ import { createPasswordSchema, validatePassword } from '@/lib/passwordValidation
 import PasswordStrengthIndicator from '@/components/PasswordStrengthIndicator';
 import TurnstileWidget from '@/components/TurnstileWidget';
 
-// Cloudflare Turnstile Site Key - Get your free key from https://dash.cloudflare.com/
-// Leave empty to disable captcha temporarily
-const TURNSTILE_SITE_KEY = '';
+// Cloudflare Turnstile Site Key from environment variables
+const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY || '';
 
 const Auth: React.FC = () => {
   const { signIn, signUp, user, loading } = useAuth();
