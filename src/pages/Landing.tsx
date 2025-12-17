@@ -349,7 +349,7 @@ const Landing = () => {
       <main className="relative z-10">
         {/* Hero Section - Clean and minimal */}
         <section className="relative min-h-[85vh] flex items-center justify-center">
-          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center" style={{ contentVisibility: 'auto', containIntrinsicSize: '0 800px' }}>
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center" style={{ contain: 'layout style' }}>
             <ScrollReveal animation="fade-up" delay={0}>
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-8">
                 <div className="w-1.5 h-1.5 rounded-full bg-profit animate-pulse" />
@@ -360,9 +360,16 @@ const Landing = () => {
             </ScrollReveal>
             
             <ScrollReveal animation="fade-up" delay={100}>
-              <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-6 leading-[1.1] tracking-tight min-h-[1.2em]">
+              <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-6 leading-[1.1] tracking-tight">
                 <span className="text-foreground">{language === 'fr' ? 'Tradez avec ' : 'Trade with '}</span>
-                <span className="text-gradient-primary inline-block min-w-[200px] sm:min-w-[280px] md:min-w-[360px] lg:min-w-[440px] text-left">
+                <br className="sm:hidden" />
+                <span 
+                  className="text-gradient-primary inline-block text-left"
+                  style={{ 
+                    width: '11ch',
+                    minHeight: '1.2em',
+                  }}
+                >
                   {typedText}
                   <span className="inline-block w-[3px] h-[0.9em] bg-primary ml-1 align-middle animate-[blink_0.7s_infinite]" />
                 </span>
@@ -398,16 +405,16 @@ const Landing = () => {
             {/* Stats with counter animation */}
             <div id="stats-section" className="grid grid-cols-3 gap-6 max-w-xl mx-auto mb-16">
               {[
-                { value: activeTraders, suffix: '+', label: language === 'fr' ? 'Traders' : 'Traders' },
-                { value: averageRating, suffix: '', label: language === 'fr' ? 'Note' : 'Rating', isRating: true },
-                { value: tradesRecorded, suffix: 'K', label: language === 'fr' ? 'Trades' : 'Trades' },
+                { value: activeTraders, suffix: '+', label: language === 'fr' ? 'Traders' : 'Traders', width: '5ch' },
+                { value: averageRating, suffix: '', label: language === 'fr' ? 'Note' : 'Rating', isRating: true, width: '3ch' },
+                { value: tradesRecorded, suffix: 'K', label: language === 'fr' ? 'Trades' : 'Trades', width: '4ch' },
               ].map((stat, index) => (
                 <ScrollReveal key={index} animation="scale" delay={400 + index * 100}>
-                  <div className="text-center">
-                    <div className="text-2xl sm:text-3xl font-bold text-foreground mb-1 flex items-center justify-center gap-1 min-h-[1.5em]">
-                      <span className="tabular-nums min-w-[3ch] inline-block">{stat.value}</span>
+                  <div className="text-center" style={{ minHeight: '60px' }}>
+                    <div className="text-2xl sm:text-3xl font-bold text-foreground mb-1 flex items-center justify-center gap-1" style={{ minHeight: '40px' }}>
+                      <span className="tabular-nums inline-block text-right" style={{ width: stat.width }}>{stat.value}</span>
                       <span>{stat.suffix}</span>
-                      {stat.isRating && <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />}
+                      {stat.isRating && <Star className="w-5 h-5 text-yellow-500 fill-yellow-500 flex-shrink-0" />}
                     </div>
                     <div className="text-xs sm:text-sm text-muted-foreground">{stat.label}</div>
                   </div>
