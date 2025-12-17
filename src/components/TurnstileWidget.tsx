@@ -114,9 +114,11 @@ const TurnstileWidget: React.FC<TurnstileWidgetProps> = ({
         return;
       }
 
-      // Clear container first
+      // Clear container first - remove all child nodes safely
       if (containerRef.current) {
-        containerRef.current.innerHTML = '';
+        while (containerRef.current.firstChild) {
+          containerRef.current.removeChild(containerRef.current.firstChild);
+        }
       }
 
       renderAttempted.current = true;

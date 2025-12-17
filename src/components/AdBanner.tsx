@@ -26,9 +26,11 @@ const AdBanner: React.FC = () => {
     scriptLoaded.current = true;
 
     return () => {
-      // Cleanup on unmount
+      // Cleanup on unmount - remove all child nodes safely
       if (adContainerRef.current) {
-        adContainerRef.current.innerHTML = '';
+        while (adContainerRef.current.firstChild) {
+          adContainerRef.current.removeChild(adContainerRef.current.firstChild);
+        }
       }
       scriptLoaded.current = false;
     };
