@@ -70,7 +70,7 @@ export const useFeedback = () => {
           // Silently fail if audio can't play
         });
       } catch (e) {
-        // Silently fail
+        console.warn('Audio playback failed:', e);
       }
     }
   }, []);

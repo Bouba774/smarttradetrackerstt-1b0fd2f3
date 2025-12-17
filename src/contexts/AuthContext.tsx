@@ -94,6 +94,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         fetchProfile(session.user.id);
       }
       setLoading(false);
+    }).catch((error) => {
+      console.error('Failed to get session:', error);
+      setLoading(false);
     });
 
     return () => subscription.unsubscribe();
