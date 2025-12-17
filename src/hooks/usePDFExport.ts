@@ -7,63 +7,15 @@ import { useFeedback } from '@/hooks/useFeedback';
 import { format } from 'date-fns';
 import { fr, enUS } from 'date-fns/locale';
 import { toast } from 'sonner';
-
-interface Trade {
-  id: string;
-  trade_date: string;
-  asset: string;
-  direction: string;
-  entry_price: number;
-  exit_price: number | null;
-  stop_loss: number | null;
-  take_profit: number | null;
-  lot_size: number;
-  profit_loss: number | null;
-  result: string | null;
-  setup: string | null;
-  emotions: string | null;
-}
-
-interface ProfileData {
-  nickname: string;
-  level: number | null;
-  total_points: number | null;
-}
-
-interface ExportStats {
-  totalTrades: number;
-  winningTrades: number;
-  losingTrades: number;
-  breakeven: number;
-  winrate: number;
-  totalPnL: number;
-  bestTrade: number;
-  worstTrade: number;
-  avgProfit: number;
-  profitFactor: number;
-  avgLotSize: number;
-  totalVolume: number;
-}
-
-// PDF-safe number formatter that uses simple ASCII characters only
-const formatNumberForPDF = (value: number, decimals: number = 2): string => {
-  if (value === null || value === undefined || isNaN(value)) return '0';
-  
-  const absValue = Math.abs(value);
-  const fixedValue = absValue.toFixed(decimals);
-  
-  // Split into integer and decimal parts
-  const [intPart, decPart] = fixedValue.split('.');
-  
-  // Add thousand separators using simple space (ASCII 32)
-  const formattedInt = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
-  
-  // Combine with decimal part
-  const formatted = decPart ? `${formattedInt}.${decPart}` : formattedInt;
-  
-  // Add sign if negative
-  return value < 0 ? `-${formatted}` : formatted;
-};
+import {
+  Trade,
+  ProfileData,
+  formatNumberForPDF,
+  createAmountFormatter,
+  calculateStats,
+  drawEquityCurve,
+  drawPerformanceChart,
+} from '@/lib/pdfExport';
 
 export const usePDFExport = () => {
   const { language } = useLanguage();
@@ -71,218 +23,10 @@ export const usePDFExport = () => {
   const { triggerFeedback } = useFeedback();
   const locale = language === 'fr' ? fr : enUS;
 
-  // PDF-specific amount formatter using raw numeric values
-  const formatAmountForPDF = useCallback((amount: number | null | undefined, convertValue = true): string => {
-    if (amount === null || amount === undefined) return '-';
-    
-    const displayAmount = convertValue ? convertFromBase(amount) : amount;
-    const symbol = getCurrencySymbol();
-    const formatted = formatNumberForPDF(displayAmount, decimals);
-    
-    return `${formatted} ${symbol}`;
-  }, [convertFromBase, getCurrencySymbol, decimals]);
-
-  const calculateStats = (trades: Trade[]): ExportStats => {
-    if (trades.length === 0) {
-      return {
-        totalTrades: 0,
-        winningTrades: 0,
-        losingTrades: 0,
-        breakeven: 0,
-        winrate: 0,
-        totalPnL: 0,
-        bestTrade: 0,
-        worstTrade: 0,
-        avgProfit: 0,
-        profitFactor: 0,
-        avgLotSize: 0,
-        totalVolume: 0,
-      };
-    }
-
-    const winningTrades = trades.filter(t => t.result === 'win').length;
-    const losingTrades = trades.filter(t => t.result === 'loss').length;
-    const breakeven = trades.filter(t => t.result === 'breakeven').length;
-    const totalPnL = trades.reduce((sum, t) => sum + (t.profit_loss || 0), 0);
-    const profits = trades.filter(t => (t.profit_loss || 0) > 0).reduce((sum, t) => sum + (t.profit_loss || 0), 0);
-    const losses = Math.abs(trades.filter(t => (t.profit_loss || 0) < 0).reduce((sum, t) => sum + (t.profit_loss || 0), 0));
-    const pnls = trades.map(t => t.profit_loss || 0);
-    const totalVolume = trades.reduce((sum, t) => sum + t.lot_size, 0);
-
-    return {
-      totalTrades: trades.length,
-      winningTrades,
-      losingTrades,
-      breakeven,
-      winrate: trades.length > 0 ? Math.round((winningTrades / trades.length) * 100) : 0,
-      totalPnL,
-      bestTrade: Math.max(...pnls, 0),
-      worstTrade: Math.min(...pnls, 0),
-      avgProfit: trades.length > 0 ? totalPnL / trades.length : 0,
-      profitFactor: losses > 0 ? profits / losses : profits > 0 ? Infinity : 0,
-      avgLotSize: trades.length > 0 ? totalVolume / trades.length : 0,
-      totalVolume,
-    };
-  };
-
-  // Calculate equity curve data
-  const calculateEquityCurve = (trades: Trade[]): { date: string; equity: number }[] => {
-    if (trades.length === 0) return [];
-
-    // Sort trades by date
-    const sortedTrades = [...trades].sort((a, b) => 
-      new Date(a.trade_date).getTime() - new Date(b.trade_date).getTime()
-    );
-
-    let cumulative = 0;
-    return sortedTrades.map(trade => {
-      cumulative += trade.profit_loss || 0;
-      return {
-        date: trade.trade_date,
-        equity: cumulative,
-      };
-    });
-  };
-
-  // Draw equity curve chart
-  const drawEquityCurve = (doc: jsPDF, trades: Trade[], startY: number): number => {
-    const equityData = calculateEquityCurve(trades);
-    if (equityData.length < 2) return startY;
-
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const chartWidth = pageWidth - 28;
-    const chartHeight = 50;
-    const chartX = 14;
-    const chartY = startY;
-
-    // Draw chart title
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(30, 30, 30);
-    doc.text(language === 'fr' ? 'Courbe d\'Équité' : 'Equity Curve', 14, chartY - 5);
-
-    // Draw chart background
-    doc.setFillColor(248, 250, 252);
-    doc.roundedRect(chartX, chartY, chartWidth, chartHeight, 2, 2, 'F');
-
-    // Calculate min/max values
-    const values = equityData.map(d => d.equity);
-    const minValue = Math.min(...values, 0);
-    const maxValue = Math.max(...values, 0);
-    const range = maxValue - minValue || 1;
-
-    // Draw grid lines
-    doc.setDrawColor(200, 200, 200);
-    doc.setLineWidth(0.1);
-    for (let i = 0; i <= 4; i++) {
-      const y = chartY + (chartHeight / 4) * i;
-      doc.line(chartX, y, chartX + chartWidth, y);
-    }
-
-    // Draw zero line if applicable
-    if (minValue < 0 && maxValue > 0) {
-      const zeroY = chartY + chartHeight - ((0 - minValue) / range) * chartHeight;
-      doc.setDrawColor(150, 150, 150);
-      doc.setLineWidth(0.3);
-      doc.line(chartX, zeroY, chartX + chartWidth, zeroY);
-    }
-
-    // Draw the equity curve
-    doc.setLineWidth(1.5);
-    
-    const points: { x: number; y: number }[] = equityData.map((d, i) => ({
-      x: chartX + (i / (equityData.length - 1)) * chartWidth,
-      y: chartY + chartHeight - ((d.equity - minValue) / range) * chartHeight,
-    }));
-
-    // Draw line segments with color based on direction
-    for (let i = 1; i < points.length; i++) {
-      const prevEquity = equityData[i - 1].equity;
-      const currEquity = equityData[i].equity;
-      
-      if (currEquity >= prevEquity) {
-        doc.setDrawColor(34, 197, 94); // Green for up
-      } else {
-        doc.setDrawColor(239, 68, 68); // Red for down
-      }
-      
-      doc.line(points[i - 1].x, points[i - 1].y, points[i].x, points[i].y);
-    }
-
-    // Draw start and end values
-    doc.setFontSize(8);
-    doc.setTextColor(100, 100, 100);
-    doc.text(formatAmountForPDF(minValue), chartX + 2, chartY + chartHeight - 2);
-    doc.text(formatAmountForPDF(maxValue), chartX + 2, chartY + 6);
-
-    // Draw final equity value
-    const finalEquity = equityData[equityData.length - 1].equity;
-    doc.setFontSize(9);
-    doc.setFont('helvetica', 'bold');
-    if (finalEquity >= 0) {
-      doc.setTextColor(34, 197, 94);
-    } else {
-      doc.setTextColor(239, 68, 68);
-    }
-    doc.text(formatAmountForPDF(finalEquity), chartX + chartWidth - 30, chartY + 10);
-
-    return chartY + chartHeight + 15;
-  };
-
-  // Draw performance distribution chart
-  const drawPerformanceChart = (doc: jsPDF, stats: ExportStats, startY: number): number => {
-    const chartX = 14;
-    const chartY = startY;
-    const barWidth = 50;
-    const barHeight = 8;
-    const spacing = 3;
-
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(30, 30, 30);
-    doc.text(language === 'fr' ? 'Distribution des Résultats' : 'Results Distribution', 14, chartY - 5);
-
-    const total = stats.winningTrades + stats.losingTrades + stats.breakeven;
-    if (total === 0) return chartY + 10;
-
-    const winPct = (stats.winningTrades / total) * 100;
-    const lossPct = (stats.losingTrades / total) * 100;
-    const bePct = (stats.breakeven / total) * 100;
-
-    const data = [
-      { label: language === 'fr' ? 'Gains' : 'Wins', value: stats.winningTrades, pct: winPct, color: [34, 197, 94] as [number, number, number] },
-      { label: language === 'fr' ? 'Pertes' : 'Losses', value: stats.losingTrades, pct: lossPct, color: [239, 68, 68] as [number, number, number] },
-      { label: 'Breakeven', value: stats.breakeven, pct: bePct, color: [156, 163, 175] as [number, number, number] },
-    ];
-
-    data.forEach((item, i) => {
-      const y = chartY + i * (barHeight + spacing);
-      
-      // Label
-      doc.setFontSize(9);
-      doc.setFont('helvetica', 'normal');
-      doc.setTextColor(80, 80, 80);
-      doc.text(item.label, chartX, y + 6);
-
-      // Background bar
-      doc.setFillColor(230, 230, 230);
-      doc.roundedRect(chartX + 35, y, barWidth, barHeight, 1, 1, 'F');
-
-      // Filled bar
-      const fillWidth = (item.pct / 100) * barWidth;
-      if (fillWidth > 0) {
-        doc.setFillColor(...item.color);
-        doc.roundedRect(chartX + 35, y, Math.max(fillWidth, 2), barHeight, 1, 1, 'F');
-      }
-
-      // Value
-      doc.setFontSize(8);
-      doc.setTextColor(60, 60, 60);
-      doc.text(`${item.value} (${item.pct.toFixed(1)}%)`, chartX + 90, y + 6);
-    });
-
-    return chartY + data.length * (barHeight + spacing) + 10;
-  };
+  const formatAmountForPDF = useCallback(
+    createAmountFormatter(convertFromBase, getCurrencySymbol, decimals),
+    [convertFromBase, getCurrencySymbol, decimals]
+  );
 
   const exportToPDF = useCallback(async (
     trades: Trade[],
@@ -298,11 +42,11 @@ export const usePDFExport = () => {
       let yPos = 20;
 
       // Header with gradient effect
-      doc.setFillColor(15, 23, 42); // Dark slate
+      doc.setFillColor(15, 23, 42);
       doc.rect(0, 0, pageWidth, 50, 'F');
       
       // Accent line
-      doc.setFillColor(59, 130, 246); // Blue
+      doc.setFillColor(59, 130, 246);
       doc.rect(0, 48, pageWidth, 2, 'F');
       
       // Logo area
@@ -321,7 +65,7 @@ export const usePDFExport = () => {
       
       doc.setFontSize(11);
       doc.setFont('helvetica', 'normal');
-      doc.setTextColor(148, 163, 184); // Slate 400
+      doc.setTextColor(148, 163, 184);
       doc.text(language === 'fr' ? 'Rapport de Performance' : 'Performance Report', 32, 34);
 
       // Profile info (right side)
@@ -348,9 +92,9 @@ export const usePDFExport = () => {
 
       // Period label
       if (periodLabel) {
-        doc.setFillColor(241, 245, 249); // Slate 100
+        doc.setFillColor(241, 245, 249);
         doc.roundedRect(14, yPos - 5, pageWidth - 28, 12, 2, 2, 'F');
-        doc.setTextColor(71, 85, 105); // Slate 600
+        doc.setTextColor(71, 85, 105);
         doc.setFontSize(10);
         doc.setFont('helvetica', 'bold');
         doc.text(language === 'fr' ? 'Période: ' : 'Period: ', 18, yPos + 3);
@@ -387,20 +131,16 @@ export const usePDFExport = () => {
         const x = 14 + col * (cardWidth + 4);
         const y = yPos + row * (cardHeight + 4);
 
-        // Card background
         doc.setFillColor(248, 250, 252);
         doc.roundedRect(x, y, cardWidth, cardHeight, 2, 2, 'F');
 
-        // Accent line
         doc.setFillColor(...card.color);
         doc.rect(x, y, 3, cardHeight, 'F');
 
-        // Label
         doc.setFontSize(8);
         doc.setTextColor(100, 116, 139);
         doc.text(card.label, x + 6, y + 8);
 
-        // Value
         doc.setFontSize(12);
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(...card.color);
@@ -430,11 +170,11 @@ export const usePDFExport = () => {
       yPos += 12;
 
       // Performance distribution chart
-      yPos = drawPerformanceChart(doc, stats, yPos);
+      yPos = drawPerformanceChart(doc, stats, yPos, language);
 
       // Equity curve
       if (trades.length >= 2) {
-        yPos = drawEquityCurve(doc, trades, yPos);
+        yPos = drawEquityCurve(doc, trades, yPos, language, formatAmountForPDF);
       }
 
       // Check if we need a new page for trade history
@@ -504,7 +244,6 @@ export const usePDFExport = () => {
           7: { cellWidth: 14, halign: 'center' },
         },
         didParseCell: (data) => {
-          // Color PnL column
           if (data.column.index === 6 && data.section === 'body') {
             const value = parseFloat(data.cell.text[0]?.replace(/[^0-9.-]/g, '') || '0');
             if (value > 0) {
@@ -515,7 +254,6 @@ export const usePDFExport = () => {
               data.cell.styles.fontStyle = 'bold';
             }
           }
-          // Color result column
           if (data.column.index === 7 && data.section === 'body') {
             if (data.cell.text[0] === 'W') {
               data.cell.styles.textColor = [34, 197, 94];
@@ -535,19 +273,13 @@ export const usePDFExport = () => {
       for (let i = 1; i <= pageCount; i++) {
         doc.setPage(i);
         
-        // Footer line
         doc.setDrawColor(226, 232, 240);
         doc.setLineWidth(0.5);
         doc.line(14, pageHeight - 15, pageWidth - 14, pageHeight - 15);
 
-        // Footer text
         doc.setFontSize(8);
         doc.setTextColor(148, 163, 184);
-        doc.text(
-          'Smart Trade Tracker',
-          14,
-          pageHeight - 8
-        );
+        doc.text('Smart Trade Tracker', 14, pageHeight - 8);
         doc.text(
           `${language === 'fr' ? 'Page' : 'Page'} ${i}/${pageCount}`,
           pageWidth - 14,
@@ -567,7 +299,7 @@ export const usePDFExport = () => {
       triggerFeedback('error');
       toast.error(language === 'fr' ? 'Erreur lors de l\'export PDF' : 'PDF export error');
     }
-  }, [language, currency, formatAmountForPDF, getCurrencySymbol, triggerFeedback, locale, convertFromBase, decimals]);
+  }, [language, currency, formatAmountForPDF, getCurrencySymbol, triggerFeedback, locale]);
 
   return { exportToPDF };
 };
