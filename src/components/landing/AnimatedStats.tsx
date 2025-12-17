@@ -120,8 +120,8 @@ const AnimatedStats: React.FC<AnimatedStatsProps> = ({ language }) => {
                 <Icon className={`w-5 h-5 ${stat.color}`} />
               </div>
               
-              {/* Value */}
-              <div className={`text-2xl md:text-3xl font-bold ${stat.color} mb-1 tabular-nums`}>
+              {/* Value - fixed height to prevent layout shift */}
+              <div className={`text-2xl md:text-3xl font-bold ${stat.color} mb-1 tabular-nums min-h-[1.5em] min-w-[80px]`}>
                 {stat.value}
               </div>
               

@@ -349,7 +349,7 @@ const Landing = () => {
       <main className="relative z-10">
         {/* Hero Section - Clean and minimal */}
         <section className="relative min-h-[85vh] flex items-center justify-center">
-          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center" style={{ contentVisibility: 'auto', containIntrinsicSize: '0 800px' }}>
             <ScrollReveal animation="fade-up" delay={0}>
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-8">
                 <div className="w-1.5 h-1.5 rounded-full bg-profit animate-pulse" />
@@ -360,9 +360,9 @@ const Landing = () => {
             </ScrollReveal>
             
             <ScrollReveal animation="fade-up" delay={100}>
-              <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-6 leading-[1.1] tracking-tight">
+              <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-6 leading-[1.1] tracking-tight min-h-[1.2em]">
                 <span className="text-foreground">{language === 'fr' ? 'Tradez avec ' : 'Trade with '}</span>
-                <span className="text-gradient-primary">
+                <span className="text-gradient-primary inline-block min-w-[200px] sm:min-w-[280px] md:min-w-[360px] lg:min-w-[440px] text-left">
                   {typedText}
                   <span className="inline-block w-[3px] h-[0.9em] bg-primary ml-1 align-middle animate-[blink_0.7s_infinite]" />
                 </span>
@@ -404,8 +404,8 @@ const Landing = () => {
               ].map((stat, index) => (
                 <ScrollReveal key={index} animation="scale" delay={400 + index * 100}>
                   <div className="text-center">
-                    <div className="text-2xl sm:text-3xl font-bold text-foreground mb-1 flex items-center justify-center gap-1">
-                      <span className="tabular-nums">{stat.value}</span>
+                    <div className="text-2xl sm:text-3xl font-bold text-foreground mb-1 flex items-center justify-center gap-1 min-h-[1.5em]">
+                      <span className="tabular-nums min-w-[3ch] inline-block">{stat.value}</span>
                       <span>{stat.suffix}</span>
                       {stat.isRating && <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />}
                     </div>
@@ -436,39 +436,45 @@ const Landing = () => {
 
                 {/* Desktop: Multiple images showcase */}
                 <div className="hidden md:grid grid-cols-3 gap-4">
-                  <div className="relative rounded-2xl overflow-hidden border border-border/50 shadow-2xl transform hover:scale-[1.02] transition-transform duration-300">
+                  <div className="relative rounded-2xl overflow-hidden border border-border/50 shadow-2xl transform hover:scale-[1.02] transition-transform duration-300 aspect-[720/1505]">
                     <img 
                       src={screenshotDashboard1} 
                       alt={language === 'fr' ? 'Statistiques principales' : 'Main statistics'}
-                      className="w-full h-auto object-cover"
+                      className="w-full h-full object-cover"
                       loading="lazy"
                       decoding="async"
+                      width={720}
+                      height={1505}
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-background/60 via-transparent to-transparent" />
                     <div className="absolute bottom-3 left-3 right-3">
                       <p className="text-xs font-medium text-foreground/90">{language === 'fr' ? 'Tableau de bord' : 'Dashboard'}</p>
                     </div>
                   </div>
-                  <div className="relative rounded-2xl overflow-hidden border border-border/50 shadow-2xl transform hover:scale-[1.02] transition-transform duration-300 translate-y-4">
+                  <div className="relative rounded-2xl overflow-hidden border border-border/50 shadow-2xl transform hover:scale-[1.02] transition-transform duration-300 translate-y-4 aspect-[720/1128]">
                     <img 
                       src={screenshotReports} 
                       alt={language === 'fr' ? 'Rapports de trading' : 'Trading reports'}
-                      className="w-full h-auto object-cover"
+                      className="w-full h-full object-cover"
                       loading="lazy"
                       decoding="async"
+                      width={720}
+                      height={1128}
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-background/60 via-transparent to-transparent" />
                     <div className="absolute bottom-3 left-3 right-3">
                       <p className="text-xs font-medium text-foreground/90">{language === 'fr' ? 'Rapports détaillés' : 'Detailed reports'}</p>
                     </div>
                   </div>
-                  <div className="relative rounded-2xl overflow-hidden border border-border/50 shadow-2xl transform hover:scale-[1.02] transition-transform duration-300">
+                  <div className="relative rounded-2xl overflow-hidden border border-border/50 shadow-2xl transform hover:scale-[1.02] transition-transform duration-300 aspect-[720/1218]">
                     <img 
                       src={screenshotHistory} 
                       alt={language === 'fr' ? 'Historique des trades' : 'Trade history'}
-                      className="w-full h-auto object-cover"
+                      className="w-full h-full object-cover"
                       loading="lazy"
                       decoding="async"
+                      width={720}
+                      height={1218}
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-background/60 via-transparent to-transparent" />
                     <div className="absolute bottom-3 left-3 right-3">
