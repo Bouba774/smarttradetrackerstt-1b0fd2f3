@@ -454,13 +454,14 @@ const Landing = () => {
 
                 {/* Desktop: Multiple images showcase */}
                 <div className="hidden md:grid grid-cols-3 gap-4">
-                  <div className="relative rounded-2xl overflow-hidden border border-border/50 shadow-2xl transform hover:scale-[1.02] transition-transform duration-300 aspect-[720/1505]">
+                <div className="relative rounded-2xl overflow-hidden border border-border/50 shadow-2xl transform hover:scale-[1.02] transition-transform duration-300 aspect-[720/1505]">
                     <img 
                       src={screenshotDashboard1} 
                       alt={language === 'fr' ? 'Statistiques principales' : 'Main statistics'}
                       className="w-full h-full object-cover"
-                      loading="lazy"
+                      loading="eager"
                       decoding="async"
+                      fetchPriority="high"
                       width={720}
                       height={1505}
                     />

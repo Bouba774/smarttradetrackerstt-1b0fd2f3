@@ -123,8 +123,9 @@ const ScreenshotCarousel: React.FC<ScreenshotCarouselProps> = ({ screenshots, la
                     src={screenshot.src}
                     alt={language === 'fr' ? screenshot.altFr : screenshot.altEn}
                     className="w-full h-72 sm:h-80 object-cover object-top relative z-10"
-                    loading="lazy"
+                    loading={index === 0 ? "eager" : "lazy"}
                     decoding="async"
+                    fetchPriority={index === 0 ? "high" : "auto"}
                   />
                   
                   {/* Title overlay with glassmorphism */}
