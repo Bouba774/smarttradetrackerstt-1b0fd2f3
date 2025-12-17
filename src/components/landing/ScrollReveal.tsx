@@ -42,27 +42,28 @@ const ScrollReveal: React.FC<ScrollRevealProps> = ({
     };
   }, [threshold]);
 
-  const getAnimationStyles = () => {
+  const getAnimationStyles = (): React.CSSProperties => {
     const baseStyles: React.CSSProperties = {
       transitionDuration: `${duration}ms`,
       transitionDelay: `${delay}ms`,
       transitionTimingFunction: 'cubic-bezier(0.4, 0, 0.2, 1)',
+      willChange: isVisible ? 'auto' : 'opacity, transform',
     };
 
     if (!isVisible) {
       switch (animation) {
         case 'fade-up':
-          return { ...baseStyles, opacity: 0, transform: 'translateY(40px)' };
+          return { ...baseStyles, opacity: 0, transform: 'translateY(30px)' };
         case 'fade-down':
-          return { ...baseStyles, opacity: 0, transform: 'translateY(-40px)' };
+          return { ...baseStyles, opacity: 0, transform: 'translateY(-30px)' };
         case 'fade-left':
-          return { ...baseStyles, opacity: 0, transform: 'translateX(40px)' };
+          return { ...baseStyles, opacity: 0, transform: 'translateX(30px)' };
         case 'fade-right':
-          return { ...baseStyles, opacity: 0, transform: 'translateX(-40px)' };
+          return { ...baseStyles, opacity: 0, transform: 'translateX(-30px)' };
         case 'scale':
-          return { ...baseStyles, opacity: 0, transform: 'scale(0.9)' };
+          return { ...baseStyles, opacity: 0, transform: 'scale(0.95)' };
         case 'blur':
-          return { ...baseStyles, opacity: 0, filter: 'blur(10px)' };
+          return { ...baseStyles, opacity: 0, filter: 'blur(8px)' };
         default:
           return { ...baseStyles, opacity: 0 };
       }
@@ -71,8 +72,8 @@ const ScrollReveal: React.FC<ScrollRevealProps> = ({
     return {
       ...baseStyles,
       opacity: 1,
-      transform: 'translateY(0) translateX(0) scale(1)',
-      filter: 'blur(0)',
+      transform: 'none',
+      filter: 'none',
     };
   };
 
