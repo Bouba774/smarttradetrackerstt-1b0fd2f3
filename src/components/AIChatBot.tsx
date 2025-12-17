@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -6,8 +6,8 @@ import { cn } from '@/lib/utils';
 import { MessageCircle, X, Send, Bot, User, Loader2, Sparkles } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useTrades } from '@/hooks/useTrades';
-import { useAdvancedStats } from '@/hooks/useAdvancedStats';
-import { useAuth } from '@/contexts/AuthContext';
+import { useTraderUserData } from '@/hooks/useTraderUserData';
+import { streamChat } from '@/lib/chatStream';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -17,114 +17,14 @@ interface Message {
 const AIChatBot: React.FC = () => {
   const { language } = useLanguage();
   const { trades } = useTrades();
-  const { profile } = useAuth();
-  const stats = useAdvancedStats(trades);
-  
+  const userData = useTraderUserData(trades);
+
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-
-  // Build real user data from trades and stats
-  const userData = useMemo(() => {
-    // Get recent trades (last 10)
-    const recentTrades = trades.slice(0, 10).map(t => ({
-      asset: t.asset,
-      direction: t.direction,
-      pnl: t.profit_loss || 0,
-      setup: t.setup || t.custom_setup || 'N/A',
-      emotion: t.emotions || 'N/A',
-      result: t.result,
-      date: t.trade_date
-    }));
-
-    // Calculate most profitable setup
-    const setupStats: Record<string, { count: number; profit: number }> = {};
-    trades.forEach(t => {
-      const setup = t.setup || t.custom_setup || 'Unknown';
-      if (!setupStats[setup]) {
-        setupStats[setup] = { count: 0, profit: 0 };
-      }
-      setupStats[setup].count++;
-      setupStats[setup].profit += t.profit_loss || 0;
-    });
-    
-    const mostProfitableSetup = Object.entries(setupStats)
-      .sort((a, b) => b[1].profit - a[1].profit)[0]?.[0] || 'N/A';
-
-    // Calculate trading hours patterns
-    const hourStats: Record<number, { wins: number; losses: number; profit: number }> = {};
-    trades.forEach(t => {
-      const hour = new Date(t.trade_date).getHours();
-      if (!hourStats[hour]) {
-        hourStats[hour] = { wins: 0, losses: 0, profit: 0 };
-      }
-      if (t.result === 'win') hourStats[hour].wins++;
-      if (t.result === 'loss') hourStats[hour].losses++;
-      hourStats[hour].profit += t.profit_loss || 0;
-    });
-
-    const sortedHours = Object.entries(hourStats).sort((a, b) => b[1].profit - a[1].profit);
-    const bestHours = sortedHours.slice(0, 2).map(([h]) => `${h}h-${parseInt(h) + 1}h`);
-    const worstHours = sortedHours.slice(-2).map(([h]) => `${h}h-${parseInt(h) + 1}h`);
-
-    // Get user level
-    const level = profile?.level || 1;
-    const levelTitles: Record<number, string> = {
-      1: 'Débutant',
-      2: 'Intermédiaire',
-      3: 'Analyste',
-      4: 'Pro',
-      5: 'Expert',
-      6: 'Légende'
-    };
-    const userLevel = `${levelTitles[level] || 'Débutant'} (Niveau ${level})`;
-
-    return {
-      nickname: profile?.nickname || 'Trader',
-      userLevel,
-      totalPoints: profile?.total_points || 0,
-      stats: {
-        totalTrades: stats.totalTrades,
-        winningTrades: stats.winningTrades,
-        losingTrades: stats.losingTrades,
-        breakevenTrades: stats.breakevenTrades,
-        buyPositions: stats.buyPositions,
-        sellPositions: stats.sellPositions,
-        winrate: stats.winrate.toFixed(1),
-        netProfit: stats.netProfit.toFixed(2),
-        totalProfit: stats.totalProfit.toFixed(2),
-        totalLoss: stats.totalLoss.toFixed(2),
-        profitFactor: stats.profitFactor.toFixed(2),
-        expectancy: stats.expectancy.toFixed(2),
-        expectancyPercent: stats.expectancyPercent.toFixed(2),
-        avgProfitPerTrade: stats.avgProfitPerTrade.toFixed(2),
-        avgLossPerTrade: stats.avgLossPerTrade.toFixed(2),
-        avgRiskReward: stats.avgRiskReward.toFixed(2),
-        bestProfit: stats.bestProfit.toFixed(2),
-        worstLoss: stats.worstLoss.toFixed(2),
-        longestWinStreak: stats.longestWinStreak,
-        longestLossStreak: stats.longestLossStreak,
-        currentStreak: stats.currentStreak,
-        maxDrawdown: stats.maxDrawdown.toFixed(2),
-        maxDrawdownPercent: stats.maxDrawdownPercent.toFixed(2),
-        avgLotSize: stats.avgLotSize.toFixed(2),
-        avgTradeDuration: stats.avgTradeDuration,
-        totalTimeInPosition: stats.totalTimeInPosition,
-      },
-      recentTrades,
-      bestHours: bestHours.length > 0 ? bestHours : ['N/A'],
-      worstHours: worstHours.length > 0 ? worstHours : ['N/A'],
-      mostProfitableSetup,
-      setupStats: Object.entries(setupStats).map(([setup, data]) => ({
-        setup,
-        count: data.count,
-        profit: data.profit.toFixed(2)
-      }))
-    };
-  }, [trades, stats, profile]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -138,93 +38,42 @@ const AIChatBot: React.FC = () => {
     }
   }, [isOpen]);
 
-  const streamChat = async (userMessage: string) => {
+  const handleStreamChat = async (userMessage: string) => {
     const newMessages: Message[] = [...messages, { role: 'user', content: userMessage }];
     setMessages(newMessages);
     setIsLoading(true);
 
-    try {
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-chat`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-        },
-        body: JSON.stringify({
-          messages: newMessages,
-          userData,
-          language,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Erreur de connexion');
-      }
-
-      if (!response.body) throw new Error('No response body');
-
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let assistantContent = '';
-      let textBuffer = '';
-
-      setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        textBuffer += decoder.decode(value, { stream: true });
-
-        let newlineIndex: number;
-        while ((newlineIndex = textBuffer.indexOf('\n')) !== -1) {
-          let line = textBuffer.slice(0, newlineIndex);
-          textBuffer = textBuffer.slice(newlineIndex + 1);
-
-          if (line.endsWith('\r')) line = line.slice(0, -1);
-          if (line.startsWith(':') || line.trim() === '') continue;
-          if (!line.startsWith('data: ')) continue;
-
-          const jsonStr = line.slice(6).trim();
-          if (jsonStr === '[DONE]') break;
-
-          try {
-            const parsed = JSON.parse(jsonStr);
-            const content = parsed.choices?.[0]?.delta?.content;
-            if (content) {
-              assistantContent += content;
-              setMessages(prev => {
-                const updated = [...prev];
-                updated[updated.length - 1] = { role: 'assistant', content: assistantContent };
-                return updated;
-              });
-            }
-          } catch {
-            textBuffer = line + '\n' + textBuffer;
-            break;
-          }
-        }
-      }
-    } catch (error) {
-      console.error('Chat error:', error);
-      setMessages(prev => [
-        ...prev,
-        {
-          role: 'assistant',
-          content: error instanceof Error ? `❌ ${error.message}` : '❌ Une erreur est survenue.',
-        },
-      ]);
-    } finally {
-      setIsLoading(false);
-    }
+    await streamChat({
+      messages: newMessages,
+      userData,
+      language,
+      onStart: () => {
+        setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
+      },
+      onDelta: (content) => {
+        setMessages(prev => {
+          const updated = [...prev];
+          updated[updated.length - 1] = { role: 'assistant', content };
+          return updated;
+        });
+      },
+      onError: (error) => {
+        setMessages(prev => [
+          ...prev,
+          { role: 'assistant', content: `❌ ${error.message}` },
+        ]);
+      },
+      onDone: () => {
+        setIsLoading(false);
+      },
+    });
   };
 
   const handleSend = () => {
     if (!input.trim() || isLoading) return;
     const message = input.trim();
     setInput('');
-    streamChat(message);
+    handleStreamChat(message);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -233,6 +82,12 @@ const AIChatBot: React.FC = () => {
       handleSend();
     }
   };
+
+  const suggestions = [
+    language === 'fr' ? 'Analyse mes stats' : 'Analyze my stats',
+    language === 'fr' ? 'Conseils du jour' : 'Daily tips',
+    language === 'fr' ? 'Meilleur setup?' : 'Best setup?',
+  ];
 
   return (
     <>
@@ -299,11 +154,7 @@ const AIChatBot: React.FC = () => {
                     : "I'm your AI trading assistant. Ask me about your performance, get advice, or let's analyze your trades together!"}
                 </p>
                 <div className="flex flex-wrap gap-2 mt-4">
-                  {[
-                    language === 'fr' ? 'Analyse mes stats' : 'Analyze my stats',
-                    language === 'fr' ? 'Conseils du jour' : 'Daily tips',
-                    language === 'fr' ? 'Meilleur setup?' : 'Best setup?',
-                  ].map((suggestion) => (
+                  {suggestions.map((suggestion) => (
                     <Button
                       key={suggestion}
                       variant="outline"
@@ -311,7 +162,7 @@ const AIChatBot: React.FC = () => {
                       className="text-xs"
                       onClick={() => {
                         setInput(suggestion);
-                        streamChat(suggestion);
+                        handleStreamChat(suggestion);
                       }}
                     >
                       {suggestion}

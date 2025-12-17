@@ -30,32 +30,11 @@ import {
   TrendingDown,
   Save,
   Loader2,
-  Upload,
-  X,
-  Image as ImageIcon,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { sanitizeText, validateImageFiles } from '@/lib/tradeValidation';
-
-const DEFAULT_SETUPS = [
-  'Breakout', 'Pullback', 'Reversal', 'Range', 'Trend Following',
-  'Support/Resistance', 'Fibonacci', 'Moving Average', 'RSI Divergence',
-  'MACD Cross', 'Supply & Demand', 'Order Block', 'Fair Value Gap',
-  'Liquidity Sweep', 'Change of Character', 'Break of Structure',
-];
-
-const TIMEFRAMES = ['M1', 'M5', 'M15', 'M30', 'M45', 'H1', 'H2', 'H3', 'H4', 'D1', 'W1', 'MN'];
-
-const EMOTIONS = [
-  { value: 'calm', label: 'Calme', emoji: '😌' },
-  { value: 'confident', label: 'Confiant', emoji: '💪' },
-  { value: 'stressed', label: 'Stressé', emoji: '😰' },
-  { value: 'impulsive', label: 'Impulsif', emoji: '⚡' },
-  { value: 'fearful', label: 'Craintif', emoji: '😨' },
-  { value: 'greedy', label: 'Avide', emoji: '🤑' },
-  { value: 'patient', label: 'Patient', emoji: '🧘' },
-  { value: 'focused', label: 'Concentré', emoji: '🎯' },
-];
+import { sanitizeText } from '@/lib/tradeValidation';
+import { DEFAULT_SETUPS, TIMEFRAMES, EMOTIONS } from '@/data/tradeFormOptions';
+import { ImageSection } from '@/components/EditTradeDialog/ImageSection';
 
 interface EditTradeDialogProps {
   trade: Trade | null;
@@ -129,26 +108,8 @@ const EditTradeDialog: React.FC<EditTradeDialogProps> = ({
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleNewImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files) return;
-
-    const newFiles = Array.from(files);
-    const totalImages = existingImages.length - imagesToDelete.length + newImageFiles.length + newFiles.length;
-    
-    if (totalImages > 4) {
-      toast.error(language === 'fr' ? 'Maximum 4 images par trade' : 'Maximum 4 images per trade');
-      return;
-    }
-    
-    const validation = validateImageFiles([...newImageFiles, ...newFiles]);
-    if (!validation.valid) {
-      validation.errors.forEach(error => toast.error(error));
-      return;
-    }
-
+  const handleNewImageUpload = (newFiles: File[]) => {
     setNewImageFiles(prev => [...prev, ...newFiles]);
-
     newFiles.forEach(file => {
       const reader = new FileReader();
       reader.onload = () => {
@@ -475,112 +436,17 @@ const EditTradeDialog: React.FC<EditTradeDialogProps> = ({
           </div>
 
           {/* Images Section */}
-          <div className="space-y-4">
-            <Label className="flex items-center gap-2">
-              <ImageIcon className="w-4 h-4" />
-              {language === 'fr' ? 'Images' : 'Images'}
-            </Label>
-            
-            {/* Existing Images */}
-            {existingImages.length > 0 && (
-              <div className="space-y-2">
-                <p className="text-xs text-muted-foreground">
-                  {language === 'fr' ? 'Images actuelles' : 'Current images'}
-                </p>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                  {existingImages.map((imageUrl, index) => {
-                    const isMarkedForDeletion = imagesToDelete.includes(imageUrl);
-                    return (
-                      <div key={index} className={cn(
-                        "relative aspect-video rounded-lg overflow-hidden border",
-                        isMarkedForDeletion ? "border-loss/50 opacity-50" : "border-border"
-                      )}>
-                        <img
-                          src={imageUrl}
-                          alt={`Trade image ${index + 1}`}
-                          className="w-full h-full object-cover"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => isMarkedForDeletion ? restoreExistingImage(imageUrl) : removeExistingImage(imageUrl)}
-                          className={cn(
-                            "absolute top-1 right-1 w-6 h-6 rounded-full flex items-center justify-center transition-colors",
-                            isMarkedForDeletion 
-                              ? "bg-profit text-profit-foreground hover:bg-profit/80"
-                              : "bg-loss/80 text-loss-foreground hover:bg-loss"
-                          )}
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
-                        {isMarkedForDeletion && (
-                          <div className="absolute inset-0 flex items-center justify-center bg-background/50">
-                            <span className="text-xs text-loss font-medium">
-                              {language === 'fr' ? 'Supprimée' : 'Deleted'}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* New Images Preview */}
-            {newImagePreviews.length > 0 && (
-              <div className="space-y-2">
-                <p className="text-xs text-muted-foreground">
-                  {language === 'fr' ? 'Nouvelles images' : 'New images'}
-                </p>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                  {newImagePreviews.map((preview, index) => (
-                    <div key={index} className="relative aspect-video rounded-lg overflow-hidden border border-primary/30">
-                      <img
-                        src={preview}
-                        alt={`New image ${index + 1}`}
-                        className="w-full h-full object-cover"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => removeNewImage(index)}
-                        className="absolute top-1 right-1 w-6 h-6 bg-loss/80 text-loss-foreground rounded-full flex items-center justify-center hover:bg-loss"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Upload Button */}
-            {(existingImages.length - imagesToDelete.length + newImageFiles.length) < 4 && (
-              <div>
-                <input
-                  type="file"
-                  id="edit-image-upload"
-                  accept="image/jpeg,image/png,image/gif,image/webp"
-                  multiple
-                  onChange={handleNewImageUpload}
-                  className="hidden"
-                />
-                <label htmlFor="edit-image-upload">
-                  <Button type="button" variant="outline" className="gap-2" asChild>
-                    <span>
-                      <Upload className="w-4 h-4" />
-                      {language === 'fr' ? 'Ajouter des images' : 'Add images'}
-                    </span>
-                  </Button>
-                </label>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {language === 'fr' 
-                    ? `${4 - (existingImages.length - imagesToDelete.length + newImageFiles.length)} image(s) restante(s)`
-                    : `${4 - (existingImages.length - imagesToDelete.length + newImageFiles.length)} image(s) remaining`
-                  }
-                </p>
-              </div>
-            )}
-          </div>
+          <ImageSection
+            language={language}
+            existingImages={existingImages}
+            imagesToDelete={imagesToDelete}
+            newImageFiles={newImageFiles}
+            newImagePreviews={newImagePreviews}
+            onNewImageUpload={handleNewImageUpload}
+            onRemoveExistingImage={removeExistingImage}
+            onRestoreExistingImage={restoreExistingImage}
+            onRemoveNewImage={removeNewImage}
+          />
 
           {/* Submit Button */}
           <div className="flex justify-end gap-3">
