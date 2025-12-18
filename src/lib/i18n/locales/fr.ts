@@ -14,7 +14,7 @@ export const fr = {
   psychology: 'Analyse Psychologique',
   videoJournal: 'Journal Vidéo/Audio',
   about: 'À Propos',
-  currencyConversion: 'Conversion Devises',
+  currencyConversion: 'Conversion devises / cryptos',
   periodComparison: 'Comparaison',
 
   // Common

@@ -14,7 +14,7 @@ export const en = {
   psychology: 'Psychological Analysis',
   videoJournal: 'Video/Audio Journal',
   about: 'About',
-  currencyConversion: 'Currency Conversion',
+  currencyConversion: 'Currency / Crypto Conversion',
   periodComparison: 'Comparison',
 
   // Common
