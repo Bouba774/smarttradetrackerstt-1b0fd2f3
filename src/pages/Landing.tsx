@@ -57,7 +57,7 @@ import screenshotChallenges from '@/assets/screenshot-challenges.jpg';
 import screenshotProfile from '@/assets/screenshot-profile.jpg';
 
 const Landing = () => {
-  const { language, setLanguage, languages } = useLanguage();
+  const { language, setLanguage, languages, t } = useLanguage();
   const { theme, setTheme, resolvedTheme } = useTheme();
   const [activeTraders, setActiveTraders] = useState(0);
   const [averageRating, setAverageRating] = useState(0);
@@ -68,9 +68,13 @@ const Landing = () => {
   const [wordIndex, setWordIndex] = useState(0);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const words = language === 'fr' 
-    ? ['discipline', 'précision', 'constance', 'confiance', 'maîtrise']
-    : ['discipline', 'precision', 'consistency', 'confidence', 'mastery'];
+  const words = [
+    t('landingWordDiscipline'),
+    t('landingWordPrecision'),
+    t('landingWordConsistency'),
+    t('landingWordConfidence'),
+    t('landingWordMastery')
+  ];
 
   // Typing effect with rotating words
   useEffect(() => {
@@ -157,35 +161,27 @@ const Landing = () => {
   const testimonials = [
     {
       name: 'Marc D.',
-      role: language === 'fr' ? 'Trader Forex' : 'Forex Trader',
+      role: t('landingForexTrader'),
       rating: 5,
-      text: language === 'fr' 
-        ? 'Cet outil a transformé ma façon de trader. Mon winrate a augmenté de 15% en 3 mois grâce au suivi psychologique.'
-        : 'This tool has transformed my trading. My winrate increased by 15% in 3 months thanks to the psychological tracking.'
+      text: t('landingTestimonial1')
     },
     {
       name: 'Sophie L.',
-      role: language === 'fr' ? 'Day Trader' : 'Day Trader',
+      role: t('landingDayTrader'),
       rating: 5,
-      text: language === 'fr'
-        ? 'Enfin un journal de trading qui comprend l\'importance des émotions. L\'assistant IA est incroyablement utile.'
-        : 'Finally a trading journal that understands the importance of emotions. The AI assistant is incredibly useful.'
+      text: t('landingTestimonial2')
     },
     {
       name: 'Thomas B.',
-      role: language === 'fr' ? 'Swing Trader' : 'Swing Trader',
+      role: t('landingSwingTrader'),
       rating: 5,
-      text: language === 'fr'
-        ? 'Interface intuitive et statistiques complètes. Je recommande à tous les traders sérieux.'
-        : 'Intuitive interface and comprehensive statistics. I recommend it to all serious traders.'
+      text: t('landingTestimonial3')
     },
     {
       name: 'Emma R.',
-      role: language === 'fr' ? 'Crypto Trader' : 'Crypto Trader',
+      role: t('landingCryptoTrader'),
       rating: 4,
-      text: language === 'fr'
-        ? 'Le calculateur de lot et la conversion de devises en temps réel sont des game changers.'
-        : 'The lot calculator and real-time currency conversion are game changers.'
+      text: t('landingTestimonial4')
     }
   ];
 
@@ -194,73 +190,43 @@ const Landing = () => {
   };
 
   const features = [
-    { icon: BarChart3, title: language === 'fr' ? 'Tableau de Bord' : 'Dashboard', desc: language === 'fr' ? 'Vue complète de vos performances avec 30+ statistiques en temps réel.' : 'Complete view of your performance with 30+ real-time statistics.' },
-    { icon: TrendingUp, title: language === 'fr' ? 'Historique Complet' : 'Full History', desc: language === 'fr' ? 'Enregistrez, modifiez et analysez chaque trade avec images.' : 'Record, edit and analyze every trade with images.' },
-    { icon: Brain, title: language === 'fr' ? 'Analyse Psychologique' : 'Psychological Analysis', desc: language === 'fr' ? 'Score de discipline, fatigue mentale, profil trader et patterns.' : 'Discipline score, mental fatigue, trader profile and patterns.' },
-    { icon: Heart, title: language === 'fr' ? 'Mémoire Émotionnelle' : 'Emotional Memory', desc: language === 'fr' ? 'Corrélation émotions-résultats et détection d\'auto-sabotage.' : 'Emotion-results correlation and self-sabotage detection.' },
-    { icon: Video, title: language === 'fr' ? 'Journal Vidéo/Audio' : 'Video/Audio Journal', desc: language === 'fr' ? 'Capturez vos analyses jusqu\'à 60 secondes.' : 'Capture your analyses up to 60 seconds.' },
-    { icon: Calculator, title: language === 'fr' ? 'Calculatrice de Lot' : 'Lot Calculator', desc: language === 'fr' ? 'Calcul automatique et transfert vers formulaire de trade.' : 'Automatic calculation and transfer to trade form.' },
-    { icon: Trophy, title: language === 'fr' ? 'Défis & Récompenses' : 'Challenges & Rewards', desc: language === 'fr' ? 'Coffres de récompense et badges à débloquer.' : 'Reward chests and badges to unlock.' },
-    { icon: Bot, title: language === 'fr' ? 'Assistant IA' : 'AI Assistant', desc: language === 'fr' ? 'Résumé quotidien IA et insights personnalisés.' : 'Daily AI summary and personalized insights.' },
-    { icon: Lock, title: language === 'fr' ? 'Sécurité PIN' : 'PIN Security', desc: language === 'fr' ? 'Protection par PIN et authentification biométrique.' : 'PIN protection and biometric authentication.' },
-    { icon: Shield, title: language === 'fr' ? 'Mode Confidentiel' : 'Confidential Mode', desc: language === 'fr' ? 'Masquez vos données sensibles en un clic.' : 'Hide your sensitive data with one click.' },
+    { icon: BarChart3, title: t('landingFeatureDashboard'), desc: t('landingFeatureDashboardDesc') },
+    { icon: TrendingUp, title: t('landingFeatureHistory'), desc: t('landingFeatureHistoryDesc') },
+    { icon: Brain, title: t('landingFeaturePsychology'), desc: t('landingFeaturePsychologyDesc') },
+    { icon: Heart, title: t('landingFeatureEmotional'), desc: t('landingFeatureEmotionalDesc') },
+    { icon: Video, title: t('landingFeatureVideo'), desc: t('landingFeatureVideoDesc') },
+    { icon: Calculator, title: t('landingFeatureCalculator'), desc: t('landingFeatureCalculatorDesc') },
+    { icon: Trophy, title: t('landingFeatureChallenges'), desc: t('landingFeatureChallengesDesc') },
+    { icon: Bot, title: t('landingFeatureAI'), desc: t('landingFeatureAIDesc') },
+    { icon: Lock, title: t('landingFeaturePIN'), desc: t('landingFeaturePINDesc') },
+    { icon: Shield, title: t('landingFeatureConfidential'), desc: t('landingFeatureConfidentialDesc') },
   ];
 
   const benefits = [
-    language === 'fr' ? 'Synchronisation multi-appareils' : 'Multi-device sync',
-    language === 'fr' ? 'Analyse psychologique avancée' : 'Advanced psychological analysis',
-    language === 'fr' ? '51 devises supportées' : '51 currencies supported',
-    language === 'fr' ? 'Export PDF professionnel' : 'Professional PDF export',
-    language === 'fr' ? 'Protection PIN & biométrie' : 'PIN & biometric protection',
-    language === 'fr' ? 'Mode Focus anti-distraction' : 'Focus mode anti-distraction',
-    language === 'fr' ? 'Comparaison de périodes' : 'Period comparison',
-    language === 'fr' ? 'Alertes de sécurité par email' : 'Email security alerts',
+    t('landingMultiDeviceSync'),
+    t('landingAdvancedPsychology'),
+    t('landingCurrenciesSupported'),
+    t('landingPdfExport'),
+    t('landingPinBiometric'),
+    t('landingFocusMode'),
+    t('landingPeriodComparison'),
+    t('landingEmailAlerts'),
   ];
 
   const commitments = [
-    { icon: Lock, title: language === 'fr' ? 'Vie Privée' : 'Privacy', desc: language === 'fr' ? 'Données cryptées' : 'Encrypted data' },
-    { icon: Shield, title: language === 'fr' ? 'Sécurité' : 'Security', desc: language === 'fr' ? 'Protection maximale' : 'Maximum protection' },
-    { icon: FileText, title: language === 'fr' ? 'Transparence' : 'Transparency', desc: language === 'fr' ? 'Politiques claires' : 'Clear policies' },
-    { icon: Users, title: language === 'fr' ? 'Support' : 'Support', desc: language === 'fr' ? 'Aide disponible' : 'Help available' },
+    { icon: Lock, title: t('landingPrivacy'), desc: t('landingEncryptedData') },
+    { icon: Shield, title: t('landingSecurity'), desc: t('landingMaxProtection') },
+    { icon: FileText, title: t('landingTransparency'), desc: t('landingClearPolicies') },
+    { icon: Users, title: t('landingSupportLabel'), desc: t('landingHelpAvailable') },
   ];
 
   const faqs = [
-    {
-      question: language === 'fr' ? 'Smart Trade Tracker est-il gratuit ?' : 'Is Smart Trade Tracker free?',
-      answer: language === 'fr' 
-        ? 'Oui, Smart Trade Tracker est entièrement gratuit. Vous pouvez enregistrer un nombre illimité de trades et accéder à toutes les fonctionnalités sans aucun frais.'
-        : 'Yes, Smart Trade Tracker is completely free. You can record unlimited trades and access all features without any fees.'
-    },
-    {
-      question: language === 'fr' ? 'Mes données sont-elles sécurisées ?' : 'Is my data secure?',
-      answer: language === 'fr'
-        ? 'Absolument. Vos données sont protégées par PIN et authentification biométrique, cryptées et synchronisées en temps réel. Vous recevez des alertes email en cas de connexion depuis un nouvel appareil.'
-        : 'Absolutely. Your data is protected by PIN and biometric authentication, encrypted and synced in real-time. You receive email alerts when connecting from a new device.'
-    },
-    {
-      question: language === 'fr' ? 'Mes paramètres sont-ils synchronisés entre appareils ?' : 'Are my settings synced across devices?',
-      answer: language === 'fr'
-        ? 'Oui, tous vos paramètres (PIN, mode confidentiel, préférences) sont automatiquement synchronisés sur tous vos appareils. Connectez-vous et retrouvez votre configuration.'
-        : 'Yes, all your settings (PIN, confidential mode, preferences) are automatically synced across all your devices. Log in and find your configuration.'
-    },
-    {
-      question: language === 'fr' ? 'Quelles analyses psychologiques sont disponibles ?' : 'What psychological analyses are available?',
-      answer: language === 'fr'
-        ? 'Score de discipline, indice de fatigue mentale, détection d\'auto-sabotage, mémoire émotionnelle, analyse R-multiple, profil de trader, patterns récurrents, heatmap de performance et résumé IA quotidien.'
-        : 'Discipline score, mental fatigue index, self-sabotage detection, emotional memory, R-multiple analysis, trader profile, recurring patterns, performance heatmap and daily AI summary.'
-    },
-    {
-      question: language === 'fr' ? 'Combien de devises sont supportées ?' : 'How many currencies are supported?',
-      answer: language === 'fr'
-        ? '51 devises sont supportées avec conversion en temps réel. Changez votre devise préférée dans les paramètres et tous vos montants seront automatiquement convertis.'
-        : '51 currencies are supported with real-time conversion. Change your preferred currency in settings and all your amounts will be automatically converted.'
-    },
-    {
-      question: language === 'fr' ? 'L\'application fonctionne-t-elle sur mobile ?' : 'Does the app work on mobile?',
-      answer: language === 'fr'
-        ? 'Oui, Smart Trade Tracker est 100% responsive et optimisé mobile-first. Journal vidéo/audio, mode focus et toutes les fonctionnalités sont accessibles sur smartphone.'
-        : 'Yes, Smart Trade Tracker is 100% responsive and mobile-first optimized. Video/audio journal, focus mode and all features are accessible on smartphone.'
-    }
+    { question: t('landingFaq1Q'), answer: t('landingFaq1A') },
+    { question: t('landingFaq2Q'), answer: t('landingFaq2A') },
+    { question: t('landingFaq3Q'), answer: t('landingFaq3A') },
+    { question: t('landingFaq4Q'), answer: t('landingFaq4A') },
+    { question: t('landingFaq5Q'), answer: t('landingFaq5A') },
+    { question: t('landingFaq6Q'), answer: t('landingFaq6A') }
   ];
 
   return (
