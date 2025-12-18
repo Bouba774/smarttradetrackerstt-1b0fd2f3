@@ -52,18 +52,19 @@ interface SecurityContextType {
   attemptHistory: PinAttempt[];
   biometricAvailable: boolean;
   canUseBiometric: boolean;
+  isLoading: boolean;
   
   // Actions
   lock: () => void;
   unlock: (pin: string) => boolean;
   unlockWithBiometric: () => Promise<boolean>;
-  setupPin: (pin: string) => void;
-  changePin: (oldPin: string, newPin: string) => boolean;
-  disablePin: (pin: string) => boolean;
-  toggleConfidentialMode: () => void;
-  toggleBiometric: () => void;
-  updateSettings: (updates: Partial<SecuritySettings>) => void;
-  resetSecurity: () => void;
+  setupPin: (pin: string) => Promise<void>;
+  changePin: (oldPin: string, newPin: string) => Promise<boolean>;
+  disablePin: (pin: string) => Promise<boolean>;
+  toggleConfidentialMode: () => Promise<void>;
+  toggleBiometric: () => Promise<void>;
+  updateSettings: (updates: Partial<SecuritySettings>) => Promise<void>;
+  resetSecurity: () => Promise<void>;
   enterSetupMode: () => void;
   exitSetupMode: () => void;
   requestPinReset: () => Promise<boolean>;
@@ -94,7 +95,6 @@ const defaultLockoutState: LockoutState = {
 
 const SecurityContext = createContext<SecurityContextType | null>(null);
 
-const SECURITY_STORAGE_KEY = 'smart-trade-tracker-security';
 const LOCK_STATE_KEY = 'smart-trade-tracker-lock-state';
 const LOCKOUT_STATE_KEY = 'smart-trade-tracker-lockout';
 const ATTEMPT_HISTORY_KEY = 'smart-trade-tracker-pin-history';
@@ -181,8 +181,6 @@ const generateFingerprint = (): string => {
   return Math.abs(hash).toString(16);
 };
 
-const KNOWN_DEVICES_KEY = 'smart-trade-tracker-known-devices';
-
 export const SecurityProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, signOut } = useAuth();
   const { language } = useLanguage();
@@ -193,34 +191,90 @@ export const SecurityProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [blockTimeRemaining, setBlockTimeRemaining] = useState(0);
   const [attemptHistory, setAttemptHistory] = useState<PinAttempt[]>([]);
   const [biometricAvailable, setBiometricAvailable] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const lastActivityRef = useRef<number>(Date.now());
+  const isSavingRef = useRef(false);
 
   // Check biometric availability
   useEffect(() => {
     checkBiometricAvailability().then(setBiometricAvailable);
   }, []);
 
-  // Load settings, lockout state, and attempt history
+  // Load settings from database
   useEffect(() => {
-    if (user) {
-      const saved = localStorage.getItem(`${SECURITY_STORAGE_KEY}-${user.id}`);
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved);
-          setSettings({ ...defaultSettings, ...parsed });
-          
-          if (parsed.pinEnabled) {
+    const loadSettings = async () => {
+      if (!user) {
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from('user_settings')
+          .select('pin_enabled, pin_hash, pin_length, auto_lock_timeout, confidential_mode, max_attempts, wipe_on_max_attempts, biometric_enabled, known_devices')
+          .eq('user_id', user.id)
+          .single();
+
+        if (error && error.code !== 'PGRST116') {
+          console.error('Error loading security settings:', error);
+        }
+
+        if (data) {
+          const dbSettings: SecuritySettings = {
+            pinEnabled: data.pin_enabled ?? false,
+            pinHash: data.pin_hash ?? null,
+            pinLength: (data.pin_length as 4 | 6) ?? 4,
+            autoLockTimeout: data.auto_lock_timeout ?? 0,
+            confidentialMode: data.confidential_mode ?? false,
+            maxAttempts: data.max_attempts ?? 5,
+            wipeOnMaxAttempts: data.wipe_on_max_attempts ?? false,
+            biometricEnabled: data.biometric_enabled ?? false,
+          };
+          setSettings(dbSettings);
+
+          // Check if should lock
+          if (dbSettings.pinEnabled) {
             const lockState = sessionStorage.getItem(`${LOCK_STATE_KEY}-${user.id}`);
             if (lockState !== 'unlocked') {
               setIsLocked(true);
             }
           }
-        } catch (e) {
-          console.error('Error loading security settings:', e);
+
+          // Check for new device
+          const knownDevices: string[] = (data.known_devices as string[]) || [];
+          const fingerprint = generateFingerprint();
+          if (dbSettings.pinEnabled && !knownDevices.includes(fingerprint)) {
+            // New device detected, send email
+            sendSecurityEmail('new_device');
+            // Save device to known list
+            const updatedDevices = [...knownDevices, fingerprint].slice(-10);
+            await supabase
+              .from('user_settings')
+              .update({ known_devices: updatedDevices })
+              .eq('user_id', user.id);
+          }
+        } else {
+          // Create default settings
+          await supabase
+            .from('user_settings')
+            .upsert({
+              user_id: user.id,
+              pin_enabled: false,
+              pin_hash: null,
+              pin_length: 4,
+              auto_lock_timeout: 0,
+              confidential_mode: false,
+              max_attempts: 5,
+              wipe_on_max_attempts: false,
+              biometric_enabled: false,
+              known_devices: [],
+            }, { onConflict: 'user_id' });
         }
+      } catch (e) {
+        console.error('Error loading security settings:', e);
       }
 
-      // Load lockout state
+      // Load lockout state from localStorage (device-specific)
       const savedLockout = localStorage.getItem(`${LOCKOUT_STATE_KEY}-${user.id}`);
       if (savedLockout) {
         try {
@@ -244,7 +298,7 @@ export const SecurityProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         }
       }
 
-      // Load attempt history
+      // Load attempt history from localStorage (device-specific)
       const savedHistory = localStorage.getItem(`${ATTEMPT_HISTORY_KEY}-${user.id}`);
       if (savedHistory) {
         try {
@@ -253,10 +307,44 @@ export const SecurityProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           console.error('Error loading attempt history:', e);
         }
       }
+
+      setIsLoading(false);
+    };
+
+    loadSettings();
+  }, [user]);
+
+  // Save settings to database
+  const saveSettingsToDb = useCallback(async (newSettings: SecuritySettings) => {
+    if (!user || isSavingRef.current) return;
+    
+    isSavingRef.current = true;
+    try {
+      const { error } = await supabase
+        .from('user_settings')
+        .upsert({
+          user_id: user.id,
+          pin_enabled: newSettings.pinEnabled,
+          pin_hash: newSettings.pinHash,
+          pin_length: newSettings.pinLength,
+          auto_lock_timeout: newSettings.autoLockTimeout,
+          confidential_mode: newSettings.confidentialMode,
+          max_attempts: newSettings.maxAttempts,
+          wipe_on_max_attempts: newSettings.wipeOnMaxAttempts,
+          biometric_enabled: newSettings.biometricEnabled,
+        }, { onConflict: 'user_id' });
+
+      if (error) {
+        console.error('Error saving security settings:', error);
+      }
+    } catch (e) {
+      console.error('Error saving settings:', e);
+    } finally {
+      isSavingRef.current = false;
     }
   }, [user]);
 
-  // Save lockout state
+  // Save lockout state (device-specific)
   const saveLockoutState = useCallback((newState: LockoutState) => {
     if (user) {
       localStorage.setItem(`${LOCKOUT_STATE_KEY}-${user.id}`, JSON.stringify(newState));
@@ -269,35 +357,6 @@ export const SecurityProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     os: getOS(),
     browser: getBrowser(),
   }), []);
-
-  // Check if device is known
-  const isKnownDevice = useCallback((): boolean => {
-    if (!user) return true;
-    const fingerprint = generateFingerprint();
-    try {
-      const saved = localStorage.getItem(`${KNOWN_DEVICES_KEY}-${user.id}`);
-      const known: string[] = saved ? JSON.parse(saved) : [];
-      return known.includes(fingerprint);
-    } catch {
-      return true;
-    }
-  }, [user]);
-
-  // Save device as known
-  const saveKnownDevice = useCallback(() => {
-    if (!user) return;
-    const fingerprint = generateFingerprint();
-    try {
-      const saved = localStorage.getItem(`${KNOWN_DEVICES_KEY}-${user.id}`);
-      const known: string[] = saved ? JSON.parse(saved) : [];
-      if (!known.includes(fingerprint)) {
-        const updated = [...known, fingerprint].slice(-10);
-        localStorage.setItem(`${KNOWN_DEVICES_KEY}-${user.id}`, JSON.stringify(updated));
-      }
-    } catch (e) {
-      console.error('Error saving known device:', e);
-    }
-  }, [user]);
 
   // Send security email
   const sendSecurityEmail = useCallback(async (
@@ -325,14 +384,6 @@ export const SecurityProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       console.error('Error sending security email:', error);
     }
   }, [user, language, getCurrentDevice]);
-
-  // Check for new device on mount
-  useEffect(() => {
-    if (user && settings.pinEnabled && !isKnownDevice()) {
-      sendSecurityEmail('new_device');
-      saveKnownDevice();
-    }
-  }, [user, settings.pinEnabled, isKnownDevice, sendSecurityEmail, saveKnownDevice]);
 
   // Save attempt history
   const saveAttemptHistory = useCallback((history: PinAttempt[]) => {
@@ -386,12 +437,6 @@ export const SecurityProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     const interval = setInterval(updateRemaining, 1000);
     return () => clearInterval(interval);
   }, [lockoutState.isBlocked, lockoutState.blockEndTime, saveLockoutState]);
-
-  const saveSettings = useCallback((newSettings: SecuritySettings) => {
-    if (user) {
-      localStorage.setItem(`${SECURITY_STORAGE_KEY}-${user.id}`, JSON.stringify(newSettings));
-    }
-  }, [user]);
 
   const resetActivityTimer = useCallback(() => {
     lastActivityRef.current = Date.now();
@@ -597,7 +642,7 @@ export const SecurityProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     return false;
   }, [settings.biometricEnabled, biometricAvailable, lockoutState, user, resetActivityTimer, saveLockoutState, addAttempt]);
 
-  const setupPin = useCallback((pin: string) => {
+  const setupPin = useCallback(async (pin: string) => {
     const pinHash = hashPin(pin);
     const newSettings = {
       ...settings,
@@ -606,15 +651,30 @@ export const SecurityProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       pinLength: pin.length as 4 | 6,
     };
     setSettings(newSettings);
-    saveSettings(newSettings);
+    await saveSettingsToDb(newSettings);
     setIsSetupMode(false);
     setIsLocked(false);
     if (user) {
       sessionStorage.setItem(`${LOCK_STATE_KEY}-${user.id}`, 'unlocked');
+      // Add current device to known devices
+      const fingerprint = generateFingerprint();
+      const { data } = await supabase
+        .from('user_settings')
+        .select('known_devices')
+        .eq('user_id', user.id)
+        .single();
+      const knownDevices: string[] = (data?.known_devices as string[]) || [];
+      if (!knownDevices.includes(fingerprint)) {
+        const updatedDevices = [...knownDevices, fingerprint].slice(-10);
+        await supabase
+          .from('user_settings')
+          .update({ known_devices: updatedDevices })
+          .eq('user_id', user.id);
+      }
     }
-  }, [settings, saveSettings, user]);
+  }, [settings, saveSettingsToDb, user]);
 
-  const changePin = useCallback((oldPin: string, newPin: string): boolean => {
+  const changePin = useCallback(async (oldPin: string, newPin: string): Promise<boolean> => {
     const oldPinHash = hashPin(oldPin);
     
     if (oldPinHash === settings.pinHash) {
@@ -625,13 +685,13 @@ export const SecurityProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         pinLength: newPin.length as 4 | 6,
       };
       setSettings(newSettings);
-      saveSettings(newSettings);
+      await saveSettingsToDb(newSettings);
       return true;
     }
     return false;
-  }, [settings, saveSettings]);
+  }, [settings, saveSettingsToDb]);
 
-  const disablePin = useCallback((pin: string): boolean => {
+  const disablePin = useCallback(async (pin: string): Promise<boolean> => {
     const pinHash = hashPin(pin);
     
     if (pinHash === settings.pinHash) {
@@ -642,23 +702,23 @@ export const SecurityProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         biometricEnabled: false,
       };
       setSettings(newSettings);
-      saveSettings(newSettings);
+      await saveSettingsToDb(newSettings);
       setIsLocked(false);
       return true;
     }
     return false;
-  }, [settings, saveSettings]);
+  }, [settings, saveSettingsToDb]);
 
-  const toggleConfidentialMode = useCallback(() => {
+  const toggleConfidentialMode = useCallback(async () => {
     const newSettings = {
       ...settings,
       confidentialMode: !settings.confidentialMode,
     };
     setSettings(newSettings);
-    saveSettings(newSettings);
-  }, [settings, saveSettings]);
+    await saveSettingsToDb(newSettings);
+  }, [settings, saveSettingsToDb]);
 
-  const toggleBiometric = useCallback(() => {
+  const toggleBiometric = useCallback(async () => {
     if (!biometricAvailable) {
       toast.error('Authentification biométrique non disponible');
       return;
@@ -668,32 +728,32 @@ export const SecurityProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       biometricEnabled: !settings.biometricEnabled,
     };
     setSettings(newSettings);
-    saveSettings(newSettings);
+    await saveSettingsToDb(newSettings);
     toast.success(
       newSettings.biometricEnabled
         ? 'Authentification biométrique activée'
         : 'Authentification biométrique désactivée'
     );
-  }, [settings, saveSettings, biometricAvailable]);
+  }, [settings, saveSettingsToDb, biometricAvailable]);
 
-  const updateSettings = useCallback((updates: Partial<SecuritySettings>) => {
+  const updateSettings = useCallback(async (updates: Partial<SecuritySettings>) => {
     const newSettings = { ...settings, ...updates };
     setSettings(newSettings);
-    saveSettings(newSettings);
-  }, [settings, saveSettings]);
+    await saveSettingsToDb(newSettings);
+  }, [settings, saveSettingsToDb]);
 
-  const resetSecurity = useCallback(() => {
+  const resetSecurity = useCallback(async () => {
     setSettings(defaultSettings);
     setIsLocked(false);
     setLockoutState(defaultLockoutState);
     setAttemptHistory([]);
     if (user) {
-      localStorage.removeItem(`${SECURITY_STORAGE_KEY}-${user.id}`);
       localStorage.removeItem(`${LOCKOUT_STATE_KEY}-${user.id}`);
       localStorage.removeItem(`${ATTEMPT_HISTORY_KEY}-${user.id}`);
       sessionStorage.removeItem(`${LOCK_STATE_KEY}-${user.id}`);
+      await saveSettingsToDb(defaultSettings);
     }
-  }, [user]);
+  }, [user, saveSettingsToDb]);
 
   const enterSetupMode = useCallback(() => {
     setIsSetupMode(true);
@@ -744,13 +804,13 @@ export const SecurityProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       pinLength: newPin.length as 4 | 6,
     };
     setSettings(newSettings);
-    saveSettings(newSettings);
+    await saveSettingsToDb(newSettings);
     
     setLockoutState(defaultLockoutState);
     saveLockoutState(defaultLockoutState);
     
     return true;
-  }, [settings, saveSettings, saveLockoutState]);
+  }, [settings, saveSettingsToDb, saveLockoutState]);
 
   const clearAttemptHistory = useCallback(() => {
     setAttemptHistory([]);
@@ -783,6 +843,7 @@ export const SecurityProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         attemptHistory,
         biometricAvailable,
         canUseBiometric,
+        isLoading,
         lock,
         unlock,
         unlockWithBiometric,

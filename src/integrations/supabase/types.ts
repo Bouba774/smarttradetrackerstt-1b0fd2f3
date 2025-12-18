@@ -251,6 +251,72 @@ export type Database = {
         }
         Relationships: []
       }
+      user_settings: {
+        Row: {
+          animations: boolean | null
+          auto_lock_timeout: number | null
+          background: string | null
+          biometric_enabled: boolean | null
+          confidential_mode: boolean | null
+          created_at: string
+          currency: string | null
+          font_size: string | null
+          id: string
+          known_devices: Json | null
+          max_attempts: number | null
+          pin_enabled: boolean | null
+          pin_hash: string | null
+          pin_length: number | null
+          sounds: boolean | null
+          updated_at: string
+          user_id: string
+          vibration: boolean | null
+          wipe_on_max_attempts: boolean | null
+        }
+        Insert: {
+          animations?: boolean | null
+          auto_lock_timeout?: number | null
+          background?: string | null
+          biometric_enabled?: boolean | null
+          confidential_mode?: boolean | null
+          created_at?: string
+          currency?: string | null
+          font_size?: string | null
+          id?: string
+          known_devices?: Json | null
+          max_attempts?: number | null
+          pin_enabled?: boolean | null
+          pin_hash?: string | null
+          pin_length?: number | null
+          sounds?: boolean | null
+          updated_at?: string
+          user_id: string
+          vibration?: boolean | null
+          wipe_on_max_attempts?: boolean | null
+        }
+        Update: {
+          animations?: boolean | null
+          auto_lock_timeout?: number | null
+          background?: string | null
+          biometric_enabled?: boolean | null
+          confidential_mode?: boolean | null
+          created_at?: string
+          currency?: string | null
+          font_size?: string | null
+          id?: string
+          known_devices?: Json | null
+          max_attempts?: number | null
+          pin_enabled?: boolean | null
+          pin_hash?: string | null
+          pin_length?: number | null
+          sounds?: boolean | null
+          updated_at?: string
+          user_id?: string
+          vibration?: boolean | null
+          wipe_on_max_attempts?: boolean | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
