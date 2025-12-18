@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from './AuthContext';
+import { useLanguage } from './LanguageContext';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 interface SecuritySettings {
   pinEnabled: boolean;
@@ -23,11 +25,18 @@ interface LockoutState {
   biometricUsedAfterBlock: boolean;
 }
 
+interface DeviceInfo {
+  deviceName: string;
+  os: string;
+  browser: string;
+}
+
 interface PinAttempt {
   timestamp: number;
   success: boolean;
   method: 'pin' | 'biometric';
   blocked?: boolean;
+  device?: DeviceInfo;
 }
 
 interface SecurityContextType {
@@ -122,8 +131,61 @@ const checkBiometricAvailability = async (): Promise<boolean> => {
   }
 };
 
+// Device detection utilities
+const getOS = (): string => {
+  const userAgent = navigator.userAgent;
+  const platform = navigator.platform;
+  
+  if (/Win/.test(platform)) return 'Windows';
+  if (/Mac/.test(platform)) {
+    if (/iPhone|iPad|iPod/.test(userAgent)) return 'iOS';
+    return 'macOS';
+  }
+  if (/Linux/.test(platform)) {
+    if (/Android/.test(userAgent)) return 'Android';
+    return 'Linux';
+  }
+  return 'Unknown';
+};
+
+const getBrowser = (): string => {
+  const userAgent = navigator.userAgent;
+  if (/Edg\//.test(userAgent)) return 'Edge';
+  if (/OPR\/|Opera/.test(userAgent)) return 'Opera';
+  if (/Firefox\//.test(userAgent)) return 'Firefox';
+  if (/Chrome\//.test(userAgent)) return 'Chrome';
+  if (/Safari\//.test(userAgent)) return 'Safari';
+  return 'Unknown';
+};
+
+const getDeviceName = (): string => {
+  const userAgent = navigator.userAgent;
+  if (/iPhone/.test(userAgent)) return 'iPhone';
+  if (/iPad/.test(userAgent)) return 'iPad';
+  if (/Android/.test(userAgent)) return /Mobile/.test(userAgent) ? 'Android Phone' : 'Android Tablet';
+  const os = getOS();
+  if (os === 'Windows') return 'PC Windows';
+  if (os === 'macOS') return 'Mac';
+  if (os === 'Linux') return 'PC Linux';
+  return 'Unknown Device';
+};
+
+const generateFingerprint = (): string => {
+  const components = [navigator.userAgent, navigator.language, navigator.platform, screen.width, screen.height];
+  const str = components.join('|');
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = ((hash << 5) - hash) + str.charCodeAt(i);
+    hash = hash & hash;
+  }
+  return Math.abs(hash).toString(16);
+};
+
+const KNOWN_DEVICES_KEY = 'smart-trade-tracker-known-devices';
+
 export const SecurityProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, signOut } = useAuth();
+  const { language } = useLanguage();
   const [settings, setSettings] = useState<SecuritySettings>(defaultSettings);
   const [isLocked, setIsLocked] = useState(false);
   const [isSetupMode, setIsSetupMode] = useState(false);
@@ -201,6 +263,77 @@ export const SecurityProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   }, [user]);
 
+  // Get current device info
+  const getCurrentDevice = useCallback((): DeviceInfo => ({
+    deviceName: getDeviceName(),
+    os: getOS(),
+    browser: getBrowser(),
+  }), []);
+
+  // Check if device is known
+  const isKnownDevice = useCallback((): boolean => {
+    if (!user) return true;
+    const fingerprint = generateFingerprint();
+    try {
+      const saved = localStorage.getItem(`${KNOWN_DEVICES_KEY}-${user.id}`);
+      const known: string[] = saved ? JSON.parse(saved) : [];
+      return known.includes(fingerprint);
+    } catch {
+      return true;
+    }
+  }, [user]);
+
+  // Save device as known
+  const saveKnownDevice = useCallback(() => {
+    if (!user) return;
+    const fingerprint = generateFingerprint();
+    try {
+      const saved = localStorage.getItem(`${KNOWN_DEVICES_KEY}-${user.id}`);
+      const known: string[] = saved ? JSON.parse(saved) : [];
+      if (!known.includes(fingerprint)) {
+        const updated = [...known, fingerprint].slice(-10);
+        localStorage.setItem(`${KNOWN_DEVICES_KEY}-${user.id}`, JSON.stringify(updated));
+      }
+    } catch (e) {
+      console.error('Error saving known device:', e);
+    }
+  }, [user]);
+
+  // Send security email
+  const sendSecurityEmail = useCallback(async (
+    type: 'new_device' | 'account_blocked' | 'pin_reset',
+    resetUrl?: string
+  ) => {
+    if (!user?.email) return;
+    
+    const deviceInfo = getCurrentDevice();
+    
+    try {
+      await supabase.functions.invoke('security-email', {
+        body: {
+          type,
+          email: user.email,
+          language,
+          deviceInfo: {
+            ...deviceInfo,
+            timestamp: new Date().toLocaleString(language === 'fr' ? 'fr-FR' : 'en-US'),
+          },
+          resetUrl,
+        },
+      });
+    } catch (error) {
+      console.error('Error sending security email:', error);
+    }
+  }, [user, language, getCurrentDevice]);
+
+  // Check for new device on mount
+  useEffect(() => {
+    if (user && settings.pinEnabled && !isKnownDevice()) {
+      sendSecurityEmail('new_device');
+      saveKnownDevice();
+    }
+  }, [user, settings.pinEnabled, isKnownDevice, sendSecurityEmail, saveKnownDevice]);
+
   // Save attempt history
   const saveAttemptHistory = useCallback((history: PinAttempt[]) => {
     if (user) {
@@ -209,20 +342,21 @@ export const SecurityProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   }, [user]);
 
-  // Add attempt to history
+  // Add attempt to history with device info
   const addAttempt = useCallback((success: boolean, method: 'pin' | 'biometric', blocked?: boolean) => {
     const attempt: PinAttempt = {
       timestamp: Date.now(),
       success,
       method,
       blocked,
+      device: getCurrentDevice(),
     };
     setAttemptHistory(prev => {
       const newHistory = [...prev, attempt];
       saveAttemptHistory(newHistory);
       return newHistory;
     });
-  }, [saveAttemptHistory]);
+  }, [saveAttemptHistory, getCurrentDevice]);
 
   // Update block time remaining countdown
   useEffect(() => {
@@ -374,16 +508,19 @@ export const SecurityProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         saveLockoutState(newState);
         addAttempt(false, 'pin', true);
 
+        // Send blocked email notification
+        sendSecurityEmail('account_blocked');
+
         toast.error(
           newBlockCount === 1 
-            ? 'Compte bloqué pendant 15 minutes' 
+            ? language === 'fr' ? 'Compte bloqué pendant 15 minutes' : 'Account blocked for 15 minutes'
             : newBlockCount === 2 
-              ? 'Compte bloqué pendant 30 minutes'
-              : 'Compte bloqué pendant 1 heure'
+              ? language === 'fr' ? 'Compte bloqué pendant 30 minutes' : 'Account blocked for 30 minutes'
+              : language === 'fr' ? 'Compte bloqué pendant 1 heure' : 'Account blocked for 1 hour'
         );
 
         if (requiresReauth && signOut) {
-          toast.error('Trop de tentatives. Reconnexion requise.');
+          toast.error(language === 'fr' ? 'Trop de tentatives. Reconnexion requise.' : 'Too many attempts. Re-login required.');
           setTimeout(() => {
             signOut();
           }, 2000);
@@ -400,7 +537,7 @@ export const SecurityProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       
       return false;
     }
-  }, [settings.pinHash, settings.maxAttempts, lockoutState, user, resetActivityTimer, saveLockoutState, signOut, addAttempt]);
+  }, [settings.pinHash, settings.maxAttempts, lockoutState, user, resetActivityTimer, saveLockoutState, signOut, addAttempt, sendSecurityEmail, language]);
 
   const unlockWithBiometric = useCallback(async (): Promise<boolean> => {
     if (!settings.biometricEnabled || !biometricAvailable) {
@@ -568,18 +705,36 @@ export const SecurityProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const requestPinReset = useCallback(async (): Promise<boolean> => {
     if (!user?.email) {
-      toast.error('Email non disponible');
+      toast.error(language === 'fr' ? 'Email non disponible' : 'Email not available');
       return false;
     }
 
     try {
-      toast.success('Instructions de réinitialisation envoyées par email');
+      // Generate reset token (10 minutes validity)
+      const token = crypto.randomUUID();
+      const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
+      
+      // Store token temporarily
+      localStorage.setItem(`pin-reset-token-${user.id}`, JSON.stringify({ token, expiresAt }));
+      
+      // Build reset URL
+      const resetUrl = `${window.location.origin}/reset-pin?token=${token}&expires=${expiresAt}`;
+      
+      // Send email with reset link
+      await sendSecurityEmail('pin_reset', resetUrl);
+      
+      toast.success(
+        language === 'fr' 
+          ? 'Un lien de réinitialisation a été envoyé à votre email'
+          : 'A reset link has been sent to your email'
+      );
       return true;
     } catch (error) {
-      toast.error('Erreur lors de l\'envoi');
+      console.error('Error requesting PIN reset:', error);
+      toast.error(language === 'fr' ? 'Erreur lors de l\'envoi' : 'Error sending email');
       return false;
     }
-  }, [user]);
+  }, [user, language, sendSecurityEmail]);
 
   const resetPinWithToken = useCallback(async (token: string, newPin: string): Promise<boolean> => {
     const newPinHash = hashPin(newPin);
