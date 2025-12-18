@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useTrades } from '@/hooks/useTrades';
 import { useCurrency } from '@/hooks/useCurrency';
@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { format, startOfMonth, endOfMonth, subMonths, isWithinInterval, parseISO } from 'date-fns';
+import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, subMonths, subWeeks, isWithinInterval, parseISO } from 'date-fns';
 import { fr, enUS } from 'date-fns/locale';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
@@ -24,7 +24,13 @@ import {
   Loader2,
   ChevronLeft,
   ChevronRight,
+  Download,
 } from 'lucide-react';
+import { toast } from 'sonner';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+
+type ViewMode = 'week' | 'month';
 
 interface PeriodStats {
   totalTrades: number;
@@ -43,21 +49,51 @@ interface PeriodStats {
 const PeriodComparison: React.FC = () => {
   const { language, t } = useLanguage();
   const { trades, isLoading } = useTrades();
-  const { formatAmount } = useCurrency();
+  const { formatAmount, getCurrencySymbol } = useCurrency();
   const locale = language === 'fr' ? fr : enUS;
 
-  // Period A: Current month by default
+  const [viewMode, setViewMode] = useState<ViewMode>('month');
+  const [isExporting, setIsExporting] = useState(false);
+
+  // Period A: Current month/week by default
   const [periodADate, setPeriodADate] = useState<Date>(new Date());
   const [periodAOpen, setPeriodAOpen] = useState(false);
 
-  // Period B: Previous month by default
+  // Period B: Previous month/week by default
   const [periodBDate, setPeriodBDate] = useState<Date>(subMonths(new Date(), 1));
   const [periodBOpen, setPeriodBOpen] = useState(false);
 
-  const periodAStart = startOfMonth(periodADate);
-  const periodAEnd = endOfMonth(periodADate);
-  const periodBStart = startOfMonth(periodBDate);
-  const periodBEnd = endOfMonth(periodBDate);
+  // Calculate period boundaries based on view mode
+  const periodAStart = viewMode === 'month' 
+    ? startOfMonth(periodADate) 
+    : startOfWeek(periodADate, { weekStartsOn: 1 });
+  const periodAEnd = viewMode === 'month' 
+    ? endOfMonth(periodADate) 
+    : endOfWeek(periodADate, { weekStartsOn: 1 });
+  const periodBStart = viewMode === 'month' 
+    ? startOfMonth(periodBDate) 
+    : startOfWeek(periodBDate, { weekStartsOn: 1 });
+  const periodBEnd = viewMode === 'month' 
+    ? endOfMonth(periodBDate) 
+    : endOfWeek(periodBDate, { weekStartsOn: 1 });
+
+  // Format period label based on view mode
+  const formatPeriodLabel = (date: Date) => {
+    if (viewMode === 'month') {
+      return format(date, 'MMMM yyyy', { locale });
+    }
+    const weekStart = startOfWeek(date, { weekStartsOn: 1 });
+    const weekEnd = endOfWeek(date, { weekStartsOn: 1 });
+    return `${format(weekStart, 'd MMM', { locale })} - ${format(weekEnd, 'd MMM yyyy', { locale })}`;
+  };
+
+  const formatPeriodKey = (date: Date) => {
+    if (viewMode === 'month') {
+      return format(date, 'MMM yyyy', { locale });
+    }
+    const weekStart = startOfWeek(date, { weekStartsOn: 1 });
+    return `S${format(weekStart, 'w', { locale })} ${format(weekStart, 'yyyy', { locale })}`;
+  };
 
   // Calculate stats for a period
   const calculatePeriodStats = (periodStart: Date, periodEnd: Date): PeriodStats => {
@@ -148,24 +184,27 @@ const PeriodComparison: React.FC = () => {
     return higherIsBetter ? rounded : -rounded;
   };
 
+  const periodAKey = formatPeriodKey(periodADate);
+  const periodBKey = formatPeriodKey(periodBDate);
+
   // Comparison bar chart data
   const comparisonData = useMemo(() => [
     {
       metric: language === 'fr' ? 'Trades' : 'Trades',
-      [format(periodADate, 'MMM yyyy', { locale })]: statsA.totalTrades,
-      [format(periodBDate, 'MMM yyyy', { locale })]: statsB.totalTrades,
+      [periodAKey]: statsA.totalTrades,
+      [periodBKey]: statsB.totalTrades,
     },
     {
       metric: language === 'fr' ? 'Winrate %' : 'Winrate %',
-      [format(periodADate, 'MMM yyyy', { locale })]: statsA.winrate,
-      [format(periodBDate, 'MMM yyyy', { locale })]: statsB.winrate,
+      [periodAKey]: statsA.winrate,
+      [periodBKey]: statsB.winrate,
     },
     {
       metric: language === 'fr' ? 'Discipline %' : 'Discipline %',
-      [format(periodADate, 'MMM yyyy', { locale })]: statsA.disciplineScore,
-      [format(periodBDate, 'MMM yyyy', { locale })]: statsB.disciplineScore,
+      [periodAKey]: statsA.disciplineScore,
+      [periodBKey]: statsB.disciplineScore,
     },
-  ], [statsA, statsB, periodADate, periodBDate, locale, language]);
+  ], [statsA, statsB, periodAKey, periodBKey, language]);
 
   // Radar chart data
   const radarData = useMemo(() => {
@@ -173,40 +212,120 @@ const PeriodComparison: React.FC = () => {
     const maxProfitFactor = Math.max(statsA.profitFactor, statsB.profitFactor, 1);
     
     return [
-      { 
-        metric: 'Winrate', 
-        A: statsA.winrate, 
-        B: statsB.winrate,
-        fullMark: 100 
-      },
-      { 
-        metric: language === 'fr' ? 'Volume' : 'Volume', 
-        A: (statsA.totalTrades / maxTrades) * 100, 
-        B: (statsB.totalTrades / maxTrades) * 100,
-        fullMark: 100 
-      },
-      { 
-        metric: 'Discipline', 
-        A: statsA.disciplineScore, 
-        B: statsB.disciplineScore,
-        fullMark: 100 
-      },
-      { 
-        metric: language === 'fr' ? 'Profit Factor' : 'Profit Factor', 
-        A: Math.min((statsA.profitFactor / maxProfitFactor) * 100, 100), 
-        B: Math.min((statsB.profitFactor / maxProfitFactor) * 100, 100),
-        fullMark: 100 
-      },
+      { metric: 'Winrate', A: statsA.winrate, B: statsB.winrate, fullMark: 100 },
+      { metric: language === 'fr' ? 'Volume' : 'Volume', A: (statsA.totalTrades / maxTrades) * 100, B: (statsB.totalTrades / maxTrades) * 100, fullMark: 100 },
+      { metric: 'Discipline', A: statsA.disciplineScore, B: statsB.disciplineScore, fullMark: 100 },
+      { metric: 'Profit Factor', A: Math.min((statsA.profitFactor / maxProfitFactor) * 100, 100), B: Math.min((statsB.profitFactor / maxProfitFactor) * 100, 100), fullMark: 100 },
     ];
   }, [statsA, statsB, language]);
-
-  const periodAKey = format(periodADate, 'MMM yyyy', { locale });
-  const periodBKey = format(periodBDate, 'MMM yyyy', { locale });
 
   // Navigate periods
   const navigatePeriod = (period: 'A' | 'B', direction: 'prev' | 'next') => {
     const setter = period === 'A' ? setPeriodADate : setPeriodBDate;
-    setter(prev => direction === 'next' ? subMonths(prev, -1) : subMonths(prev, 1));
+    if (viewMode === 'month') {
+      setter(prev => direction === 'next' ? subMonths(prev, -1) : subMonths(prev, 1));
+    } else {
+      setter(prev => direction === 'next' ? subWeeks(prev, -1) : subWeeks(prev, 1));
+    }
+  };
+
+  // Handle view mode change
+  const handleViewModeChange = (mode: ViewMode) => {
+    setViewMode(mode);
+    // Reset period B to previous period based on new mode
+    if (mode === 'month') {
+      setPeriodBDate(subMonths(periodADate, 1));
+    } else {
+      setPeriodBDate(subWeeks(periodADate, 1));
+    }
+  };
+
+  // PDF Export function
+  const exportToPDF = async () => {
+    setIsExporting(true);
+    try {
+      const doc = new jsPDF();
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const currency = getCurrencySymbol();
+      
+      // Title
+      doc.setFontSize(20);
+      doc.setTextColor(33, 37, 41);
+      doc.text('Smart Trade Tracker', pageWidth / 2, 20, { align: 'center' });
+      
+      doc.setFontSize(16);
+      doc.text(language === 'fr' ? 'Rapport de Comparaison' : 'Comparison Report', pageWidth / 2, 30, { align: 'center' });
+      
+      doc.setFontSize(10);
+      doc.setTextColor(108, 117, 125);
+      doc.text(`${language === 'fr' ? 'Généré le' : 'Generated on'}: ${format(new Date(), 'PPP', { locale })}`, pageWidth / 2, 38, { align: 'center' });
+
+      // Period info
+      doc.setFontSize(12);
+      doc.setTextColor(33, 37, 41);
+      doc.text(`${language === 'fr' ? 'Période A' : 'Period A'}: ${formatPeriodLabel(periodADate)}`, 14, 52);
+      doc.text(`${language === 'fr' ? 'Période B' : 'Period B'}: ${formatPeriodLabel(periodBDate)}`, 14, 60);
+
+      // Comparison Table
+      const tableData = [
+        [language === 'fr' ? 'Métrique' : 'Metric', periodAKey, periodBKey, language === 'fr' ? 'Variation' : 'Change'],
+        [language === 'fr' ? 'Total Trades' : 'Total Trades', String(statsA.totalTrades), String(statsB.totalTrades), `${getDiff(statsA.totalTrades, statsB.totalTrades) >= 0 ? '+' : ''}${getDiff(statsA.totalTrades, statsB.totalTrades)}%`],
+        ['Winrate', `${statsA.winrate}%`, `${statsB.winrate}%`, `${getDiff(statsA.winrate, statsB.winrate) >= 0 ? '+' : ''}${getDiff(statsA.winrate, statsB.winrate)}%`],
+        ['PnL', `${statsA.pnl >= 0 ? '+' : ''}${statsA.pnl.toFixed(2)} ${currency}`, `${statsB.pnl >= 0 ? '+' : ''}${statsB.pnl.toFixed(2)} ${currency}`, `${getDiff(statsA.pnl, statsB.pnl) >= 0 ? '+' : ''}${getDiff(statsA.pnl, statsB.pnl)}%`],
+        [language === 'fr' ? 'Trades Gagnants' : 'Winning Trades', String(statsA.winningTrades), String(statsB.winningTrades), `${getDiff(statsA.winningTrades, statsB.winningTrades) >= 0 ? '+' : ''}${getDiff(statsA.winningTrades, statsB.winningTrades)}%`],
+        [language === 'fr' ? 'Trades Perdants' : 'Losing Trades', String(statsA.losingTrades), String(statsB.losingTrades), `${getDiff(statsA.losingTrades, statsB.losingTrades, false) >= 0 ? '+' : ''}${getDiff(statsA.losingTrades, statsB.losingTrades, false)}%`],
+        [language === 'fr' ? 'Profit Moyen' : 'Avg Profit', `${statsA.avgProfit.toFixed(2)} ${currency}`, `${statsB.avgProfit.toFixed(2)} ${currency}`, `${getDiff(statsA.avgProfit, statsB.avgProfit) >= 0 ? '+' : ''}${getDiff(statsA.avgProfit, statsB.avgProfit)}%`],
+        [language === 'fr' ? 'Perte Moyenne' : 'Avg Loss', `${statsA.avgLoss.toFixed(2)} ${currency}`, `${statsB.avgLoss.toFixed(2)} ${currency}`, `${getDiff(statsA.avgLoss, statsB.avgLoss, false) >= 0 ? '+' : ''}${getDiff(statsA.avgLoss, statsB.avgLoss, false)}%`],
+        ['Profit Factor', statsA.profitFactor >= 999 ? 'Inf' : statsA.profitFactor.toFixed(2), statsB.profitFactor >= 999 ? 'Inf' : statsB.profitFactor.toFixed(2), `${getDiff(statsA.profitFactor, statsB.profitFactor) >= 0 ? '+' : ''}${getDiff(statsA.profitFactor, statsB.profitFactor)}%`],
+        ['Discipline', `${statsA.disciplineScore}/100`, `${statsB.disciplineScore}/100`, `${getDiff(statsA.disciplineScore, statsB.disciplineScore) >= 0 ? '+' : ''}${getDiff(statsA.disciplineScore, statsB.disciplineScore)}%`],
+      ];
+
+      autoTable(doc, {
+        startY: 70,
+        head: [tableData[0]],
+        body: tableData.slice(1),
+        theme: 'striped',
+        headStyles: { fillColor: [59, 130, 246], textColor: 255 },
+        styles: { fontSize: 10, cellPadding: 4 },
+        columnStyles: {
+          0: { fontStyle: 'bold' },
+          3: { halign: 'center' },
+        },
+      });
+
+      // Summary
+      const finalY = (doc as any).lastAutoTable.finalY + 15;
+      
+      doc.setFontSize(14);
+      doc.setTextColor(33, 37, 41);
+      doc.text(language === 'fr' ? 'Résumé' : 'Summary', 14, finalY);
+      
+      doc.setFontSize(11);
+      const pnlDiff = statsA.pnl - statsB.pnl;
+      const winrateDiff = statsA.winrate - statsB.winrate;
+      
+      doc.setTextColor(pnlDiff >= 0 ? 34 : 220, pnlDiff >= 0 ? 197 : 53, pnlDiff >= 0 ? 94 : 69);
+      doc.text(`PnL: ${pnlDiff >= 0 ? '+' : ''}${pnlDiff.toFixed(2)} ${currency}`, 14, finalY + 10);
+      
+      doc.setTextColor(winrateDiff >= 0 ? 34 : 220, winrateDiff >= 0 ? 197 : 53, winrateDiff >= 0 ? 94 : 69);
+      doc.text(`Winrate: ${winrateDiff >= 0 ? '+' : ''}${winrateDiff}%`, 14, finalY + 18);
+
+      // Footer
+      doc.setFontSize(8);
+      doc.setTextColor(108, 117, 125);
+      doc.text('Smart Trade Tracker - ALPHA FX', pageWidth / 2, doc.internal.pageSize.getHeight() - 10, { align: 'center' });
+
+      // Save PDF
+      const fileName = `comparison_${format(periodADate, 'yyyy-MM')}_vs_${format(periodBDate, 'yyyy-MM')}.pdf`;
+      doc.save(fileName);
+      
+      toast.success(language === 'fr' ? 'PDF exporté avec succès!' : 'PDF exported successfully!');
+    } catch (error) {
+      console.error('PDF export error:', error);
+      toast.error(language === 'fr' ? 'Erreur lors de l\'export PDF' : 'Error exporting PDF');
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   // Stat comparison card component
@@ -282,8 +401,44 @@ const PeriodComparison: React.FC = () => {
             {t('comparePeriods')}
           </p>
         </div>
-        <div className="w-12 h-12 rounded-lg bg-gradient-primary flex items-center justify-center shadow-neon">
-          <GitCompare className="w-6 h-6 text-primary-foreground" />
+        <div className="flex items-center gap-3">
+          {!hasNoData && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={exportToPDF}
+              disabled={isExporting}
+              className="gap-2"
+            >
+              {isExporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+              PDF
+            </Button>
+          )}
+          <div className="w-12 h-12 rounded-lg bg-gradient-primary flex items-center justify-center shadow-neon">
+            <GitCompare className="w-6 h-6 text-primary-foreground" />
+          </div>
+        </div>
+      </div>
+
+      {/* View Mode Toggle */}
+      <div className="glass-card p-4 animate-fade-in">
+        <div className="flex items-center justify-center gap-2 p-1 rounded-lg bg-secondary/50 w-fit mx-auto">
+          <Button
+            variant={viewMode === 'week' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => handleViewModeChange('week')}
+            className={cn(viewMode === 'week' && 'bg-primary text-primary-foreground')}
+          >
+            {t('week')}
+          </Button>
+          <Button
+            variant={viewMode === 'month' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => handleViewModeChange('month')}
+            className={cn(viewMode === 'month' && 'bg-primary text-primary-foreground')}
+          >
+            {t('month')}
+          </Button>
         </div>
       </div>
 
@@ -300,9 +455,9 @@ const PeriodComparison: React.FC = () => {
             </Button>
             <Popover open={periodAOpen} onOpenChange={setPeriodAOpen}>
               <PopoverTrigger asChild>
-                <Button variant="outline" className="flex-1 gap-2 font-display">
+                <Button variant="outline" className="flex-1 gap-2 font-display text-xs sm:text-sm">
                   <CalendarIcon className="w-4 h-4" />
-                  {format(periodADate, 'MMMM yyyy', { locale })}
+                  {formatPeriodLabel(periodADate)}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0 bg-popover border-border" align="center">
@@ -336,9 +491,9 @@ const PeriodComparison: React.FC = () => {
             </Button>
             <Popover open={periodBOpen} onOpenChange={setPeriodBOpen}>
               <PopoverTrigger asChild>
-                <Button variant="outline" className="flex-1 gap-2 font-display">
+                <Button variant="outline" className="flex-1 gap-2 font-display text-xs sm:text-sm">
                   <CalendarIcon className="w-4 h-4" />
-                  {format(periodBDate, 'MMMM yyyy', { locale })}
+                  {formatPeriodLabel(periodBDate)}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0 bg-popover border-border" align="center">
