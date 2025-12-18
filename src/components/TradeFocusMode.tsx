@@ -63,17 +63,7 @@ const TradeFocusMode: React.FC = () => {
   };
 
   if (!isEnabled) {
-    return (
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={toggle}
-        className="gap-2"
-      >
-        <Focus className="w-4 h-4" />
-        {language === 'fr' ? 'Mode Focus' : 'Focus Mode'}
-      </Button>
-    );
+    return null;
   }
 
   return (

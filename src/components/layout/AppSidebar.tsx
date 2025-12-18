@@ -66,7 +66,7 @@ const AppSidebar: React.FC = () => {
       {isMobile && (
         <div 
           className={cn(
-            "fixed inset-0 bg-background/80 backdrop-blur-sm z-40 transition-all duration-300",
+            "fixed inset-0 bg-background/80 backdrop-blur-sm z-40 transition-all duration-150",
             isOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
           )}
           onClick={toggleSidebar}
@@ -75,7 +75,7 @@ const AppSidebar: React.FC = () => {
       
       <Sidebar 
         className={cn(
-          "border-r border-primary/20 bg-sidebar/95 backdrop-blur-xl transition-all duration-300 z-50",
+          "border-r border-primary/20 bg-sidebar/95 backdrop-blur-xl transition-all duration-150 z-50",
           // Mobile-specific styles
           isMobile && "fixed inset-y-0 left-0",
           isMobile && !isOpen && "-translate-x-full",

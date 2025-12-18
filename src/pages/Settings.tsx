@@ -2,9 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useFeedback } from '@/hooks/useFeedback';
+import { useTradeFocus } from '@/hooks/useTradeFocus';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
   SelectContent,
@@ -25,6 +28,8 @@ import {
   Image,
   RotateCcw,
   Coins,
+  Focus,
+  Target,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -55,6 +60,7 @@ const Settings: React.FC = () => {
   const { language, setLanguage, t } = useLanguage();
   const { theme, setTheme } = useTheme();
   const { triggerFeedback } = useFeedback();
+  const tradeFocus = useTradeFocus();
   const [settings, setSettings] = useState<AppSettings>(defaultSettings);
   const [primaryColor, setPrimaryColor] = useState('blue');
 
@@ -430,8 +436,93 @@ const Settings: React.FC = () => {
         </div>
       </div>
 
-      {/* Reset Button */}
+      {/* Focus Mode Settings */}
       <div className="glass-card p-6 animate-fade-in" style={{ animationDelay: '350ms' }}>
+        <div className="flex items-center gap-3 mb-4">
+          <Focus className="w-5 h-5 text-primary" />
+          <h3 className="font-display font-semibold text-foreground">
+            {language === 'fr' ? 'Mode Focus' : 'Focus Mode'}
+          </h3>
+        </div>
+        
+        {/* Enable/Disable Toggle */}
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <Label className="text-foreground">
+              {language === 'fr' ? 'Activer le mode focus' : 'Enable focus mode'}
+            </Label>
+            <p className="text-xs text-muted-foreground">
+              {language === 'fr' 
+                ? 'Cache les statistiques et montre uniquement votre plan' 
+                : 'Hides statistics and shows only your plan'}
+            </p>
+          </div>
+          <Switch
+            checked={tradeFocus.isEnabled}
+            onCheckedChange={() => {
+              tradeFocus.toggle();
+              triggerFeedback('click');
+              toast.success(tradeFocus.isEnabled 
+                ? (language === 'fr' ? 'Mode Focus désactivé' : 'Focus Mode disabled')
+                : (language === 'fr' ? 'Mode Focus activé' : 'Focus Mode enabled'));
+            }}
+          />
+        </div>
+
+        {/* Focus Mode Settings */}
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label>{language === 'fr' ? 'Plan de trading' : 'Trading Plan'}</Label>
+            <Textarea
+              value={tradeFocus.tradingPlan}
+              onChange={(e) => tradeFocus.setTradingPlan(e.target.value)}
+              placeholder={language === 'fr' 
+                ? 'Décrivez votre plan de trading...' 
+                : 'Describe your trading plan...'}
+              rows={3}
+              className="resize-none"
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2">
+              <Target className="w-4 h-4 text-primary" />
+              {language === 'fr' ? 'Objectif du jour' : 'Daily Goal'}
+            </Label>
+            <Input
+              value={tradeFocus.dailyGoal}
+              onChange={(e) => tradeFocus.setDailyGoal(e.target.value)}
+              placeholder={language === 'fr' 
+                ? 'Ex: 2 trades gagnants, +50$' 
+                : 'Ex: 2 winning trades, +$50'}
+            />
+          </div>
+          
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>{language === 'fr' ? 'Max trades/jour' : 'Max trades/day'}</Label>
+              <Input
+                type="number"
+                value={tradeFocus.maxTrades}
+                onChange={(e) => tradeFocus.setMaxTrades(Number(e.target.value))}
+                min={1}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>{language === 'fr' ? 'Perte max ($)' : 'Max loss ($)'}</Label>
+              <Input
+                type="number"
+                value={tradeFocus.maxLoss}
+                onChange={(e) => tradeFocus.setMaxLoss(Number(e.target.value))}
+                min={0}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Reset Button */}
+      <div className="glass-card p-6 animate-fade-in" style={{ animationDelay: '400ms' }}>
         <Button
           variant="outline"
           className="w-full gap-3 h-12"
