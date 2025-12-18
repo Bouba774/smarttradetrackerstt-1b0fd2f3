@@ -2,41 +2,26 @@ import { Language, TranslationDictionary, DEFAULT_LANGUAGE, getBrowserLanguage, 
 import { en } from './locales/en';
 import { fr } from './locales/fr';
 import { es } from './locales/es';
-import * as stubs from './locales/stubs';
+import { zh } from './locales/zh';
+import { ar } from './locales/ar';
+import { pt } from './locales/pt';
+import { de } from './locales/de';
+import { ja } from './locales/ja';
 
-// Translation cache
+// Translation cache with complete translations
 const translationCache: Partial<Record<Language, TranslationDictionary>> = {
   en,
   fr,
   es,
-  // Stub translations (fallback to English)
-  zh: stubs.zh,
-  hi: stubs.hi,
-  ar: stubs.ar,
-  bn: stubs.bn,
-  pt: stubs.pt,
-  ru: stubs.ru,
-  ur: stubs.ur,
-  de: stubs.de,
-  ja: stubs.ja,
-  ko: stubs.ko,
-  tr: stubs.tr,
-  it: stubs.it,
-  vi: stubs.vi,
-  th: stubs.th,
-  fa: stubs.fa,
-  sw: stubs.sw,
-  nl: stubs.nl,
-  id: stubs.id,
-  ms: stubs.ms,
-  pl: stubs.pl,
-  uk: stubs.uk,
-  ro: stubs.ro,
-  ha: stubs.ha,
-  yo: stubs.yo,
-  ig: stubs.ig,
-  ta: stubs.ta,
-  te: stubs.te,
+  zh,
+  ar,
+  pt,
+  de,
+  ja,
+  // Fallback to English for remaining languages
+  hi: en, bn: en, ru: en, ur: en, ko: en, tr: en, it: en, vi: en,
+  th: en, fa: en, sw: en, nl: en, id: en, ms: en, pl: en, uk: en,
+  ro: en, ha: en, yo: en, ig: en, ta: en, te: en,
 };
 
 // Lazy load translations
@@ -44,8 +29,6 @@ export async function loadTranslations(lang: Language): Promise<TranslationDicti
   if (translationCache[lang]) {
     return translationCache[lang]!;
   }
-  
-  // Fallback to English for unloaded languages
   translationCache[lang] = en;
   return en;
 }
@@ -55,11 +38,9 @@ export function getTranslation(key: string, translations: TranslationDictionary)
   if (translations[key]) {
     return translations[key];
   }
-  // Fallback to English
   if (en[key as keyof typeof en]) {
     return en[key as keyof typeof en];
   }
-  console.warn(`Translation missing for key: ${key}`);
   return key;
 }
 
