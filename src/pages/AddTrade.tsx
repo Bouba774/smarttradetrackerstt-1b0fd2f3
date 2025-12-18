@@ -30,6 +30,7 @@ import {
   Search,
   Image as ImageIcon,
   Loader2,
+  Trash2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { ASSET_CATEGORIES, ALL_ASSETS } from '@/data/assets';
@@ -83,6 +84,8 @@ const AddTrade: React.FC = () => {
   const [customSetup, setCustomSetup] = useState('');
   const [exitMethod, setExitMethod] = useState<'sl' | 'tp' | 'manual'>('manual');
   
+  const [hasPendingData, setHasPendingData] = useState(false);
+
   const [formData, setFormData] = useState(() => {
     // Load pending trade data from localStorage on initial mount
     const savedData = localStorage.getItem(PENDING_TRADE_KEY);
@@ -136,6 +139,12 @@ const AddTrade: React.FC = () => {
     };
   });
 
+  // Check if there's pending data on mount
+  useEffect(() => {
+    const savedData = localStorage.getItem(PENDING_TRADE_KEY);
+    setHasPendingData(!!savedData);
+  }, []);
+
   // Load direction from localStorage on mount
   useEffect(() => {
     const savedData = localStorage.getItem(PENDING_TRADE_KEY);
@@ -170,6 +179,31 @@ const AddTrade: React.FC = () => {
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const clearPendingData = () => {
+    localStorage.removeItem(PENDING_TRADE_KEY);
+    setHasPendingData(false);
+    setFormData({
+      asset: '',
+      setup: '',
+      timeframe: '',
+      entryPrice: '',
+      exitPrice: '',
+      stopLoss: '',
+      takeProfit: '',
+      lotSize: '',
+      pnl: '',
+      risk: '',
+      emotion: '',
+      notes: '',
+    });
+    setDirection('buy');
+    setSelectedTags([]);
+    setCustomAsset('');
+    setCustomSetup('');
+    setCustomTimeframe('');
+    toast.success(language === 'fr' ? 'Formulaire réinitialisé' : 'Form cleared');
   };
 
   const toggleTag = (tag: string) => {
@@ -381,9 +415,23 @@ const AddTrade: React.FC = () => {
             {t('registerNewTrade')}
           </p>
         </div>
-        <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/10 border border-primary/30">
-          <Sparkles className="w-4 h-4 text-primary" />
-          <span className="text-sm font-medium text-primary">{t('score')}: {calculateQualityScore()}/100</span>
+        <div className="flex items-center gap-3">
+          {hasPendingData && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={clearPendingData}
+              className="gap-2 text-muted-foreground hover:text-loss"
+            >
+              <Trash2 className="w-4 h-4" />
+              {language === 'fr' ? 'Effacer' : 'Clear'}
+            </Button>
+          )}
+          <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/10 border border-primary/30">
+            <Sparkles className="w-4 h-4 text-primary" />
+            <span className="text-sm font-medium text-primary">{t('score')}: {calculateQualityScore()}/100</span>
+          </div>
         </div>
       </div>
 

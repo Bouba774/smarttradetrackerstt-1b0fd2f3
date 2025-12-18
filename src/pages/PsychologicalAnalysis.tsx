@@ -1,11 +1,15 @@
 import React, { useMemo } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useTrades } from '@/hooks/useTrades';
+import { useExecutionQuality } from '@/hooks/useExecutionQuality';
+import { useTraderProfile } from '@/hooks/useTraderProfile';
+import { useMentalFatigue } from '@/hooks/useMentalFatigue';
+import { useEmotionalMemory } from '@/hooks/useEmotionalMemory';
 import { cn } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
 import GaugeChart from '@/components/ui/GaugeChart';
 import {
-  LineChart, Line, BarChart, Bar, PieChart, Pie, Cell,
+  LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
 import {
@@ -17,8 +21,15 @@ import {
   Target,
   Zap,
   Loader2,
+  Activity,
+  User,
+  Coffee,
+  Heart,
+  Lightbulb,
+  ShieldAlert,
+  Clock,
 } from 'lucide-react';
-import { parseISO, getDay, subWeeks, isWithinInterval, startOfWeek, endOfWeek } from 'date-fns';
+import { parseISO, getDay, isWithinInterval, startOfWeek, endOfWeek } from 'date-fns';
 
 const DAYS_FR = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
 const DAYS_EN = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -26,6 +37,12 @@ const DAYS_EN = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const PsychologicalAnalysis: React.FC = () => {
   const { language, t } = useLanguage();
   const { trades, isLoading } = useTrades();
+  
+  // New hooks
+  const executionQuality = useExecutionQuality(trades, language);
+  const traderProfile = useTraderProfile(trades, language);
+  const mentalFatigue = useMentalFatigue(trades, language);
+  const emotionalMemory = useEmotionalMemory(trades, language);
 
   // Calculate emotion statistics from real data
   const emotionStats = useMemo(() => {
@@ -59,21 +76,19 @@ const PsychologicalAnalysis: React.FC = () => {
       counts[emotion] = (counts[emotion] || 0) + 1;
     });
 
-    // Extended color palette for all emotions
     const colorPalette: Record<string, string> = {
-      'Calme': 'hsl(142, 76%, 36%)',        // Green
-      'Confiant': 'hsl(217, 91%, 60%)',      // Blue
-      'Stressé': 'hsl(0, 84%, 60%)',         // Red
-      'Impulsif': 'hsl(30, 100%, 50%)',      // Orange
-      'Euphorique': 'hsl(280, 87%, 65%)',    // Purple
-      'Fatigué': 'hsl(45, 93%, 47%)',        // Yellow/Gold
-      'Frustré': 'hsl(350, 89%, 60%)',       // Pink/Red
-      'Concentré': 'hsl(190, 90%, 50%)',     // Cyan
-      'Anxieux': 'hsl(320, 70%, 50%)',       // Magenta
-      'Neutre': 'hsl(220, 9%, 46%)',         // Gray
+      'Calme': 'hsl(142, 76%, 36%)',
+      'Confiant': 'hsl(217, 91%, 60%)',
+      'Stressé': 'hsl(0, 84%, 60%)',
+      'Impulsif': 'hsl(30, 100%, 50%)',
+      'Euphorique': 'hsl(280, 87%, 65%)',
+      'Fatigué': 'hsl(45, 93%, 47%)',
+      'Frustré': 'hsl(350, 89%, 60%)',
+      'Concentré': 'hsl(190, 90%, 50%)',
+      'Anxieux': 'hsl(320, 70%, 50%)',
+      'Neutre': 'hsl(220, 9%, 46%)',
     };
 
-    // Generate colors for unknown emotions
     const usedHues: number[] = Object.values(colorPalette).map(c => {
       const match = c.match(/hsl\((\d+)/);
       return match ? parseInt(match[1]) : 0;
@@ -82,7 +97,6 @@ const PsychologicalAnalysis: React.FC = () => {
     let hueIndex = 0;
     const getColor = (emotion: string): string => {
       if (colorPalette[emotion]) return colorPalette[emotion];
-      // Generate new color
       let hue = (hueIndex * 47 + 60) % 360;
       while (usedHues.includes(hue)) {
         hue = (hue + 30) % 360;
@@ -109,7 +123,6 @@ const PsychologicalAnalysis: React.FC = () => {
     const weekStart = startOfWeek(now, { weekStartsOn: 1 });
     const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
 
-    // Collect all unique emotions
     const allEmotions = new Set<string>();
     const dayData: Record<number, Record<string, number>> = {};
     const dayTotals: Record<number, number> = {};
@@ -132,7 +145,6 @@ const PsychologicalAnalysis: React.FC = () => {
 
     const emotions = Array.from(allEmotions);
     
-    // Color palette for emotions
     const colorPalette: Record<string, string> = {
       'Calme': 'hsl(142, 76%, 36%)',
       'Confiant': 'hsl(217, 91%, 60%)',
@@ -183,7 +195,6 @@ const PsychologicalAnalysis: React.FC = () => {
       };
     }
 
-    // Calculate various discipline factors
     const tradesWithSL = trades.filter(t => t.stop_loss).length;
     const tradesWithTP = trades.filter(t => t.take_profit).length;
     const tradesWithSetup = trades.filter(t => t.setup).length;
@@ -192,7 +203,6 @@ const PsychologicalAnalysis: React.FC = () => {
     const tpScore = Math.round((tradesWithTP / trades.length) * 100);
     const setupScore = Math.round((tradesWithSetup / trades.length) * 100);
     
-    // Overtrading: assume max 5 trades per day is healthy
     const tradesByDay: Record<string, number> = {};
     trades.forEach(t => {
       const day = t.trade_date.split('T')[0];
@@ -203,8 +213,6 @@ const PsychologicalAnalysis: React.FC = () => {
       : 0;
     const overtradingScore = Math.max(0, 100 - (avgTradesPerDay > 5 ? (avgTradesPerDay - 5) * 20 : 0));
 
-    // Revenge trading: consecutive losses with increasing position size would indicate this
-    // For now, use a simpler heuristic based on calm trades ratio
     const calmTrades = trades.filter(t => t.emotions === 'Calme' || t.emotions === 'Confiant').length;
     const revengeScore = Math.round((calmTrades / trades.length) * 100);
 
@@ -231,7 +239,6 @@ const PsychologicalAnalysis: React.FC = () => {
     const positives: string[] = [];
     const negatives: string[] = [];
 
-    // Analyze data for insights
     const tradesWithSL = trades.filter(t => t.stop_loss).length;
     if (tradesWithSL / trades.length >= 0.8) {
       positives.push(language === 'fr' ? 'Excellente gestion du risque avec SL' : 'Excellent risk management with SL');
@@ -305,8 +312,295 @@ const PsychologicalAnalysis: React.FC = () => {
         </div>
       ) : (
         <>
+          {/* Mental Fatigue Alert */}
+          {mentalFatigue.shouldPause && (
+            <div className={cn(
+              "p-4 rounded-lg border animate-pulse",
+              mentalFatigue.level === 'critical' 
+                ? "bg-loss/20 border-loss/50" 
+                : "bg-yellow-500/20 border-yellow-500/50"
+            )}>
+              <div className="flex items-center gap-3">
+                <Coffee className={cn(
+                  "w-6 h-6",
+                  mentalFatigue.level === 'critical' ? "text-loss" : "text-yellow-500"
+                )} />
+                <p className={cn(
+                  "font-medium",
+                  mentalFatigue.level === 'critical' ? "text-loss" : "text-yellow-500"
+                )}>
+                  {mentalFatigue.recommendation}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Top Row: Execution Quality + Mental Fatigue + Trader Profile */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Execution Quality */}
+            <div className="glass-card p-6 animate-fade-in">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center">
+                  <Target className="w-5 h-5 text-primary" />
+                </div>
+                <h3 className="font-display font-semibold text-foreground">
+                  {language === 'fr' ? 'Qualité d\'exécution' : 'Execution Quality'}
+                </h3>
+              </div>
+              <div className="flex justify-center mb-4">
+                <GaugeChart
+                  value={executionQuality.overallScore}
+                  max={100}
+                  label={language === 'fr' ? 'Score global' : 'Overall Score'}
+                  size="md"
+                  variant="primary"
+                />
+              </div>
+              <div className="space-y-4">
+                {/* Entry Timing */}
+                <div className="p-3 rounded-lg bg-muted/30">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-sm font-medium text-foreground">
+                      {language === 'fr' ? 'Timing d\'entrée' : 'Entry Timing'}
+                    </span>
+                    <span className={cn(
+                      "text-xs px-2 py-0.5 rounded-full",
+                      executionQuality.entryTiming.score >= 70 ? "bg-profit/20 text-profit" :
+                      executionQuality.entryTiming.score >= 40 ? "bg-yellow-500/20 text-yellow-500" :
+                      "bg-loss/20 text-loss"
+                    )}>
+                      {executionQuality.entryTiming.label}
+                    </span>
+                  </div>
+                  <Progress value={executionQuality.entryTiming.score} className="h-2 mb-1" />
+                  <p className="text-xs text-muted-foreground">{executionQuality.entryTiming.detail}</p>
+                </div>
+                {/* SL Sizing */}
+                <div className="p-3 rounded-lg bg-muted/30">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-sm font-medium text-foreground">
+                      {language === 'fr' ? 'Dimensionnement SL' : 'SL Sizing'}
+                    </span>
+                    <span className={cn(
+                      "text-xs px-2 py-0.5 rounded-full",
+                      executionQuality.slSizing.score >= 60 ? "bg-profit/20 text-profit" :
+                      executionQuality.slSizing.score >= 30 ? "bg-yellow-500/20 text-yellow-500" :
+                      "bg-loss/20 text-loss"
+                    )}>
+                      {executionQuality.slSizing.label}
+                    </span>
+                  </div>
+                  <Progress value={executionQuality.slSizing.score} className="h-2 mb-1" />
+                  <p className="text-xs text-muted-foreground">{executionQuality.slSizing.detail}</p>
+                </div>
+                {/* TP Optimization */}
+                <div className="p-3 rounded-lg bg-muted/30">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-sm font-medium text-foreground">
+                      {language === 'fr' ? 'Optimisation TP' : 'TP Optimization'}
+                    </span>
+                    <span className={cn(
+                      "text-xs px-2 py-0.5 rounded-full",
+                      executionQuality.tpOptimization.score >= 70 ? "bg-profit/20 text-profit" :
+                      executionQuality.tpOptimization.score >= 40 ? "bg-yellow-500/20 text-yellow-500" :
+                      "bg-loss/20 text-loss"
+                    )}>
+                      {executionQuality.tpOptimization.label}
+                    </span>
+                  </div>
+                  <Progress value={executionQuality.tpOptimization.score} className="h-2 mb-1" />
+                  <p className="text-xs text-muted-foreground">{executionQuality.tpOptimization.detail}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Mental Fatigue Index */}
+            <div className="glass-card p-6 animate-fade-in" style={{ animationDelay: '50ms' }}>
+              <div className="flex items-center gap-3 mb-4">
+                <div className={cn(
+                  "w-10 h-10 rounded-lg flex items-center justify-center",
+                  mentalFatigue.level === 'critical' ? "bg-loss/20" :
+                  mentalFatigue.level === 'high' ? "bg-yellow-500/20" :
+                  mentalFatigue.level === 'moderate' ? "bg-primary/20" : "bg-profit/20"
+                )}>
+                  <Activity className={cn(
+                    "w-5 h-5",
+                    mentalFatigue.level === 'critical' ? "text-loss" :
+                    mentalFatigue.level === 'high' ? "text-yellow-500" :
+                    mentalFatigue.level === 'moderate' ? "text-primary" : "text-profit"
+                  )} />
+                </div>
+                <h3 className="font-display font-semibold text-foreground">
+                  {language === 'fr' ? 'Indice de fatigue' : 'Fatigue Index'}
+                </h3>
+              </div>
+              <div className="flex justify-center mb-4">
+                <GaugeChart
+                  value={mentalFatigue.score}
+                  max={100}
+                  label={language === 'fr' ? 'Fatigue' : 'Fatigue'}
+                  size="md"
+                  variant={mentalFatigue.level === 'critical' || mentalFatigue.level === 'high' ? 'loss' : 'primary'}
+                />
+              </div>
+              {mentalFatigue.factors.length > 0 ? (
+                <div className="space-y-3">
+                  {mentalFatigue.factors.map((factor, idx) => (
+                    <div key={idx} className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">{factor.name}</span>
+                      <span className="text-foreground font-medium">{factor.detail}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-center text-sm text-muted-foreground">
+                  {language === 'fr' ? 'Pas de trades aujourd\'hui' : 'No trades today'}
+                </p>
+              )}
+              <div className={cn(
+                "mt-4 p-3 rounded-lg text-sm",
+                mentalFatigue.level === 'low' ? "bg-profit/10 text-profit" :
+                mentalFatigue.level === 'moderate' ? "bg-primary/10 text-primary" :
+                mentalFatigue.level === 'high' ? "bg-yellow-500/10 text-yellow-600" :
+                "bg-loss/10 text-loss"
+              )}>
+                {mentalFatigue.recommendation}
+              </div>
+            </div>
+
+            {/* Trader Profile */}
+            <div className="glass-card p-6 animate-fade-in" style={{ animationDelay: '100ms' }}>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-lg bg-secondary/50 flex items-center justify-center">
+                  <User className="w-5 h-5 text-foreground" />
+                </div>
+                <h3 className="font-display font-semibold text-foreground">
+                  {language === 'fr' ? 'Profil psychologique' : 'Psychological Profile'}
+                </h3>
+              </div>
+              {traderProfile ? (
+                <>
+                  <div className="text-center mb-4">
+                    <div className="text-4xl mb-2">{traderProfile.icon}</div>
+                    <h4 className="font-display font-bold text-lg text-foreground">{traderProfile.label}</h4>
+                    <p className="text-sm text-muted-foreground mt-1">{traderProfile.description}</p>
+                  </div>
+                  <div className="h-[180px] mb-4">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <RadarChart data={traderProfile.characteristics}>
+                        <PolarGrid stroke="hsl(var(--border))" />
+                        <PolarAngleAxis dataKey="name" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} />
+                        <PolarRadiusAxis angle={30} domain={[0, 100]} tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} />
+                        <Radar name="Score" dataKey="value" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.4} />
+                      </RadarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </>
+              ) : (
+                <div className="text-center py-8">
+                  <User className="w-12 h-12 mx-auto text-muted-foreground/50 mb-2" />
+                  <p className="text-sm text-muted-foreground">
+                    {language === 'fr' ? 'Minimum 5 trades requis' : 'Minimum 5 trades required'}
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Trader Profile Advice */}
+          {traderProfile && (
+            <div className="glass-card p-6 animate-fade-in" style={{ animationDelay: '150ms' }}>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center">
+                  <Lightbulb className="w-5 h-5 text-primary" />
+                </div>
+                <h3 className="font-display font-semibold text-foreground">
+                  {language === 'fr' ? 'Conseils personnalisés' : 'Personalized Advice'}
+                </h3>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {traderProfile.advice.map((advice, idx) => (
+                  <div key={idx} className="flex items-start gap-2 p-3 rounded-lg bg-primary/5 border border-primary/20">
+                    <CheckCircle2 className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
+                    <p className="text-sm text-foreground">{advice}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Emotional Memory Section */}
+          {(emotionalMemory.warnings.length > 0 || emotionalMemory.insights.length > 0) && (
+            <div className="glass-card p-6 animate-fade-in" style={{ animationDelay: '200ms' }}>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-lg bg-secondary/50 flex items-center justify-center">
+                  <Heart className="w-5 h-5 text-loss" />
+                </div>
+                <h3 className="font-display font-semibold text-foreground">
+                  {language === 'fr' ? 'Mémoire émotionnelle' : 'Emotional Memory'}
+                </h3>
+              </div>
+              
+              {/* Warnings */}
+              {emotionalMemory.warnings.length > 0 && (
+                <div className="space-y-2 mb-4">
+                  {emotionalMemory.warnings.map((warning, idx) => (
+                    <div 
+                      key={idx} 
+                      className={cn(
+                        "flex items-start gap-2 p-3 rounded-lg",
+                        warning.severity === 'danger' ? "bg-loss/10 border border-loss/30" :
+                        warning.severity === 'warning' ? "bg-yellow-500/10 border border-yellow-500/30" :
+                        "bg-primary/10 border border-primary/30"
+                      )}
+                    >
+                      <ShieldAlert className={cn(
+                        "w-4 h-4 mt-0.5 flex-shrink-0",
+                        warning.severity === 'danger' ? "text-loss" :
+                        warning.severity === 'warning' ? "text-yellow-500" : "text-primary"
+                      )} />
+                      <p className="text-sm text-foreground">{warning.message}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Best/Worst Emotions */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                {emotionalMemory.bestEmotion && (
+                  <div className="p-4 rounded-lg bg-profit/10 border border-profit/30">
+                    <p className="text-xs text-muted-foreground mb-1">
+                      {language === 'fr' ? 'Meilleure émotion' : 'Best emotion'}
+                    </p>
+                    <p className="font-display font-bold text-profit text-lg">{emotionalMemory.bestEmotion}</p>
+                  </div>
+                )}
+                {emotionalMemory.emotionToAvoid && (
+                  <div className="p-4 rounded-lg bg-loss/10 border border-loss/30">
+                    <p className="text-xs text-muted-foreground mb-1">
+                      {language === 'fr' ? 'Émotion à éviter' : 'Emotion to avoid'}
+                    </p>
+                    <p className="font-display font-bold text-loss text-lg">{emotionalMemory.emotionToAvoid}</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Insights */}
+              {emotionalMemory.insights.length > 0 && (
+                <div className="space-y-2">
+                  {emotionalMemory.insights.map((insight, idx) => (
+                    <div key={idx} className="flex items-start gap-2 text-sm text-muted-foreground">
+                      <Lightbulb className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
+                      <span>{insight}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Discipline Score */}
-          <div className="glass-card p-6 animate-fade-in">
+          <div className="glass-card p-6 animate-fade-in" style={{ animationDelay: '250ms' }}>
             <div className="flex flex-col md:flex-row items-center gap-8">
               <div className="flex-shrink-0">
                 <GaugeChart
@@ -358,7 +652,7 @@ const PsychologicalAnalysis: React.FC = () => {
           {/* Emotion Stats Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Winrate by Emotion */}
-            <div className="glass-card p-6 animate-fade-in" style={{ animationDelay: '100ms' }}>
+            <div className="glass-card p-6 animate-fade-in" style={{ animationDelay: '300ms' }}>
               <h3 className="font-display font-semibold text-foreground mb-4">
                 {t('winrateByEmotion')}
               </h3>
@@ -389,7 +683,7 @@ const PsychologicalAnalysis: React.FC = () => {
             </div>
 
             {/* Emotion Distribution */}
-            <div className="glass-card p-6 animate-fade-in" style={{ animationDelay: '150ms' }}>
+            <div className="glass-card p-6 animate-fade-in" style={{ animationDelay: '350ms' }}>
               <h3 className="font-display font-semibold text-foreground mb-4">
                 {t('emotionDistributionChart')}
               </h3>
@@ -439,8 +733,8 @@ const PsychologicalAnalysis: React.FC = () => {
             </div>
           </div>
 
-          {/* Weekly Emotion Trend - All Emotions */}
-          <div className="glass-card p-6 animate-fade-in" style={{ animationDelay: '200ms' }}>
+          {/* Weekly Emotion Trend */}
+          <div className="glass-card p-6 animate-fade-in" style={{ animationDelay: '400ms' }}>
             <h3 className="font-display font-semibold text-foreground mb-4">
               {t('weeklyEmotionTrends')}
             </h3>
@@ -474,14 +768,10 @@ const PsychologicalAnalysis: React.FC = () => {
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
-                {/* Legend for all emotions */}
                 <div className="flex flex-wrap justify-center gap-4 mt-4">
                   {weeklyEmotionsByType.emotions.map((emotion) => (
                     <div key={emotion.name} className="flex items-center gap-2">
-                      <div 
-                        className="w-3 h-3 rounded-full" 
-                        style={{ backgroundColor: emotion.color }} 
-                      />
+                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: emotion.color }} />
                       <span className="text-xs text-muted-foreground">{emotion.name}</span>
                     </div>
                   ))}
@@ -501,7 +791,7 @@ const PsychologicalAnalysis: React.FC = () => {
                 <div
                   key={stat.emotion}
                   className="glass-card p-4 animate-fade-in"
-                  style={{ animationDelay: `${250 + index * 50}ms` }}
+                  style={{ animationDelay: `${450 + index * 50}ms` }}
                 >
                   <p className="text-sm text-muted-foreground mb-2">{stat.emotion}</p>
                   <p className={cn(
@@ -519,7 +809,7 @@ const PsychologicalAnalysis: React.FC = () => {
           {/* Mental Summary */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Positives */}
-            <div className="glass-card p-6 animate-fade-in" style={{ animationDelay: '400ms' }}>
+            <div className="glass-card p-6 animate-fade-in" style={{ animationDelay: '600ms' }}>
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-10 h-10 rounded-lg bg-profit/20 flex items-center justify-center">
                   <TrendingUp className="w-5 h-5 text-profit" />
@@ -542,7 +832,7 @@ const PsychologicalAnalysis: React.FC = () => {
             </div>
 
             {/* Negatives */}
-            <div className="glass-card p-6 animate-fade-in" style={{ animationDelay: '450ms' }}>
+            <div className="glass-card p-6 animate-fade-in" style={{ animationDelay: '650ms' }}>
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-10 h-10 rounded-lg bg-loss/20 flex items-center justify-center">
                   <AlertTriangle className="w-5 h-5 text-loss" />
