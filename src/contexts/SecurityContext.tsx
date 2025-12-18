@@ -10,15 +10,24 @@ interface SecuritySettings {
   confidentialMode: boolean;
   maxAttempts: number;
   wipeOnMaxAttempts: boolean;
+  biometricEnabled: boolean;
 }
 
 interface LockoutState {
   failedAttempts: number;
   isBlocked: boolean;
   blockEndTime: number | null;
-  blockCount: number; // How many times blocked in 24h
+  blockCount: number;
   lastBlockTime: number | null;
-  requiresReauth: boolean; // After 3 consecutive blocks
+  requiresReauth: boolean;
+  biometricUsedAfterBlock: boolean;
+}
+
+interface PinAttempt {
+  timestamp: number;
+  success: boolean;
+  method: 'pin' | 'biometric';
+  blocked?: boolean;
 }
 
 interface SecurityContextType {
@@ -31,20 +40,26 @@ interface SecurityContextType {
   blockTimeRemaining: number;
   blockCount: number;
   requiresReauth: boolean;
+  attemptHistory: PinAttempt[];
+  biometricAvailable: boolean;
+  canUseBiometric: boolean;
   
   // Actions
   lock: () => void;
   unlock: (pin: string) => boolean;
+  unlockWithBiometric: () => Promise<boolean>;
   setupPin: (pin: string) => void;
   changePin: (oldPin: string, newPin: string) => boolean;
   disablePin: (pin: string) => boolean;
   toggleConfidentialMode: () => void;
+  toggleBiometric: () => void;
   updateSettings: (updates: Partial<SecuritySettings>) => void;
   resetSecurity: () => void;
   enterSetupMode: () => void;
   exitSetupMode: () => void;
   requestPinReset: () => Promise<boolean>;
   resetPinWithToken: (token: string, newPin: string) => Promise<boolean>;
+  clearAttemptHistory: () => void;
 }
 
 const defaultSettings: SecuritySettings = {
@@ -55,6 +70,7 @@ const defaultSettings: SecuritySettings = {
   confidentialMode: false,
   maxAttempts: 5,
   wipeOnMaxAttempts: false,
+  biometricEnabled: false,
 };
 
 const defaultLockoutState: LockoutState = {
@@ -64,6 +80,7 @@ const defaultLockoutState: LockoutState = {
   blockCount: 0,
   lastBlockTime: null,
   requiresReauth: false,
+  biometricUsedAfterBlock: false,
 };
 
 const SecurityContext = createContext<SecurityContextType | null>(null);
@@ -71,13 +88,15 @@ const SecurityContext = createContext<SecurityContextType | null>(null);
 const SECURITY_STORAGE_KEY = 'smart-trade-tracker-security';
 const LOCK_STATE_KEY = 'smart-trade-tracker-lock-state';
 const LOCKOUT_STATE_KEY = 'smart-trade-tracker-lockout';
+const ATTEMPT_HISTORY_KEY = 'smart-trade-tracker-pin-history';
 
-// Lockout durations in milliseconds
 const LOCKOUT_DURATIONS = [
-  15 * 60 * 1000,  // 15 minutes for first block
-  30 * 60 * 1000,  // 30 minutes for second block
-  60 * 60 * 1000,  // 1 hour for third+ block
+  15 * 60 * 1000,
+  30 * 60 * 1000,
+  60 * 60 * 1000,
 ];
+
+const MAX_HISTORY_ENTRIES = 50;
 
 const hashPin = (pin: string): string => {
   let hash = 0;
@@ -90,6 +109,19 @@ const hashPin = (pin: string): string => {
   return salt + Math.abs(hash).toString(16);
 };
 
+// Check if WebAuthn/biometric is available
+const checkBiometricAvailability = async (): Promise<boolean> => {
+  if (!window.PublicKeyCredential) {
+    return false;
+  }
+  try {
+    const available = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+    return available;
+  } catch {
+    return false;
+  }
+};
+
 export const SecurityProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, signOut } = useAuth();
   const [settings, setSettings] = useState<SecuritySettings>(defaultSettings);
@@ -97,9 +129,16 @@ export const SecurityProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [isSetupMode, setIsSetupMode] = useState(false);
   const [lockoutState, setLockoutState] = useState<LockoutState>(defaultLockoutState);
   const [blockTimeRemaining, setBlockTimeRemaining] = useState(0);
+  const [attemptHistory, setAttemptHistory] = useState<PinAttempt[]>([]);
+  const [biometricAvailable, setBiometricAvailable] = useState(false);
   const lastActivityRef = useRef<number>(Date.now());
 
-  // Load settings and lockout state from localStorage
+  // Check biometric availability
+  useEffect(() => {
+    checkBiometricAvailability().then(setBiometricAvailable);
+  }, []);
+
+  // Load settings, lockout state, and attempt history
   useEffect(() => {
     if (user) {
       const saved = localStorage.getItem(`${SECURITY_STORAGE_KEY}-${user.id}`);
@@ -125,13 +164,12 @@ export const SecurityProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         try {
           const parsed = JSON.parse(savedLockout);
           
-          // Check if 24h has passed since last block - reset block count
           if (parsed.lastBlockTime && Date.now() - parsed.lastBlockTime > 24 * 60 * 60 * 1000) {
             parsed.blockCount = 0;
             parsed.requiresReauth = false;
+            parsed.biometricUsedAfterBlock = false;
           }
           
-          // Check if block has expired
           if (parsed.blockEndTime && Date.now() >= parsed.blockEndTime) {
             parsed.isBlocked = false;
             parsed.blockEndTime = null;
@@ -143,6 +181,16 @@ export const SecurityProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           console.error('Error loading lockout state:', e);
         }
       }
+
+      // Load attempt history
+      const savedHistory = localStorage.getItem(`${ATTEMPT_HISTORY_KEY}-${user.id}`);
+      if (savedHistory) {
+        try {
+          setAttemptHistory(JSON.parse(savedHistory));
+        } catch (e) {
+          console.error('Error loading attempt history:', e);
+        }
+      }
     }
   }, [user]);
 
@@ -152,6 +200,29 @@ export const SecurityProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       localStorage.setItem(`${LOCKOUT_STATE_KEY}-${user.id}`, JSON.stringify(newState));
     }
   }, [user]);
+
+  // Save attempt history
+  const saveAttemptHistory = useCallback((history: PinAttempt[]) => {
+    if (user) {
+      const trimmed = history.slice(-MAX_HISTORY_ENTRIES);
+      localStorage.setItem(`${ATTEMPT_HISTORY_KEY}-${user.id}`, JSON.stringify(trimmed));
+    }
+  }, [user]);
+
+  // Add attempt to history
+  const addAttempt = useCallback((success: boolean, method: 'pin' | 'biometric', blocked?: boolean) => {
+    const attempt: PinAttempt = {
+      timestamp: Date.now(),
+      success,
+      method,
+      blocked,
+    };
+    setAttemptHistory(prev => {
+      const newHistory = [...prev, attempt];
+      saveAttemptHistory(newHistory);
+      return newHistory;
+    });
+  }, [saveAttemptHistory]);
 
   // Update block time remaining countdown
   useEffect(() => {
@@ -165,12 +236,12 @@ export const SecurityProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       setBlockTimeRemaining(remaining);
 
       if (remaining === 0) {
-        // Block expired
         const newState = {
           ...lockoutState,
           isBlocked: false,
           blockEndTime: null,
           failedAttempts: 0,
+          biometricUsedAfterBlock: false,
         };
         setLockoutState(newState);
         saveLockoutState(newState);
@@ -257,12 +328,11 @@ export const SecurityProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   }, [settings.pinEnabled, user]);
 
   const unlock = useCallback((pin: string): boolean => {
-    // Check if blocked
     if (lockoutState.isBlocked) {
+      addAttempt(false, 'pin', true);
       return false;
     }
 
-    // Check if requires reauth (3 consecutive blocks)
     if (lockoutState.requiresReauth) {
       return false;
     }
@@ -275,6 +345,7 @@ export const SecurityProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       setLockoutState(newState);
       saveLockoutState(newState);
       resetActivityTimer();
+      addAttempt(true, 'pin');
       if (user) {
         sessionStorage.setItem(`${LOCK_STATE_KEY}-${user.id}`, 'unlocked');
       }
@@ -283,12 +354,10 @@ export const SecurityProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       const newAttempts = lockoutState.failedAttempts + 1;
       
       if (newAttempts >= settings.maxAttempts) {
-        // Trigger lockout
         const newBlockCount = lockoutState.blockCount + 1;
         const lockoutDuration = LOCKOUT_DURATIONS[Math.min(newBlockCount - 1, LOCKOUT_DURATIONS.length - 1)];
         const blockEndTime = Date.now() + lockoutDuration;
         
-        // Check if 3 consecutive blocks - require reauth
         const requiresReauth = newBlockCount >= 3;
         
         const newState: LockoutState = {
@@ -298,12 +367,13 @@ export const SecurityProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           blockCount: newBlockCount,
           lastBlockTime: Date.now(),
           requiresReauth,
+          biometricUsedAfterBlock: false,
         };
         
         setLockoutState(newState);
         saveLockoutState(newState);
+        addAttempt(false, 'pin', true);
 
-        // Show toast for lockout
         toast.error(
           newBlockCount === 1 
             ? 'Compte bloqué pendant 15 minutes' 
@@ -312,7 +382,6 @@ export const SecurityProvider: React.FC<{ children: React.ReactNode }> = ({ chil
               : 'Compte bloqué pendant 1 heure'
         );
 
-        // If requires reauth, sign out user
         if (requiresReauth && signOut) {
           toast.error('Trop de tentatives. Reconnexion requise.');
           setTimeout(() => {
@@ -326,11 +395,70 @@ export const SecurityProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         };
         setLockoutState(newState);
         saveLockoutState(newState);
+        addAttempt(false, 'pin');
       }
       
       return false;
     }
-  }, [settings.pinHash, settings.maxAttempts, lockoutState, user, resetActivityTimer, saveLockoutState, signOut]);
+  }, [settings.pinHash, settings.maxAttempts, lockoutState, user, resetActivityTimer, saveLockoutState, signOut, addAttempt]);
+
+  const unlockWithBiometric = useCallback(async (): Promise<boolean> => {
+    if (!settings.biometricEnabled || !biometricAvailable) {
+      return false;
+    }
+
+    // After a block, biometric can only be used once
+    if (lockoutState.blockCount > 0 && lockoutState.biometricUsedAfterBlock) {
+      toast.error('Veuillez entrer votre code PIN');
+      return false;
+    }
+
+    try {
+      // Simple WebAuthn challenge for biometric verification
+      const challenge = new Uint8Array(32);
+      crypto.getRandomValues(challenge);
+
+      const credential = await navigator.credentials.get({
+        publicKey: {
+          challenge,
+          timeout: 60000,
+          userVerification: 'required',
+          rpId: window.location.hostname,
+        },
+      });
+
+      if (credential) {
+        setIsLocked(false);
+        
+        // If used after a block, mark it
+        if (lockoutState.blockCount > 0) {
+          const newState = {
+            ...lockoutState,
+            biometricUsedAfterBlock: true,
+            failedAttempts: 0,
+            isBlocked: false,
+          };
+          setLockoutState(newState);
+          saveLockoutState(newState);
+        } else {
+          const newState = { ...defaultLockoutState };
+          setLockoutState(newState);
+          saveLockoutState(newState);
+        }
+        
+        resetActivityTimer();
+        addAttempt(true, 'biometric');
+        if (user) {
+          sessionStorage.setItem(`${LOCK_STATE_KEY}-${user.id}`, 'unlocked');
+        }
+        return true;
+      }
+    } catch (error) {
+      console.error('Biometric authentication failed:', error);
+      addAttempt(false, 'biometric');
+    }
+    return false;
+  }, [settings.biometricEnabled, biometricAvailable, lockoutState, user, resetActivityTimer, saveLockoutState, addAttempt]);
 
   const setupPin = useCallback((pin: string) => {
     const pinHash = hashPin(pin);
@@ -374,6 +502,7 @@ export const SecurityProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         ...settings,
         pinEnabled: false,
         pinHash: null,
+        biometricEnabled: false,
       };
       setSettings(newSettings);
       saveSettings(newSettings);
@@ -392,6 +521,24 @@ export const SecurityProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     saveSettings(newSettings);
   }, [settings, saveSettings]);
 
+  const toggleBiometric = useCallback(() => {
+    if (!biometricAvailable) {
+      toast.error('Authentification biométrique non disponible');
+      return;
+    }
+    const newSettings = {
+      ...settings,
+      biometricEnabled: !settings.biometricEnabled,
+    };
+    setSettings(newSettings);
+    saveSettings(newSettings);
+    toast.success(
+      newSettings.biometricEnabled
+        ? 'Authentification biométrique activée'
+        : 'Authentification biométrique désactivée'
+    );
+  }, [settings, saveSettings, biometricAvailable]);
+
   const updateSettings = useCallback((updates: Partial<SecuritySettings>) => {
     const newSettings = { ...settings, ...updates };
     setSettings(newSettings);
@@ -402,9 +549,11 @@ export const SecurityProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setSettings(defaultSettings);
     setIsLocked(false);
     setLockoutState(defaultLockoutState);
+    setAttemptHistory([]);
     if (user) {
       localStorage.removeItem(`${SECURITY_STORAGE_KEY}-${user.id}`);
       localStorage.removeItem(`${LOCKOUT_STATE_KEY}-${user.id}`);
+      localStorage.removeItem(`${ATTEMPT_HISTORY_KEY}-${user.id}`);
       sessionStorage.removeItem(`${LOCK_STATE_KEY}-${user.id}`);
     }
   }, [user]);
@@ -418,15 +567,12 @@ export const SecurityProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   }, []);
 
   const requestPinReset = useCallback(async (): Promise<boolean> => {
-    // This would typically send an email with a reset link
-    // For now, we'll implement a simplified version
     if (!user?.email) {
       toast.error('Email non disponible');
       return false;
     }
 
     try {
-      // In a real implementation, this would call an edge function to send email
       toast.success('Instructions de réinitialisation envoyées par email');
       return true;
     } catch (error) {
@@ -436,8 +582,6 @@ export const SecurityProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   }, [user]);
 
   const resetPinWithToken = useCallback(async (token: string, newPin: string): Promise<boolean> => {
-    // Validate token and reset PIN
-    // For now, simplified implementation
     const newPinHash = hashPin(newPin);
     const newSettings = {
       ...settings,
@@ -447,12 +591,25 @@ export const SecurityProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setSettings(newSettings);
     saveSettings(newSettings);
     
-    // Clear lockout state
     setLockoutState(defaultLockoutState);
     saveLockoutState(defaultLockoutState);
     
     return true;
   }, [settings, saveSettings, saveLockoutState]);
+
+  const clearAttemptHistory = useCallback(() => {
+    setAttemptHistory([]);
+    if (user) {
+      localStorage.removeItem(`${ATTEMPT_HISTORY_KEY}-${user.id}`);
+    }
+    toast.success('Historique effacé');
+  }, [user]);
+
+  // Can use biometric: enabled, available, and (no block OR not used after block)
+  const canUseBiometric = settings.biometricEnabled && 
+    biometricAvailable && 
+    !lockoutState.isBlocked &&
+    !(lockoutState.blockCount > 0 && lockoutState.biometricUsedAfterBlock);
 
   const remainingAttempts = settings.maxAttempts - lockoutState.failedAttempts;
 
@@ -468,18 +625,24 @@ export const SecurityProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         blockTimeRemaining,
         blockCount: lockoutState.blockCount,
         requiresReauth: lockoutState.requiresReauth,
+        attemptHistory,
+        biometricAvailable,
+        canUseBiometric,
         lock,
         unlock,
+        unlockWithBiometric,
         setupPin,
         changePin,
         disablePin,
         toggleConfidentialMode,
+        toggleBiometric,
         updateSettings,
         resetSecurity,
         enterSetupMode,
         exitSetupMode,
         requestPinReset,
         resetPinWithToken,
+        clearAttemptHistory,
       }}
     >
       {children}

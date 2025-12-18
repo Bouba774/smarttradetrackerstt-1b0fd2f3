@@ -29,9 +29,17 @@ import {
   AlertTriangle,
   KeyRound,
   Trash2,
+  Fingerprint,
+  History,
+  CheckCircle,
+  XCircle,
+  Clock,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
+import { fr, enUS } from 'date-fns/locale';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 export const SecuritySettings: React.FC = () => {
   const { language } = useLanguage();
@@ -41,12 +49,17 @@ export const SecuritySettings: React.FC = () => {
     enterSetupMode,
     disablePin,
     toggleConfidentialMode,
+    toggleBiometric,
     updateSettings,
     lock,
+    attemptHistory,
+    clearAttemptHistory,
+    biometricAvailable,
   } = useSecurity();
 
   const [showDisablePinDialog, setShowDisablePinDialog] = useState(false);
   const [showChangePinDialog, setShowChangePinDialog] = useState(false);
+  const [showHistoryDialog, setShowHistoryDialog] = useState(false);
   const [pinError, setPinError] = useState(false);
 
   const autoLockOptions = [
@@ -89,9 +102,20 @@ export const SecuritySettings: React.FC = () => {
     );
   };
 
+  const handleBiometricToggle = () => {
+    triggerFeedback('click');
+    toggleBiometric();
+  };
+
   const handleLockNow = () => {
     triggerFeedback('click');
     lock();
+  };
+
+  const formatAttemptDate = (timestamp: number) => {
+    return format(new Date(timestamp), 'dd MMM yyyy HH:mm:ss', {
+      locale: language === 'fr' ? fr : enUS,
+    });
   };
 
   return (
@@ -175,6 +199,55 @@ export const SecuritySettings: React.FC = () => {
         )}
       </div>
 
+      {/* Biometric Authentication Section */}
+      {settings.pinEnabled && (
+        <div className="glass-card p-6 animate-fade-in" style={{ animationDelay: '75ms' }}>
+          <div className="flex items-center gap-3 mb-4">
+            <Fingerprint className="w-5 h-5 text-primary" />
+            <h3 className="font-display font-semibold text-foreground">
+              {language === 'fr' ? 'Authentification biométrique' : 'Biometric Authentication'}
+            </h3>
+          </div>
+
+          {biometricAvailable ? (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label className="text-foreground">
+                    {language === 'fr' ? 'Empreinte / Face ID' : 'Fingerprint / Face ID'}
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    {language === 'fr'
+                      ? 'Déverrouillez avec votre empreinte digitale ou Face ID'
+                      : 'Unlock with your fingerprint or Face ID'}
+                  </p>
+                </div>
+                <Switch
+                  checked={settings.biometricEnabled}
+                  onCheckedChange={handleBiometricToggle}
+                />
+              </div>
+              
+              {settings.biometricEnabled && (
+                <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                  <p className="text-xs text-amber-600 dark:text-amber-400">
+                    {language === 'fr'
+                      ? '⚠️ Après un blocage, la biométrie ne peut être utilisée qu\'une seule fois. Le PIN sera ensuite requis.'
+                      : '⚠️ After a lockout, biometric can only be used once. PIN will then be required.'}
+                  </p>
+                </div>
+              )}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              {language === 'fr'
+                ? 'L\'authentification biométrique n\'est pas disponible sur cet appareil'
+                : 'Biometric authentication is not available on this device'}
+            </p>
+          )}
+        </div>
+      )}
+
       {/* Auto-Lock Section */}
       {settings.pinEnabled && (
         <div className="glass-card p-6 animate-fade-in" style={{ animationDelay: '100ms' }}>
@@ -209,6 +282,87 @@ export const SecuritySettings: React.FC = () => {
         </div>
       )}
 
+      {/* Attempt History Section */}
+      {settings.pinEnabled && (
+        <div className="glass-card p-6 animate-fade-in" style={{ animationDelay: '125ms' }}>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <History className="w-5 h-5 text-primary" />
+              <h3 className="font-display font-semibold text-foreground">
+                {language === 'fr' ? 'Historique des accès' : 'Access History'}
+              </h3>
+            </div>
+            <span className="text-xs text-muted-foreground bg-secondary px-2 py-1 rounded">
+              {attemptHistory.length} {language === 'fr' ? 'entrées' : 'entries'}
+            </span>
+          </div>
+
+          <div className="space-y-3">
+            {attemptHistory.length > 0 ? (
+              <>
+                {/* Show last 3 attempts */}
+                {attemptHistory.slice(-3).reverse().map((attempt, index) => (
+                  <div
+                    key={index}
+                    className={cn(
+                      "flex items-center justify-between p-3 rounded-lg border",
+                      attempt.success
+                        ? "bg-trading-profit/5 border-trading-profit/20"
+                        : attempt.blocked
+                          ? "bg-destructive/10 border-destructive/20"
+                          : "bg-destructive/5 border-destructive/10"
+                    )}
+                  >
+                    <div className="flex items-center gap-3">
+                      {attempt.success ? (
+                        <CheckCircle className="w-4 h-4 text-trading-profit" />
+                      ) : attempt.blocked ? (
+                        <Clock className="w-4 h-4 text-destructive" />
+                      ) : (
+                        <XCircle className="w-4 h-4 text-destructive" />
+                      )}
+                      <div>
+                        <p className="text-sm text-foreground">
+                          {attempt.success
+                            ? language === 'fr' ? 'Succès' : 'Success'
+                            : attempt.blocked
+                              ? language === 'fr' ? 'Bloqué' : 'Blocked'
+                              : language === 'fr' ? 'Échec' : 'Failed'
+                          }
+                          {attempt.method === 'biometric' && (
+                            <span className="ml-2 text-xs text-muted-foreground">
+                              ({language === 'fr' ? 'Biométrie' : 'Biometric'})
+                            </span>
+                          )}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {formatAttemptDate(attempt.timestamp)}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
+                <Button
+                  variant="outline"
+                  onClick={() => setShowHistoryDialog(true)}
+                  className="w-full gap-2"
+                >
+                  <History className="w-4 h-4" />
+                  {language === 'fr' ? 'Voir tout l\'historique' : 'View full history'}
+                </Button>
+              </>
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                {language === 'fr'
+                  ? 'Aucune tentative enregistrée'
+                  : 'No attempts recorded'}
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Confidential Mode Section */}
       <div className="glass-card p-6 animate-fade-in" style={{ animationDelay: '150ms' }}>
         <div className="flex items-center gap-3 mb-4">
@@ -229,8 +383,8 @@ export const SecuritySettings: React.FC = () => {
             </Label>
             <p className="text-xs text-muted-foreground">
               {language === 'fr'
-                ? 'Floute les valeurs monétaires et PnL'
-                : 'Blurs monetary values and PnL'}
+                ? 'Masque les valeurs monétaires et tailles de lot'
+                : 'Hides monetary values and lot sizes'}
             </p>
           </div>
           <Switch
@@ -300,6 +454,90 @@ export const SecuritySettings: React.FC = () => {
           <Button onClick={() => setShowChangePinDialog(false)}>
             {language === 'fr' ? 'Fermer' : 'Close'}
           </Button>
+        </DialogContent>
+      </Dialog>
+
+      {/* Full History Dialog */}
+      <Dialog open={showHistoryDialog} onOpenChange={setShowHistoryDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <History className="w-5 h-5 text-primary" />
+              {language === 'fr' ? 'Historique des accès' : 'Access History'}
+            </DialogTitle>
+            <DialogDescription>
+              {language === 'fr'
+                ? `${attemptHistory.length} tentatives enregistrées`
+                : `${attemptHistory.length} attempts recorded`}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <ScrollArea className="h-[400px] pr-4">
+            <div className="space-y-2">
+              {attemptHistory.slice().reverse().map((attempt, index) => (
+                <div
+                  key={index}
+                  className={cn(
+                    "flex items-center justify-between p-3 rounded-lg border",
+                    attempt.success
+                      ? "bg-trading-profit/5 border-trading-profit/20"
+                      : attempt.blocked
+                        ? "bg-destructive/10 border-destructive/20"
+                        : "bg-destructive/5 border-destructive/10"
+                  )}
+                >
+                  <div className="flex items-center gap-3">
+                    {attempt.success ? (
+                      <CheckCircle className="w-4 h-4 text-trading-profit" />
+                    ) : attempt.blocked ? (
+                      <Clock className="w-4 h-4 text-destructive" />
+                    ) : (
+                      <XCircle className="w-4 h-4 text-destructive" />
+                    )}
+                    <div>
+                      <p className="text-sm text-foreground">
+                        {attempt.success
+                          ? language === 'fr' ? 'Succès' : 'Success'
+                          : attempt.blocked
+                            ? language === 'fr' ? 'Bloqué' : 'Blocked'
+                            : language === 'fr' ? 'Échec' : 'Failed'
+                        }
+                        {attempt.method === 'biometric' && (
+                          <span className="ml-2 text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded">
+                            {language === 'fr' ? 'Biométrie' : 'Biometric'}
+                          </span>
+                        )}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {formatAttemptDate(attempt.timestamp)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </ScrollArea>
+
+          <div className="flex gap-3 pt-4">
+            <Button
+              variant="destructive"
+              onClick={() => {
+                clearAttemptHistory();
+                setShowHistoryDialog(false);
+              }}
+              className="flex-1 gap-2"
+            >
+              <Trash2 className="w-4 h-4" />
+              {language === 'fr' ? 'Effacer' : 'Clear'}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => setShowHistoryDialog(false)}
+              className="flex-1"
+            >
+              {language === 'fr' ? 'Fermer' : 'Close'}
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

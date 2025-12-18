@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useSecurity } from '@/contexts/SecurityContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { PINInput } from './PINInput';
-import { Lock, Shield, AlertTriangle, Clock, KeyRound, Mail } from 'lucide-react';
+import { Lock, Shield, AlertTriangle, Clock, KeyRound, Mail, Fingerprint } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { APP_NAME } from '@/lib/version';
 import { Button } from './ui/button';
@@ -21,6 +21,7 @@ export const LockScreen: React.FC = () => {
     isSetupMode, 
     settings, 
     unlock, 
+    unlockWithBiometric,
     setupPin, 
     exitSetupMode,
     failedAttempts,
@@ -29,6 +30,7 @@ export const LockScreen: React.FC = () => {
     blockTimeRemaining,
     blockCount,
     requestPinReset,
+    canUseBiometric,
   } = useSecurity();
   
   const [error, setError] = useState(false);
@@ -36,6 +38,7 @@ export const LockScreen: React.FC = () => {
   const [firstPin, setFirstPin] = useState('');
   const [showForgotDialog, setShowForgotDialog] = useState(false);
   const [isRequestingReset, setIsRequestingReset] = useState(false);
+  const [isBiometricLoading, setIsBiometricLoading] = useState(false);
 
   if (!isLocked && !isSetupMode) {
     return null;
@@ -48,6 +51,17 @@ export const LockScreen: React.FC = () => {
     if (!success) {
       setError(true);
       setTimeout(() => setError(false), 500);
+    }
+  };
+
+  const handleBiometricUnlock = async () => {
+    if (!canUseBiometric) return;
+    
+    setIsBiometricLoading(true);
+    try {
+      await unlockWithBiometric();
+    } finally {
+      setIsBiometricLoading(false);
     }
   };
 
@@ -84,7 +98,6 @@ export const LockScreen: React.FC = () => {
     setShowForgotDialog(false);
   };
 
-  // Format remaining time
   const formatTime = (ms: number) => {
     const totalSeconds = Math.ceil(ms / 1000);
     const minutes = Math.floor(totalSeconds / 60);
@@ -92,7 +105,6 @@ export const LockScreen: React.FC = () => {
     return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
   };
 
-  // Get warning message based on failed attempts
   const getWarningMessage = () => {
     if (isBlocked) {
       return language === 'fr'
@@ -208,6 +220,32 @@ export const LockScreen: React.FC = () => {
             <span className={cn("text-sm", failedAttempts >= 4 && "font-semibold")}>
               {warningMessage}
             </span>
+          </div>
+        )}
+
+        {/* Biometric Button - shown when available and not blocked */}
+        {canUseBiometric && !isSetupMode && !isBlocked && (
+          <Button
+            variant="outline"
+            size="lg"
+            onClick={handleBiometricUnlock}
+            disabled={isBiometricLoading}
+            className="gap-3 h-14 px-6 border-primary/30 hover:border-primary/50 hover:bg-primary/5"
+          >
+            <Fingerprint className={cn("w-6 h-6 text-primary", isBiometricLoading && "animate-pulse")} />
+            <span className="text-foreground">
+              {language === 'fr' ? 'Empreinte / Face ID' : 'Fingerprint / Face ID'}
+            </span>
+          </Button>
+        )}
+
+        {/* Biometric warning after block */}
+        {!canUseBiometric && settings.biometricEnabled && blockCount > 0 && !isBlocked && !isSetupMode && (
+          <div className="text-xs text-amber-500 text-center px-4">
+            {language === 'fr'
+              ? '⚠️ Biométrie désactivée après blocage. Veuillez utiliser votre PIN.'
+              : '⚠️ Biometric disabled after lockout. Please use your PIN.'
+            }
           </div>
         )}
 
