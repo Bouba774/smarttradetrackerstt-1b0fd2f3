@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useTrades } from '@/hooks/useTrades';
 import { useCurrency } from '@/hooks/useCurrency';
+import { ConfidentialValue } from '@/components/ConfidentialValue';
 import { useSessionAnalysis } from '@/hooks/useSessionAnalysis';
 import { useStrategyAnalysis } from '@/hooks/useStrategyAnalysis';
 import { useSelfSabotage } from '@/hooks/useSelfSabotage';
@@ -328,7 +329,7 @@ const Reports: React.FC = () => {
                 <span className="text-xs text-muted-foreground">PnL</span>
               </div>
               <p className={cn("font-display text-2xl font-bold", stats.pnl >= 0 ? "text-profit" : "text-loss")}>
-                {formatAmount(stats.pnl, true)}
+                <ConfidentialValue>{formatAmount(stats.pnl, true)}</ConfidentialValue>
               </p>
             </div>
             <div className="glass-card p-4 animate-fade-in" style={{ animationDelay: '100ms' }}>
@@ -387,7 +388,7 @@ const Reports: React.FC = () => {
                     </div>
                     <div className="flex justify-between text-xs">
                       <span className="text-muted-foreground">PnL</span>
-                      <span className={cn(session.pnl >= 0 ? "text-profit" : "text-loss")}>{formatAmount(session.pnl, true)}</span>
+                      <span className={cn(session.pnl >= 0 ? "text-profit" : "text-loss")}><ConfidentialValue>{formatAmount(session.pnl, true)}</ConfidentialValue></span>
                     </div>
                     <div className="flex justify-between text-xs">
                       <span className="text-muted-foreground">Trades</span>
@@ -441,12 +442,12 @@ const Reports: React.FC = () => {
                         </td>
                         <td className="text-center py-2 px-2">
                           <span className={cn(strat.expectancy >= 0 ? "text-profit" : "text-loss")}>
-                            {formatAmount(strat.expectancy, true)}
+                            <ConfidentialValue>{formatAmount(strat.expectancy, true)}</ConfidentialValue>
                           </span>
                         </td>
                         <td className="text-right py-2 px-2">
                           <span className={cn(strat.totalPnl >= 0 ? "text-profit" : "text-loss")}>
-                            {formatAmount(strat.totalPnl, true)}
+                            <ConfidentialValue>{formatAmount(strat.totalPnl, true)}</ConfidentialValue>
                           </span>
                         </td>
                       </tr>

@@ -35,7 +35,6 @@ import {
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { CURRENCIES, getCurrencyLabel } from '@/data/currencies';
-import { ExchangeRateIndicator } from '@/components/ExchangeRateIndicator';
 import { SecuritySettings } from '@/components/SecuritySettings';
 
 const SETTINGS_STORAGE_KEY = 'smart-trade-tracker-settings';
@@ -228,9 +227,6 @@ const Settings: React.FC = () => {
             : 'All values will be automatically converted using current exchange rates'}
         </p>
       </div>
-
-      {/* Exchange Rate Indicator */}
-      <ExchangeRateIndicator selectedCurrency={settings.currency} />
 
       {/* Theme Mode */}
       <div className="glass-card p-6 animate-fade-in" style={{ animationDelay: '50ms' }}>

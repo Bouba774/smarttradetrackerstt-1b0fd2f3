@@ -2,6 +2,7 @@ import React, { useState, useMemo, useRef } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useTrades } from '@/hooks/useTrades';
 import { useCurrency } from '@/hooks/useCurrency';
+import { useSecurity } from '@/contexts/SecurityContext';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -50,6 +51,7 @@ const PeriodComparison: React.FC = () => {
   const { language, t } = useLanguage();
   const { trades, isLoading } = useTrades();
   const { formatAmount, getCurrencySymbol } = useCurrency();
+  const { settings: securitySettings } = useSecurity();
   const locale = language === 'fr' ? fr : enUS;
 
   const [viewMode, setViewMode] = useState<ViewMode>('month');
@@ -357,11 +359,15 @@ const PeriodComparison: React.FC = () => {
         <div className="grid grid-cols-2 gap-4">
           <div>
             <p className="text-xs text-muted-foreground mb-1">{periodAKey}</p>
-            <p className="font-display text-xl font-bold text-foreground">{formatValue(valueA)}</p>
+            <p className="font-display text-xl font-bold text-foreground">
+              {securitySettings.confidentialMode ? '****' : formatValue(valueA)}
+            </p>
           </div>
           <div>
             <p className="text-xs text-muted-foreground mb-1">{periodBKey}</p>
-            <p className="font-display text-xl font-bold text-foreground">{formatValue(valueB)}</p>
+            <p className="font-display text-xl font-bold text-foreground">
+              {securitySettings.confidentialMode ? '****' : formatValue(valueB)}
+            </p>
           </div>
         </div>
         <div className={cn(
@@ -645,7 +651,7 @@ const PeriodComparison: React.FC = () => {
                     <span className="text-loss font-medium ml-1">{statsA.losingTrades}</span> {language === 'fr' ? 'pertes' : 'losses'}
                   </p>
                   <p className={cn("text-2xl font-display font-bold", statsA.pnl >= 0 ? "text-profit" : "text-loss")}>
-                    {formatAmount(statsA.pnl, true)}
+                    {securitySettings.confidentialMode ? '****' : formatAmount(statsA.pnl, true)}
                   </p>
                 </div>
               </div>
@@ -657,7 +663,7 @@ const PeriodComparison: React.FC = () => {
                     <span className="text-loss font-medium ml-1">{statsB.losingTrades}</span> {language === 'fr' ? 'pertes' : 'losses'}
                   </p>
                   <p className={cn("text-2xl font-display font-bold", statsB.pnl >= 0 ? "text-profit" : "text-loss")}>
-                    {formatAmount(statsB.pnl, true)}
+                    {securitySettings.confidentialMode ? '****' : formatAmount(statsB.pnl, true)}
                   </p>
                 </div>
               </div>
