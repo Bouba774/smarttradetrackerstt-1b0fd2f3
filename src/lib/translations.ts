@@ -698,6 +698,64 @@ export const translations: Translations = {
   maxLossDay: { fr: 'Perte max ($)', en: 'Max loss ($)' },
   tradesToday: { fr: "Trades aujourd'hui", en: 'Trades today' },
   stopTradingWarning: { fr: "Arrêtez de trader pour aujourd'hui", en: 'Stop trading for today' },
+
+  // ============================================
+  // SESSION ANALYSIS
+  // ============================================
+  sessionAnalysis: { fr: 'Analyse par Session', en: 'Session Analysis' },
+  londonSession: { fr: 'Londres', en: 'London' },
+  newYorkSession: { fr: 'New York', en: 'New York' },
+  asiaSession: { fr: 'Asie', en: 'Asia' },
+  overlapSession: { fr: 'Chevauchement', en: 'Overlap' },
+  bestSessionTrader: { fr: 'Meilleur trader session', en: 'Best session trader' },
+  sessionStats: { fr: 'Stats par session', en: 'Stats by session' },
+
+  // ============================================
+  // STRATEGY ANALYSIS
+  // ============================================
+  strategyAnalysis: { fr: 'Analyse par Stratégie', en: 'Strategy Analysis' },
+  bestStrategyLabel: { fr: 'Meilleure Stratégie', en: 'Best Strategy' },
+  worstStrategyLabel: { fr: 'Pire Stratégie', en: 'Worst Strategy' },
+  byStrategy: { fr: 'Par Stratégie', en: 'By Strategy' },
+
+  // ============================================
+  // SELF SABOTAGE
+  // ============================================
+  selfSabotage: { fr: 'Détection d\'Auto-sabotage', en: 'Self-Sabotage Detection' },
+  sabotageAlerts: { fr: 'Alertes de Sabotage', en: 'Sabotage Alerts' },
+  sabotageScore: { fr: 'Score de Sabotage', en: 'Sabotage Score' },
+  tradingAfterLoss: { fr: 'Trading après perte', en: 'Trading after loss' },
+  lotIncreaseAfterWin: { fr: 'Lot augmenté après gain', en: 'Lot increase after win' },
+  emotionalTradingAlert: { fr: 'Trading émotionnel', en: 'Emotional trading' },
+  revengeTradingAlert: { fr: 'Revenge trading', en: 'Revenge trading' },
+  overtradingSabotage: { fr: 'Overtrading', en: 'Overtrading' },
+  noSabotageDetected: { fr: 'Aucun auto-sabotage détecté', en: 'No self-sabotage detected' },
+
+  // ============================================
+  // DISCIPLINE SCORE
+  // ============================================
+  disciplineScoreLabel: { fr: 'Score de Discipline', en: 'Discipline Score' },
+  slRespect: { fr: 'Respect du SL', en: 'SL Respect' },
+  tpRespect: { fr: 'Respect du TP', en: 'TP Respect' },
+  planRespect: { fr: 'Respect du Plan', en: 'Plan Respect' },
+  noOvertradingMetric: { fr: 'Pas d\'overtrading', en: 'No Overtrading' },
+  disciplineHistory: { fr: 'Historique Discipline', en: 'Discipline History' },
+  currentStreakLabel: { fr: 'Série Actuelle', en: 'Current Streak' },
+  bestStreakLabel: { fr: 'Meilleure Série', en: 'Best Streak' },
+  daysStreak: { fr: 'jours', en: 'days' },
+  disciplineGrade: { fr: 'Note', en: 'Grade' },
+
+  // ============================================
+  // PERFORMANCE HEATMAP
+  // ============================================
+  performanceHeatmap: { fr: 'Heatmap des Performances', en: 'Performance Heatmap' },
+  byDayOfWeek: { fr: 'Par Jour', en: 'By Day' },
+  byHour: { fr: 'Par Heure', en: 'By Hour' },
+  bestTradingDay: { fr: 'Meilleur Jour', en: 'Best Day' },
+  worstTradingDay: { fr: 'Pire Jour', en: 'Worst Day' },
+  bestTradingHour: { fr: 'Meilleure Heure', en: 'Best Hour' },
+  worstTradingHour: { fr: 'Pire Heure', en: 'Worst Hour' },
+  tradesCount: { fr: 'Trades', en: 'Trades' },
 };
 
 

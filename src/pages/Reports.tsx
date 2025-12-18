@@ -2,14 +2,19 @@ import React, { useState, useMemo } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useTrades } from '@/hooks/useTrades';
 import { useCurrency } from '@/hooks/useCurrency';
+import { useSessionAnalysis } from '@/hooks/useSessionAnalysis';
+import { useStrategyAnalysis } from '@/hooks/useStrategyAnalysis';
+import { useSelfSabotage } from '@/hooks/useSelfSabotage';
+import { useDisciplineScore } from '@/hooks/useDisciplineScore';
+import { usePerformanceHeatmap } from '@/hooks/usePerformanceHeatmap';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subMonths, addMonths, isWithinInterval, parseISO, getDay, subWeeks } from 'date-fns';
+import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subMonths, addMonths, isWithinInterval, parseISO, getDay } from 'date-fns';
 import { fr, enUS } from 'date-fns/locale';
 import {
-  AreaChart, Area, BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell,
+  AreaChart, Area, BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, RadarChart, PolarGrid, PolarAngleAxis, Radar,
 } from 'recharts';
 import {
   FileText,
@@ -23,17 +28,31 @@ import {
   Award,
   AlertTriangle,
   Loader2,
+  Globe,
+  BarChart3,
+  Shield,
+  Clock,
+  Flame,
+  AlertCircle,
 } from 'lucide-react';
+import GaugeChart from '@/components/ui/GaugeChart';
 
 type ViewMode = 'week' | 'month';
 
 const DAYS_FR = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
 const DAYS_EN = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
+const SESSION_NAMES = {
+  london: { fr: 'Londres', en: 'London', color: 'hsl(var(--primary))' },
+  newYork: { fr: 'New York', en: 'New York', color: 'hsl(var(--profit))' },
+  asia: { fr: 'Asie', en: 'Asia', color: 'hsl(217, 91%, 60%)' },
+  overlap: { fr: 'Chevauche.', en: 'Overlap', color: 'hsl(280, 70%, 50%)' },
+};
+
 const Reports: React.FC = () => {
   const { language, t } = useLanguage();
   const { trades, isLoading } = useTrades();
-  const { formatAmount, getCurrencySymbol } = useCurrency();
+  const { formatAmount } = useCurrency();
   const locale = language === 'fr' ? fr : enUS;
   
   const [viewMode, setViewMode] = useState<ViewMode>('week');
@@ -75,7 +94,14 @@ const Reports: React.FC = () => {
     });
   }, [trades, periodStart, periodEnd]);
 
-  // Calculate statistics from real data
+  // Use new analysis hooks
+  const sessionAnalysis = useSessionAnalysis(periodTrades, language);
+  const strategyAnalysis = useStrategyAnalysis(periodTrades);
+  const selfSabotage = useSelfSabotage(periodTrades, language);
+  const disciplineScore = useDisciplineScore(periodTrades);
+  const heatmap = usePerformanceHeatmap(periodTrades, language);
+
+  // Calculate basic statistics
   const stats = useMemo(() => {
     if (periodTrades.length === 0) {
       return {
@@ -89,8 +115,6 @@ const Reports: React.FC = () => {
         dominantEmotion: '-',
         bestDay: { day: '-', pnl: 0 },
         worstDay: { day: '-', pnl: 0 },
-        avgRR: 0,
-        disciplineScore: 0,
       };
     }
 
@@ -99,14 +123,12 @@ const Reports: React.FC = () => {
     const winrate = periodTrades.length > 0 ? Math.round((winningTrades / periodTrades.length) * 100) : 0;
     const pnl = periodTrades.reduce((sum, t) => sum + (t.profit_loss || 0), 0);
 
-    // Calculate by day
     const days = language === 'fr' ? DAYS_FR : DAYS_EN;
-    const dayStats: Record<number, { pnl: number; count: number }> = {};
+    const dayStats: Record<number, { pnl: number }> = {};
     periodTrades.forEach(trade => {
       const dayIndex = getDay(parseISO(trade.trade_date));
-      if (!dayStats[dayIndex]) dayStats[dayIndex] = { pnl: 0, count: 0 };
+      if (!dayStats[dayIndex]) dayStats[dayIndex] = { pnl: 0 };
       dayStats[dayIndex].pnl += trade.profit_loss || 0;
-      dayStats[dayIndex].count++;
     });
 
     let bestDay = { day: '-', pnl: 0 };
@@ -116,7 +138,6 @@ const Reports: React.FC = () => {
       if (data.pnl < worstDay.pnl) worstDay = { day: days[parseInt(dayIndex)], pnl: data.pnl };
     });
 
-    // Best setup
     const setupStats: Record<string, { wins: number; total: number }> = {};
     periodTrades.forEach(trade => {
       const setup = trade.setup || 'Other';
@@ -134,7 +155,6 @@ const Reports: React.FC = () => {
       }
     });
 
-    // Best asset
     const assetStats: Record<string, number> = {};
     periodTrades.forEach(trade => {
       if (!assetStats[trade.asset]) assetStats[trade.asset] = 0;
@@ -149,7 +169,6 @@ const Reports: React.FC = () => {
       }
     });
 
-    // Dominant emotion
     const emotionCounts: Record<string, number> = {};
     periodTrades.forEach(trade => {
       const emotion = trade.emotions || 'Neutre';
@@ -164,13 +183,6 @@ const Reports: React.FC = () => {
       }
     });
 
-    // Discipline score (based on having SL and TP)
-    const tradesWithSL = periodTrades.filter(t => t.stop_loss).length;
-    const tradesWithTP = periodTrades.filter(t => t.take_profit).length;
-    const disciplineScore = periodTrades.length > 0
-      ? Math.round(((tradesWithSL + tradesWithTP) / (periodTrades.length * 2)) * 100)
-      : 0;
-
     return {
       winrate,
       pnl,
@@ -182,8 +194,6 @@ const Reports: React.FC = () => {
       dominantEmotion,
       bestDay,
       worstDay,
-      avgRR: 0,
-      disciplineScore,
     };
   }, [periodTrades, language]);
 
@@ -202,55 +212,6 @@ const Reports: React.FC = () => {
       pnl: Math.round(dayData[dayIndex] * 100) / 100,
     }));
   }, [periodTrades, language]);
-
-  // Emotion distribution
-  const emotionDistribution = useMemo(() => {
-    const emotionCounts: Record<string, number> = {};
-    periodTrades.forEach(trade => {
-      const emotion = trade.emotions || 'Neutre';
-      emotionCounts[emotion] = (emotionCounts[emotion] || 0) + 1;
-    });
-
-    const colors: Record<string, string> = {
-      'Calme': 'hsl(var(--profit))',
-      'Confiant': 'hsl(var(--primary))',
-      'Stressé': 'hsl(var(--loss))',
-      'Impulsif': 'hsl(30, 100%, 50%)',
-      'Neutre': 'hsl(var(--muted-foreground))',
-    };
-
-    const total = Object.values(emotionCounts).reduce((sum, count) => sum + count, 0);
-    return Object.entries(emotionCounts).map(([name, count]) => ({
-      name,
-      value: total > 0 ? Math.round((count / total) * 100) : 0,
-      color: colors[name] || 'hsl(var(--primary))',
-    }));
-  }, [periodTrades]);
-
-  // Monthly performance (last 4 months)
-  const monthlyData = useMemo(() => {
-    if (!trades) return [];
-    const months: { month: string; pnl: number }[] = [];
-    
-    for (let i = 3; i >= 0; i--) {
-      const monthDate = subMonths(new Date(), i);
-      const monthStart = startOfMonth(monthDate);
-      const monthEnd = endOfMonth(monthDate);
-      
-      const monthTrades = trades.filter(trade => {
-        const tradeDate = parseISO(trade.trade_date);
-        return isWithinInterval(tradeDate, { start: monthStart, end: monthEnd });
-      });
-      
-      const pnl = monthTrades.reduce((sum, t) => sum + (t.profit_loss || 0), 0);
-      months.push({
-        month: format(monthDate, 'MMM', { locale }),
-        pnl: Math.round(pnl * 100) / 100,
-      });
-    }
-    
-    return months;
-  }, [trades, locale]);
 
   if (isLoading) {
     return (
@@ -282,7 +243,6 @@ const Reports: React.FC = () => {
       {/* Period Selector */}
       <div className="glass-card p-4 animate-fade-in">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-          {/* View Mode Toggle */}
           <div className="flex items-center gap-2 p-1 rounded-lg bg-secondary/50">
             <Button
               variant={viewMode === 'week' ? 'default' : 'ghost'}
@@ -302,12 +262,10 @@ const Reports: React.FC = () => {
             </Button>
           </div>
 
-          {/* Period Navigation */}
           <div className="flex items-center gap-2">
             <Button variant="outline" size="icon" onClick={() => navigatePeriod('prev')}>
               <ChevronLeft className="w-4 h-4" />
             </Button>
-
             <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
               <PopoverTrigger asChild>
                 <Button variant="outline" className="min-w-[200px] gap-2 font-display">
@@ -329,7 +287,6 @@ const Reports: React.FC = () => {
                 />
               </PopoverContent>
             </Popover>
-
             <Button variant="outline" size="icon" onClick={() => navigatePeriod('next')}>
               <ChevronRight className="w-4 h-4" />
             </Button>
@@ -381,158 +338,332 @@ const Reports: React.FC = () => {
             </div>
             <div className="glass-card p-4 animate-fade-in" style={{ animationDelay: '150ms' }}>
               <div className="flex items-center gap-2 mb-2">
-                <Brain className="w-4 h-4 text-primary" />
-                <span className="text-xs text-muted-foreground">Discipline</span>
+                <Shield className="w-4 h-4 text-primary" />
+                <span className="text-xs text-muted-foreground">{t('discipline')}</span>
               </div>
-              <p className="font-display text-2xl font-bold text-primary">{stats.disciplineScore}/100</p>
+              <p className={cn(
+                "font-display text-2xl font-bold",
+                disciplineScore.overallScore >= 70 ? "text-profit" : disciplineScore.overallScore >= 50 ? "text-primary" : "text-loss"
+              )}>
+                {disciplineScore.overallScore}/100
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {t('disciplineGrade')}: {disciplineScore.grade}
+              </p>
             </div>
           </div>
 
-          {/* Charts Row */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Daily PnL */}
-            <div className="glass-card p-6 animate-fade-in" style={{ animationDelay: '200ms' }}>
-              <h3 className="font-display font-semibold text-foreground mb-4">
-                {t('dailyPnL')}
-              </h3>
-              {periodTrades.length > 0 ? (
-                <div className="h-[200px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={dailyPnL}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                      <XAxis dataKey="day" stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                      <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                      <Tooltip
-                        contentStyle={{
-                          backgroundColor: 'hsl(var(--popover))',
-                          border: '1px solid hsl(var(--border))',
-                          borderRadius: '8px',
-                        }}
-                        formatter={(value: number) => [formatAmount(value, true), 'PnL']}
-                      />
-                      <Bar 
-                        dataKey="pnl" 
-                        radius={[4, 4, 0, 0]}
-                      >
-                        {dailyPnL.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.pnl >= 0 ? 'hsl(var(--profit))' : 'hsl(var(--loss))'} />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              ) : (
-                <div className="h-[200px] flex items-center justify-center text-muted-foreground">
-                  {t('noTradesInPeriod')}
-                </div>
+          {/* Session Analysis */}
+          <div className="glass-card p-6 animate-fade-in">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Globe className="w-5 h-5 text-primary" />
+                <h3 className="font-display font-semibold text-foreground">{t('sessionAnalysis')}</h3>
+              </div>
+              {sessionAnalysis.bestSessionBadge && (
+                <span className="text-xs bg-primary/20 text-primary px-2 py-1 rounded-full">
+                  {sessionAnalysis.bestSessionBadge}
+                </span>
               )}
             </div>
-
-            {/* Emotion Distribution */}
-            <div className="glass-card p-6 animate-fade-in" style={{ animationDelay: '250ms' }}>
-              <h3 className="font-display font-semibold text-foreground mb-4">
-                {t('emotionDistribution')}
-              </h3>
-              {emotionDistribution.length > 0 ? (
-                <>
-                  <div className="h-[200px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={emotionDistribution}
-                          cx="50%"
-                          cy="50%"
-                          innerRadius={50}
-                          outerRadius={80}
-                          paddingAngle={2}
-                          dataKey="value"
-                        >
-                          {emotionDistribution.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={entry.color} />
-                          ))}
-                        </Pie>
-                        <Tooltip
-                          contentStyle={{
-                            backgroundColor: 'hsl(var(--popover))',
-                            border: '1px solid hsl(var(--border))',
-                            borderRadius: '8px',
-                          }}
-                          formatter={(value: number) => [`${value}%`, '']}
-                        />
-                      </PieChart>
-                    </ResponsiveContainer>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {sessionAnalysis.sessions.map(session => (
+                <div key={session.session} className="p-3 rounded-lg bg-secondary/30">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: SESSION_NAMES[session.session].color }} />
+                    <span className="text-sm font-medium text-foreground">
+                      {SESSION_NAMES[session.session][language as 'fr' | 'en']}
+                    </span>
                   </div>
-                  <div className="flex flex-wrap justify-center gap-3 mt-2">
-                    {emotionDistribution.map((emotion) => (
-                      <div key={emotion.name} className="flex items-center gap-2">
-                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: emotion.color }} />
-                        <span className="text-xs text-muted-foreground">{emotion.name}</span>
-                      </div>
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-xs">
+                      <span className="text-muted-foreground">Winrate</span>
+                      <span className={cn(session.winRate >= 50 ? "text-profit" : "text-loss")}>{session.winRate}%</span>
+                    </div>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-muted-foreground">PnL</span>
+                      <span className={cn(session.pnl >= 0 ? "text-profit" : "text-loss")}>{formatAmount(session.pnl, true)}</span>
+                    </div>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-muted-foreground">Trades</span>
+                      <span className="text-foreground">{session.trades}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Strategy Analysis */}
+          <div className="glass-card p-6 animate-fade-in">
+            <div className="flex items-center gap-2 mb-4">
+              <BarChart3 className="w-5 h-5 text-primary" />
+              <h3 className="font-display font-semibold text-foreground">{t('strategyAnalysis')}</h3>
+            </div>
+            {strategyAnalysis.strategies.length > 0 ? (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border">
+                      <th className="text-left py-2 px-2 text-muted-foreground font-medium">Stratégie</th>
+                      <th className="text-center py-2 px-2 text-muted-foreground font-medium">Trades</th>
+                      <th className="text-center py-2 px-2 text-muted-foreground font-medium">Winrate</th>
+                      <th className="text-center py-2 px-2 text-muted-foreground font-medium">PF</th>
+                      <th className="text-center py-2 px-2 text-muted-foreground font-medium">{t('expectancy')}</th>
+                      <th className="text-right py-2 px-2 text-muted-foreground font-medium">PnL</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {strategyAnalysis.strategies.slice(0, 6).map(strat => (
+                      <tr key={strat.strategy} className="border-b border-border/50 hover:bg-secondary/20">
+                        <td className="py-2 px-2">
+                          <span className={cn(
+                            "text-foreground",
+                            strat.strategy === strategyAnalysis.bestStrategy && "text-profit font-medium",
+                            strat.strategy === strategyAnalysis.worstStrategy && "text-loss"
+                          )}>
+                            {strat.strategy}
+                          </span>
+                        </td>
+                        <td className="text-center py-2 px-2 text-muted-foreground">{strat.trades}</td>
+                        <td className="text-center py-2 px-2">
+                          <span className={cn(strat.winRate >= 50 ? "text-profit" : "text-loss")}>{strat.winRate}%</span>
+                        </td>
+                        <td className="text-center py-2 px-2">
+                          <span className={cn(strat.profitFactor >= 1 ? "text-profit" : "text-loss")}>
+                            {strat.profitFactor === Infinity ? '∞' : strat.profitFactor.toFixed(2)}
+                          </span>
+                        </td>
+                        <td className="text-center py-2 px-2">
+                          <span className={cn(strat.expectancy >= 0 ? "text-profit" : "text-loss")}>
+                            {formatAmount(strat.expectancy, true)}
+                          </span>
+                        </td>
+                        <td className="text-right py-2 px-2">
+                          <span className={cn(strat.totalPnl >= 0 ? "text-profit" : "text-loss")}>
+                            {formatAmount(strat.totalPnl, true)}
+                          </span>
+                        </td>
+                      </tr>
                     ))}
-                  </div>
-                </>
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p className="text-muted-foreground text-center py-4">{t('noData')}</p>
+            )}
+          </div>
+
+          {/* Self Sabotage Alerts & Discipline Score */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Self Sabotage */}
+            <div className="glass-card p-6 animate-fade-in">
+              <div className="flex items-center gap-2 mb-4">
+                <AlertTriangle className="w-5 h-5 text-loss" />
+                <h3 className="font-display font-semibold text-foreground">{t('selfSabotage')}</h3>
+              </div>
+              
+              {selfSabotage.alerts.length > 0 ? (
+                <div className="space-y-3">
+                  {selfSabotage.alerts.map((alert, idx) => (
+                    <div 
+                      key={idx}
+                      className={cn(
+                        "p-3 rounded-lg border",
+                        alert.severity === 'danger' ? "bg-loss/10 border-loss/30" : "bg-yellow-500/10 border-yellow-500/30"
+                      )}
+                    >
+                      <div className="flex items-center gap-2 mb-1">
+                        <AlertCircle className={cn("w-4 h-4", alert.severity === 'danger' ? "text-loss" : "text-yellow-500")} />
+                        <span className="text-sm font-medium text-foreground">
+                          {alert.message[language as 'fr' | 'en']}
+                        </span>
+                        <span className="text-xs bg-secondary px-1.5 py-0.5 rounded">x{alert.count}</span>
+                      </div>
+                      {alert.details.length > 0 && (
+                        <div className="text-xs text-muted-foreground mt-1 pl-6">
+                          {alert.details.slice(0, 2).join(' • ')}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
               ) : (
-                <div className="h-[200px] flex items-center justify-center text-muted-foreground">
-                  {t('noData')}
+                <div className="text-center py-6">
+                  <Shield className="w-12 h-12 mx-auto text-profit/50 mb-2" />
+                  <p className="text-profit font-medium">{t('noSabotageDetected')}</p>
                 </div>
               )}
+              
+              <div className="mt-4 pt-4 border-t border-border">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">{t('sabotageScore')}</span>
+                  <span className={cn(
+                    "font-display font-bold",
+                    selfSabotage.sabotageScore <= 30 ? "text-profit" : selfSabotage.sabotageScore <= 60 ? "text-yellow-500" : "text-loss"
+                  )}>
+                    {selfSabotage.sabotageScore}/100
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Discipline Score */}
+            <div className="glass-card p-6 animate-fade-in">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <Shield className="w-5 h-5 text-primary" />
+                  <h3 className="font-display font-semibold text-foreground">{t('disciplineScore')}</h3>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Flame className="w-4 h-4 text-primary" />
+                  <span className="text-sm text-muted-foreground">{disciplineScore.streak} {t('daysStreak')}</span>
+                </div>
+              </div>
+
+              <div className="flex justify-center mb-4">
+                <GaugeChart 
+                  value={disciplineScore.overallScore} 
+                  max={100} 
+                  label={t('discipline')}
+                  size="md"
+                  variant={disciplineScore.overallScore >= 70 ? 'profit' : disciplineScore.overallScore >= 50 ? 'primary' : 'loss'}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div className="p-2 rounded bg-secondary/30">
+                  <div className="flex justify-between text-xs">
+                    <span className="text-muted-foreground">{t('slRespect')}</span>
+                    <span className={cn(disciplineScore.metrics.slRespect >= 70 ? "text-profit" : "text-loss")}>
+                      {disciplineScore.metrics.slRespect}%
+                    </span>
+                  </div>
+                </div>
+                <div className="p-2 rounded bg-secondary/30">
+                  <div className="flex justify-between text-xs">
+                    <span className="text-muted-foreground">{t('tpRespect')}</span>
+                    <span className={cn(disciplineScore.metrics.tpRespect >= 70 ? "text-profit" : "text-loss")}>
+                      {disciplineScore.metrics.tpRespect}%
+                    </span>
+                  </div>
+                </div>
+                <div className="p-2 rounded bg-secondary/30">
+                  <div className="flex justify-between text-xs">
+                    <span className="text-muted-foreground">{t('planRespect')}</span>
+                    <span className={cn(disciplineScore.metrics.planRespect >= 70 ? "text-profit" : "text-loss")}>
+                      {disciplineScore.metrics.planRespect}%
+                    </span>
+                  </div>
+                </div>
+                <div className="p-2 rounded bg-secondary/30">
+                  <div className="flex justify-between text-xs">
+                    <span className="text-muted-foreground">{t('riskManagement')}</span>
+                    <span className={cn(disciplineScore.metrics.riskManagement >= 70 ? "text-profit" : "text-loss")}>
+                      {disciplineScore.metrics.riskManagement}%
+                    </span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* Best/Worst Analysis */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="glass-card p-4 animate-fade-in" style={{ animationDelay: '300ms' }}>
-              <div className="flex items-center gap-2 mb-3">
-                <TrendingUp className="w-4 h-4 text-profit" />
-                <span className="text-sm font-medium text-foreground">
-                  {t('bestDayLabel')}
-                </span>
-              </div>
-              <p className="font-display text-lg font-bold text-profit">{stats.bestDay.day}</p>
-              <p className="text-sm text-muted-foreground">+{stats.bestDay.pnl.toFixed(2)}$</p>
+          {/* Performance Heatmap */}
+          <div className="glass-card p-6 animate-fade-in">
+            <div className="flex items-center gap-2 mb-4">
+              <Clock className="w-5 h-5 text-primary" />
+              <h3 className="font-display font-semibold text-foreground">{t('performanceHeatmap')}</h3>
             </div>
-            <div className="glass-card p-4 animate-fade-in" style={{ animationDelay: '350ms' }}>
-              <div className="flex items-center gap-2 mb-3">
-                <TrendingDown className="w-4 h-4 text-loss" />
-                <span className="text-sm font-medium text-foreground">
-                  {t('worstDayLabel')}
-                </span>
+
+            {/* Best/Worst indicators */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+              <div className="p-2 rounded bg-profit/10 border border-profit/30">
+                <span className="text-xs text-muted-foreground">{t('bestTradingDay')}</span>
+                <p className="text-sm font-medium text-profit">{heatmap.bestDay?.day || '-'}</p>
+                <p className="text-xs text-profit">{heatmap.bestDay ? formatAmount(heatmap.bestDay.pnl, true) : ''}</p>
               </div>
-              <p className="font-display text-lg font-bold text-loss">{stats.worstDay.day}</p>
-              <p className="text-sm text-muted-foreground">{stats.worstDay.pnl.toFixed(2)}$</p>
+              <div className="p-2 rounded bg-loss/10 border border-loss/30">
+                <span className="text-xs text-muted-foreground">{t('worstTradingDay')}</span>
+                <p className="text-sm font-medium text-loss">{heatmap.worstDay?.day || '-'}</p>
+                <p className="text-xs text-loss">{heatmap.worstDay ? formatAmount(heatmap.worstDay.pnl, true) : ''}</p>
+              </div>
+              <div className="p-2 rounded bg-profit/10 border border-profit/30">
+                <span className="text-xs text-muted-foreground">{t('bestTradingHour')}</span>
+                <p className="text-sm font-medium text-profit">{heatmap.bestHour?.hour || '-'}</p>
+                <p className="text-xs text-profit">{heatmap.bestHour ? formatAmount(heatmap.bestHour.pnl, true) : ''}</p>
+              </div>
+              <div className="p-2 rounded bg-loss/10 border border-loss/30">
+                <span className="text-xs text-muted-foreground">{t('worstTradingHour')}</span>
+                <p className="text-sm font-medium text-loss">{heatmap.worstHour?.hour || '-'}</p>
+                <p className="text-xs text-loss">{heatmap.worstHour ? formatAmount(heatmap.worstHour.pnl, true) : ''}</p>
+              </div>
             </div>
-            <div className="glass-card p-4 animate-fade-in" style={{ animationDelay: '400ms' }}>
-              <div className="flex items-center gap-2 mb-3">
-                <Award className="w-4 h-4 text-primary" />
-                <span className="text-sm font-medium text-foreground">
-                  {t('bestSetup')}
-                </span>
-              </div>
-              <p className="font-display text-lg font-bold text-primary">{stats.bestSetup}</p>
-              <p className="text-sm text-muted-foreground">{stats.bestAsset}</p>
+
+            {/* Day of Week Chart */}
+            <div className="h-[180px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={heatmap.byDay}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis dataKey="dayName" stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                  <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: 'hsl(var(--popover))',
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px',
+                    }}
+                    formatter={(value: number, name: string) => {
+                      if (name === 'pnl') return [formatAmount(value, true), 'PnL'];
+                      if (name === 'winRate') return [`${value}%`, 'Winrate'];
+                      return [value, name];
+                    }}
+                  />
+                  <Bar dataKey="pnl" radius={[4, 4, 0, 0]}>
+                    {heatmap.byDay.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.pnl >= 0 ? 'hsl(var(--profit))' : 'hsl(var(--loss))'} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
             </div>
-            <div className="glass-card p-4 animate-fade-in" style={{ animationDelay: '450ms' }}>
-              <div className="flex items-center gap-2 mb-3">
-                <Brain className="w-4 h-4 text-primary" />
-                <span className="text-sm font-medium text-foreground">
-                  {t('dominantEmotion')}
-                </span>
+
+            {/* Hour Heatmap Grid */}
+            <div className="mt-4">
+              <p className="text-sm text-muted-foreground mb-2">{t('byHour')}</p>
+              <div className="flex flex-wrap gap-1">
+                {heatmap.byHour.filter(h => h.trades > 0).map(hour => {
+                  const intensity = hour.pnl > 0 ? Math.min(hour.pnl / 100, 1) : Math.max(hour.pnl / 100, -1);
+                  const bgColor = intensity > 0 
+                    ? `hsla(var(--profit), ${0.2 + Math.abs(intensity) * 0.6})` 
+                    : `hsla(var(--loss), ${0.2 + Math.abs(intensity) * 0.6})`;
+                  
+                  return (
+                    <div
+                      key={hour.hour}
+                      className="w-10 h-10 rounded flex flex-col items-center justify-center text-xs border border-border/50"
+                      style={{ backgroundColor: bgColor }}
+                      title={`${hour.hourLabel}: ${formatAmount(hour.pnl)} (${hour.trades} trades)`}
+                    >
+                      <span className="font-medium text-foreground">{hour.hour}</span>
+                      <span className="text-[10px] text-muted-foreground">{hour.trades}</span>
+                    </div>
+                  );
+                })}
               </div>
-              <p className="font-display text-lg font-bold text-foreground">{stats.dominantEmotion}</p>
             </div>
           </div>
 
-          {/* Monthly Performance (visible in month view) */}
-          {viewMode === 'month' && monthlyData.length > 0 && (
-            <div className="glass-card p-6 animate-fade-in" style={{ animationDelay: '500ms' }}>
-              <h3 className="font-display font-semibold text-foreground mb-4">
-                {t('monthlyPerformance')}
-              </h3>
-              <div className="h-[250px]">
+          {/* Daily PnL */}
+          <div className="glass-card p-6 animate-fade-in">
+            <h3 className="font-display font-semibold text-foreground mb-4">
+              {t('dailyPnL')}
+            </h3>
+            {periodTrades.length > 0 ? (
+              <div className="h-[200px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={monthlyData}>
+                  <BarChart data={dailyPnL}>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                    <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                    <XAxis dataKey="day" stroke="hsl(var(--muted-foreground))" fontSize={12} />
                     <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
                     <Tooltip
                       contentStyle={{
@@ -540,24 +671,22 @@ const Reports: React.FC = () => {
                         border: '1px solid hsl(var(--border))',
                         borderRadius: '8px',
                       }}
-                      formatter={(value: number) => [`${value >= 0 ? '+' : ''}${value}$`, 'PnL']}
+                      formatter={(value: number) => [formatAmount(value, true), 'PnL']}
                     />
-                    <Bar 
-                      dataKey="pnl" 
-                      radius={[4, 4, 0, 0]}
-                    >
-                      {monthlyData.map((entry, index) => (
-                        <Cell 
-                          key={`cell-${index}`} 
-                          fill={entry.pnl >= 0 ? 'hsl(var(--profit))' : 'hsl(var(--loss))'} 
-                        />
+                    <Bar dataKey="pnl" radius={[4, 4, 0, 0]}>
+                      {dailyPnL.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.pnl >= 0 ? 'hsl(var(--profit))' : 'hsl(var(--loss))'} />
                       ))}
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
               </div>
-            </div>
-          )}
+            ) : (
+              <div className="h-[200px] flex items-center justify-center text-muted-foreground">
+                {t('noTradesInPeriod')}
+              </div>
+            )}
+          </div>
         </>
       )}
     </div>
