@@ -156,6 +156,24 @@
     font-weight: 600;
   }
 
+  /* RTL Support */
+  html.rtl {
+    direction: rtl;
+  }
+  
+  html.rtl .rtl\:flip {
+    transform: scaleX(-1);
+  }
+  
+  html.rtl .rtl\:text-right {
+    text-align: right;
+  }
+  
+  html.rtl .rtl\:ml-auto {
+    margin-left: auto;
+    margin-right: 0;
+  }
+
   /* Mobile-first responsive text */
   @media (max-width: 640px) {
     html {
