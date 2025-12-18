@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { useLanguage } from '@/contexts/LanguageContext';
+import { useLanguage, Language } from '@/contexts/LanguageContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useFeedback } from '@/hooks/useFeedback';
 import { useTradeFocus } from '@/hooks/useTradeFocus';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -58,9 +60,10 @@ const defaultSettings: AppSettings = {
 };
 
 const Settings: React.FC = () => {
-  const { language, setLanguage, t } = useLanguage();
+  const { language, setLanguage, t, languages } = useLanguage();
   const { theme, setTheme } = useTheme();
   const { triggerFeedback } = useFeedback();
+  const { user } = useAuth();
   const tradeFocus = useTradeFocus();
   const [settings, setSettings] = useState<AppSettings>(defaultSettings);
   const [primaryColor, setPrimaryColor] = useState('blue');
@@ -148,9 +151,29 @@ const Settings: React.FC = () => {
     toast.success(t('interfaceReset'));
   };
 
-  const handleLanguageChange = (lang: 'fr' | 'en') => {
+  const handleLanguageChange = async (lang: Language) => {
     setLanguage(lang);
     triggerFeedback('click');
+    
+    // Sync to database if user is logged in
+    if (user) {
+      try {
+        const { error } = await supabase
+          .from('user_settings')
+          .upsert({
+            user_id: user.id,
+            language: lang,
+            updated_at: new Date().toISOString()
+          }, { onConflict: 'user_id' });
+        
+        if (error) {
+          console.error('Error syncing language:', error);
+        }
+      } catch (e) {
+        console.error('Error syncing language:', e);
+      }
+    }
+    
     toast.success(t('settingUpdated'));
   };
 
@@ -295,31 +318,22 @@ const Settings: React.FC = () => {
             {t('language')}
           </h3>
         </div>
-        <div className="grid grid-cols-2 gap-3">
-          <button
-            onClick={() => handleLanguageChange('fr')}
-            className={cn(
-              "flex items-center justify-center gap-2 p-4 rounded-lg border transition-all",
-              language === 'fr'
-                ? "border-primary bg-primary/10 text-primary"
-                : "border-border bg-secondary/30 text-muted-foreground hover:border-primary/50"
-            )}
-          >
-            <span className="text-xl">🇫🇷</span>
-            <span className="font-medium">Français</span>
-          </button>
-          <button
-            onClick={() => handleLanguageChange('en')}
-            className={cn(
-              "flex items-center justify-center gap-2 p-4 rounded-lg border transition-all",
-              language === 'en'
-                ? "border-primary bg-primary/10 text-primary"
-                : "border-border bg-secondary/30 text-muted-foreground hover:border-primary/50"
-            )}
-          >
-            <span className="text-xl">🇬🇧</span>
-            <span className="font-medium">English</span>
-          </button>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
+          {languages.map((lang) => (
+            <button
+              key={lang.code}
+              onClick={() => handleLanguageChange(lang.code)}
+              className={cn(
+                "flex items-center justify-center gap-2 p-3 rounded-lg border transition-all",
+                language === lang.code
+                  ? "border-primary bg-primary/10 text-primary"
+                  : "border-border bg-secondary/30 text-muted-foreground hover:border-primary/50"
+              )}
+            >
+              <span className="text-lg">{lang.flag}</span>
+              <span className="font-medium text-sm truncate">{lang.nativeName}</span>
+            </button>
+          ))}
         </div>
       </div>
 
