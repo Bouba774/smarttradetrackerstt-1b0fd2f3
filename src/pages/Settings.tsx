@@ -318,23 +318,35 @@ const Settings: React.FC = () => {
             {t('language')}
           </h3>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
-          {languages.map((lang) => (
-            <button
-              key={lang.code}
-              onClick={() => handleLanguageChange(lang.code)}
-              className={cn(
-                "flex items-center justify-center gap-2 p-3 rounded-lg border transition-all",
-                language === lang.code
-                  ? "border-primary bg-primary/10 text-primary"
-                  : "border-border bg-secondary/30 text-muted-foreground hover:border-primary/50"
-              )}
-            >
-              <span className="text-lg">{lang.flag}</span>
-              <span className="font-medium text-sm truncate">{lang.nativeName}</span>
-            </button>
-          ))}
-        </div>
+        <Select 
+          value={language} 
+          onValueChange={(value) => handleLanguageChange(value as Language)}
+        >
+          <SelectTrigger className="w-full">
+            <SelectValue>
+              <div className="flex items-center gap-2">
+                <span className="text-lg">{languages.find(l => l.code === language)?.flag}</span>
+                <span>{languages.find(l => l.code === language)?.nativeName}</span>
+              </div>
+            </SelectValue>
+          </SelectTrigger>
+          <SelectContent className="bg-popover border-border max-h-80 z-50">
+            {languages.map((lang) => (
+              <SelectItem key={lang.code} value={lang.code}>
+                <div className="flex items-center gap-2">
+                  <span className="text-lg">{lang.flag}</span>
+                  <span className="font-medium">{lang.nativeName}</span>
+                  <span className="text-muted-foreground text-xs ml-1">({lang.name})</span>
+                </div>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <p className="text-xs text-muted-foreground mt-2">
+          {language === 'fr' 
+            ? 'Sélectionnez votre langue préférée pour l\'interface' 
+            : 'Select your preferred language for the interface'}
+        </p>
       </div>
 
       {/* Font Size */}
