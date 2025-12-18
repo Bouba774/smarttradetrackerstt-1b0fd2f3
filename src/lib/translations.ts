@@ -27,6 +27,7 @@ export const translations: Translations = {
   psychology: { fr: 'Analyse Psychologique', en: 'Psychological Analysis' },
   videoJournal: { fr: 'Journal Vidéo/Audio', en: 'Video/Audio Journal' },
   about: { fr: 'À Propos', en: 'About' },
+  currencyConversion: { fr: 'Conversion Devises', en: 'Currency Conversion' },
 
   // ============================================
   // COMMON / GENERAL

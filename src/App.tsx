@@ -27,6 +27,7 @@ const PsychologicalAnalysis = lazy(() => import("./pages/PsychologicalAnalysis")
 const VideoJournal = lazy(() => import("./pages/VideoJournal"));
 const Journal = lazy(() => import("./pages/Journal"));
 const Calculator = lazy(() => import("./pages/Calculator"));
+const CurrencyConversion = lazy(() => import("./pages/CurrencyConversion"));
 const Challenges = lazy(() => import("./pages/Challenges"));
 const Profile = lazy(() => import("./pages/Profile"));
 const Settings = lazy(() => import("./pages/Settings"));
@@ -98,6 +99,7 @@ const AppContent = () => {
           <Route path="/video-journal" element={<ProtectedRoute><Layout><VideoJournal /></Layout></ProtectedRoute>} />
           <Route path="/journal" element={<ProtectedRoute><Layout><Journal /></Layout></ProtectedRoute>} />
           <Route path="/calculator" element={<ProtectedRoute><Layout><Calculator /></Layout></ProtectedRoute>} />
+          <Route path="/currency-conversion" element={<ProtectedRoute><Layout><CurrencyConversion /></Layout></ProtectedRoute>} />
           <Route path="/challenges" element={<ProtectedRoute><Layout><Challenges /></Layout></ProtectedRoute>} />
           <Route path="/profile" element={<ProtectedRoute><Layout><Profile /></Layout></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute><Layout><Settings /></Layout></ProtectedRoute>} />
