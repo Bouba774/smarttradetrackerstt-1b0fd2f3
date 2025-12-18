@@ -278,7 +278,7 @@ const handler = async (req: Request): Promise<Response> => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "Smart Trade Tracker <onboarding@resend.dev>",
+        from: "Smart Trade Tracker <security@smarttradetracker.app>",
         to: [request.email],
         subject,
         html,
