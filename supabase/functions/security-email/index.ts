@@ -1,7 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 
-const BREVO_API_KEY = Deno.env.get("BREVO_API_KEY");
-
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -259,8 +257,9 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    if (!BREVO_API_KEY) {
-      console.error("BREVO_API_KEY is not configured");
+    const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+    if (!RESEND_API_KEY) {
+      console.error("RESEND_API_KEY is not configured");
       return new Response(
         JSON.stringify({ error: "Email service not configured" }),
         { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
@@ -272,27 +271,23 @@ const handler = async (req: Request): Promise<Response> => {
 
     const { subject, html } = getEmailContent(request);
 
-    const response = await fetch("https://api.brevo.com/v3/smtp/email", {
+    const response = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
-        "Accept": "application/json",
+        "Authorization": `Bearer ${RESEND_API_KEY}`,
         "Content-Type": "application/json",
-        "api-key": BREVO_API_KEY,
       },
       body: JSON.stringify({
-        sender: {
-          name: "Smart Trade Tracker",
-          email: "security@smarttradetracker.app",
-        },
-        to: [{ email: request.email }],
+        from: "Smart Trade Tracker <onboarding@resend.dev>",
+        to: [request.email],
         subject,
-        htmlContent: html,
+        html,
       }),
     });
 
     if (!response.ok) {
       const errorData = await response.text();
-      console.error("Brevo API error:", errorData);
+      console.error("Resend API error:", errorData);
       return new Response(
         JSON.stringify({ error: "Failed to send email", details: errorData }),
         { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
@@ -303,7 +298,7 @@ const handler = async (req: Request): Promise<Response> => {
     console.log("Email sent successfully:", result);
 
     return new Response(
-      JSON.stringify({ success: true, messageId: result.messageId }),
+      JSON.stringify({ success: true, data: result }),
       { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
     );
   } catch (error: any) {
