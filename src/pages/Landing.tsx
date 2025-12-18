@@ -57,7 +57,7 @@ import screenshotChallenges from '@/assets/screenshot-challenges.jpg';
 import screenshotProfile from '@/assets/screenshot-profile.jpg';
 
 const Landing = () => {
-  const { language, setLanguage } = useLanguage();
+  const { language, setLanguage, languages } = useLanguage();
   const { theme, setTheme, resolvedTheme } = useTheme();
   const [activeTraders, setActiveTraders] = useState(0);
   const [averageRating, setAverageRating] = useState(0);
@@ -327,28 +327,33 @@ const Landing = () => {
                 )}
               </button>
 
-              {/* Language Selector */}
-              <div className="flex items-center rounded-lg border border-border/50 p-0.5">
+              {/* Language Selector Dropdown */}
+              <div className="relative group">
                 <button
-                  onClick={() => setLanguage('fr')}
-                  className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
-                    language === 'fr' 
-                      ? 'bg-primary text-primary-foreground' 
-                      : 'text-muted-foreground hover:text-foreground'
-                  }`}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border/50 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-card/50 transition-all"
                 >
-                  FR
+                  <span>{languages.find(l => l.code === language)?.flag}</span>
+                  <span className="hidden sm:inline">{languages.find(l => l.code === language)?.code.toUpperCase()}</span>
+                  <ChevronDown className="w-3 h-3" />
                 </button>
-                <button
-                  onClick={() => setLanguage('en')}
-                  className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
-                    language === 'en' 
-                      ? 'bg-primary text-primary-foreground' 
-                      : 'text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  EN
-                </button>
+                <div className="absolute right-0 top-full mt-1 w-64 max-h-80 overflow-y-auto bg-card border border-border rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+                  <div className="grid grid-cols-2 gap-0.5 p-1">
+                    {languages.map((lang) => (
+                      <button
+                        key={lang.code}
+                        onClick={() => setLanguage(lang.code)}
+                        className={`flex items-center gap-2 px-2 py-1.5 rounded text-xs transition-all ${
+                          language === lang.code
+                            ? 'bg-primary text-primary-foreground'
+                            : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
+                        }`}
+                      >
+                        <span>{lang.flag}</span>
+                        <span className="truncate">{lang.nativeName}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
               
               <Link to="/auth">
