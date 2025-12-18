@@ -34,6 +34,8 @@ import {
   CheckCircle,
   XCircle,
   Clock,
+  Smartphone,
+  Monitor,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -305,7 +307,7 @@ export const SecuritySettings: React.FC = () => {
                   <div
                     key={index}
                     className={cn(
-                      "flex items-center justify-between p-3 rounded-lg border",
+                      "p-3 rounded-lg border",
                       attempt.success
                         ? "bg-trading-profit/5 border-trading-profit/20"
                         : attempt.blocked
@@ -313,33 +315,39 @@ export const SecuritySettings: React.FC = () => {
                           : "bg-destructive/5 border-destructive/10"
                     )}
                   >
-                    <div className="flex items-center gap-3">
-                      {attempt.success ? (
-                        <CheckCircle className="w-4 h-4 text-trading-profit" />
-                      ) : attempt.blocked ? (
-                        <Clock className="w-4 h-4 text-destructive" />
-                      ) : (
-                        <XCircle className="w-4 h-4 text-destructive" />
-                      )}
-                      <div>
-                        <p className="text-sm text-foreground">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        {attempt.success ? (
+                          <CheckCircle className="w-4 h-4 text-trading-profit" />
+                        ) : attempt.blocked ? (
+                          <Clock className="w-4 h-4 text-destructive" />
+                        ) : (
+                          <XCircle className="w-4 h-4 text-destructive" />
+                        )}
+                        <span className="text-sm text-foreground font-medium">
                           {attempt.success
                             ? language === 'fr' ? 'Succès' : 'Success'
                             : attempt.blocked
                               ? language === 'fr' ? 'Bloqué' : 'Blocked'
                               : language === 'fr' ? 'Échec' : 'Failed'
                           }
-                          {attempt.method === 'biometric' && (
-                            <span className="ml-2 text-xs text-muted-foreground">
-                              ({language === 'fr' ? 'Biométrie' : 'Biometric'})
-                            </span>
-                          )}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {formatAttemptDate(attempt.timestamp)}
-                        </p>
+                        </span>
+                        {attempt.method === 'biometric' && (
+                          <span className="text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded">
+                            {language === 'fr' ? 'Biométrie' : 'Biometric'}
+                          </span>
+                        )}
                       </div>
                     </div>
+                    <p className="text-xs text-muted-foreground mb-1">
+                      {formatAttemptDate(attempt.timestamp)}
+                    </p>
+                    {attempt.device && (
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <Smartphone className="w-3 h-3" />
+                        <span>{attempt.device.deviceName} • {attempt.device.os} • {attempt.device.browser}</span>
+                      </div>
+                    )}
                   </div>
                 ))}
 
@@ -478,7 +486,7 @@ export const SecuritySettings: React.FC = () => {
                 <div
                   key={index}
                   className={cn(
-                    "flex items-center justify-between p-3 rounded-lg border",
+                    "p-3 rounded-lg border",
                     attempt.success
                       ? "bg-trading-profit/5 border-trading-profit/20"
                       : attempt.blocked
@@ -486,33 +494,42 @@ export const SecuritySettings: React.FC = () => {
                         : "bg-destructive/5 border-destructive/10"
                   )}
                 >
-                  <div className="flex items-center gap-3">
-                    {attempt.success ? (
-                      <CheckCircle className="w-4 h-4 text-trading-profit" />
-                    ) : attempt.blocked ? (
-                      <Clock className="w-4 h-4 text-destructive" />
-                    ) : (
-                      <XCircle className="w-4 h-4 text-destructive" />
-                    )}
-                    <div>
-                      <p className="text-sm text-foreground">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      {attempt.success ? (
+                        <CheckCircle className="w-4 h-4 text-trading-profit" />
+                      ) : attempt.blocked ? (
+                        <Clock className="w-4 h-4 text-destructive" />
+                      ) : (
+                        <XCircle className="w-4 h-4 text-destructive" />
+                      )}
+                      <span className="text-sm text-foreground font-medium">
                         {attempt.success
                           ? language === 'fr' ? 'Succès' : 'Success'
                           : attempt.blocked
                             ? language === 'fr' ? 'Bloqué' : 'Blocked'
                             : language === 'fr' ? 'Échec' : 'Failed'
                         }
-                        {attempt.method === 'biometric' && (
-                          <span className="ml-2 text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded">
-                            {language === 'fr' ? 'Biométrie' : 'Biometric'}
-                          </span>
-                        )}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {formatAttemptDate(attempt.timestamp)}
-                      </p>
+                      </span>
+                      {attempt.method === 'biometric' && (
+                        <span className="text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded">
+                          {language === 'fr' ? 'Biométrie' : 'Biometric'}
+                        </span>
+                      )}
                     </div>
                   </div>
+                  <p className="text-xs text-muted-foreground mb-1">
+                    {formatAttemptDate(attempt.timestamp)}
+                  </p>
+                  {attempt.device && (
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground mt-2 p-2 bg-secondary/50 rounded">
+                      <Monitor className="w-3 h-3 shrink-0" />
+                      <div className="flex flex-col">
+                        <span className="font-medium text-foreground">{attempt.device.deviceName}</span>
+                        <span>{attempt.device.os} • {attempt.device.browser}</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

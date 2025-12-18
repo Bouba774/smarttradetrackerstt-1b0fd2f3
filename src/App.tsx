@@ -35,6 +35,7 @@ const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const TermsOfUse = lazy(() => import("./pages/TermsOfUse"));
 const About = lazy(() => import("./pages/About"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
+const ResetPin = lazy(() => import("./pages/ResetPin"));
 const AIChatBot = lazy(() => import("@/components/AIChatBot"));
 const ChangelogModal = lazy(() => import("@/components/ChangelogModal"));
 
@@ -83,6 +84,7 @@ const AppContent = () => {
           {/* Auth page renders without layout */}
           <Route path="/auth" element={<Auth />} />
           <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/reset-pin" element={<ResetPin />} />
           
           {/* Public pages without authentication */}
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
