@@ -149,14 +149,14 @@ const ScreenshotCarousel: React.FC<ScreenshotCarouselProps> = ({ screenshots }) 
       <button
         onClick={scrollPrev}
         className="absolute left-1 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-background/90 backdrop-blur-md border border-primary/30 flex items-center justify-center text-primary hover:bg-primary hover:text-primary-foreground transition-all duration-300 z-10 shadow-lg hover:shadow-primary/30 hover:scale-110"
-        aria-label={t('carousel.previous')}
+        aria-label={t('carouselPrevious')}
       >
         <ChevronLeft className="w-5 h-5" />
       </button>
       <button
         onClick={scrollNext}
         className="absolute right-1 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-background/90 backdrop-blur-md border border-primary/30 flex items-center justify-center text-primary hover:bg-primary hover:text-primary-foreground transition-all duration-300 z-10 shadow-lg hover:shadow-primary/30 hover:scale-110"
-        aria-label={t('carousel.next')}
+        aria-label={t('carouselNext')}
       >
         <ChevronRight className="w-5 h-5" />
       </button>
@@ -172,7 +172,7 @@ const ScreenshotCarousel: React.FC<ScreenshotCarouselProps> = ({ screenshots }) 
                 ? 'bg-gradient-to-r from-primary to-profit w-8 shadow-lg shadow-primary/30' 
                 : 'bg-muted-foreground/30 hover:bg-muted-foreground/50 w-2 hover:w-3'
             }`}
-            aria-label={`${t('carousel.goToImage')} ${index + 1}`}
+            aria-label={`${t('carouselGoToImage')} ${index + 1}`}
           />
         ))}
       </div>

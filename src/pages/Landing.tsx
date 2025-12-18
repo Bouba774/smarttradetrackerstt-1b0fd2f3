@@ -415,13 +415,12 @@ const Landing = () => {
                 <div className="block md:hidden">
                   <ScreenshotCarousel 
                     screenshots={[
-                      { src: screenshotDashboard1, altFr: 'Tableau de bord', altEn: 'Dashboard', titleFr: 'Tableau de bord avec statistiques', titleEn: 'Dashboard with statistics' },
-                      { src: screenshotReports, altFr: 'Rapports', altEn: 'Reports', titleFr: 'Rapports de performance', titleEn: 'Performance reports' },
-                      { src: screenshotHistory, altFr: 'Historique', altEn: 'History', titleFr: 'Historique complet des trades', titleEn: 'Complete trade history' },
-                      { src: screenshotPsychology, altFr: 'Psychologie', altEn: 'Psychology', titleFr: 'Analyse psychologique', titleEn: 'Psychological analysis' },
-                      { src: screenshotChallenges, altFr: 'Défis', altEn: 'Challenges', titleFr: 'Défis et gamification', titleEn: 'Challenges and gamification' },
+                      { src: screenshotDashboard1, altKey: 'screenshotDashboardAlt', titleKey: 'screenshotDashboardTitle' },
+                      { src: screenshotReports, altKey: 'screenshotReportsAlt', titleKey: 'screenshotReportsTitle' },
+                      { src: screenshotHistory, altKey: 'screenshotHistoryAlt', titleKey: 'screenshotHistoryTitle' },
+                      { src: screenshotPsychology, altKey: 'screenshotPsychologyAlt', titleKey: 'screenshotPsychologyTitle' },
+                      { src: screenshotChallenges, altKey: 'screenshotChallengesAlt', titleKey: 'screenshotChallengesTitle' },
                     ]}
-                    language={language}
                   />
                 </div>
 
@@ -527,17 +526,16 @@ const Landing = () => {
                 <div className="block md:hidden">
                   <ScreenshotCarousel 
                     screenshots={[
-                      { src: screenshotDashboard1, altFr: 'Tableau de bord', altEn: 'Dashboard', titleFr: 'Tableau de bord complet', titleEn: 'Complete dashboard' },
-                      { src: screenshotDashboard2, altFr: 'Graphiques', altEn: 'Charts', titleFr: 'Graphiques de performance', titleEn: 'Performance charts' },
-                      { src: screenshotAddTrade, altFr: 'Ajout trade', altEn: 'Add trade', titleFr: 'Formulaire d\'ajout de trade', titleEn: 'Trade entry form' },
-                      { src: screenshotHistory, altFr: 'Historique', altEn: 'History', titleFr: 'Historique complet', titleEn: 'Complete history' },
-                      { src: screenshotReports, altFr: 'Rapports', altEn: 'Reports', titleFr: 'Rapports détaillés', titleEn: 'Detailed reports' },
-                      { src: screenshotPsychology, altFr: 'Psychologie', altEn: 'Psychology', titleFr: 'Analyse psychologique', titleEn: 'Psychological analysis' },
-                      { src: screenshotJournal, altFr: 'Journal', altEn: 'Journal', titleFr: 'Journal de trading', titleEn: 'Trading journal' },
-                      { src: screenshotChallenges, altFr: 'Défis', altEn: 'Challenges', titleFr: 'Système de défis', titleEn: 'Challenge system' },
-                      { src: screenshotProfile, altFr: 'Profil', altEn: 'Profile', titleFr: 'Profil utilisateur', titleEn: 'User profile' },
+                      { src: screenshotDashboard1, altKey: 'screenshotDashboardAlt', titleKey: 'screenshotDashboardTitle' },
+                      { src: screenshotDashboard2, altKey: 'screenshotChartsAlt', titleKey: 'screenshotChartsTitle' },
+                      { src: screenshotAddTrade, altKey: 'screenshotAddTradeAlt', titleKey: 'screenshotAddTradeTitle' },
+                      { src: screenshotHistory, altKey: 'screenshotHistoryAlt', titleKey: 'screenshotHistoryTitle' },
+                      { src: screenshotReports, altKey: 'screenshotReportsAlt', titleKey: 'screenshotReportsTitle' },
+                      { src: screenshotPsychology, altKey: 'screenshotPsychologyAlt', titleKey: 'screenshotPsychologyTitle' },
+                      { src: screenshotJournal, altKey: 'screenshotJournalAlt', titleKey: 'screenshotJournalTitle' },
+                      { src: screenshotChallenges, altKey: 'screenshotChallengesAlt', titleKey: 'screenshotChallengesTitle' },
+                      { src: screenshotProfile, altKey: 'screenshotProfileAlt', titleKey: 'screenshotProfileTitle' },
                     ]}
-                    language={language}
                   />
                 </div>
 
