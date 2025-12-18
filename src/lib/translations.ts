@@ -756,6 +756,29 @@ export const translations: Translations = {
   bestTradingHour: { fr: 'Meilleure Heure', en: 'Best Hour' },
   worstTradingHour: { fr: 'Pire Heure', en: 'Worst Hour' },
   tradesCount: { fr: 'Trades', en: 'Trades' },
+
+  // ============================================
+  // EMOTION CORRELATION
+  // ============================================
+  emotionCorrelation: { fr: 'Corrélation Émotions ↔ Résultats', en: 'Emotion ↔ Results Correlation' },
+  calmVsStress: { fr: 'Calme vs Stress', en: 'Calm vs Stress' },
+  calmPnl: { fr: 'PnL Calme', en: 'Calm PnL' },
+  stressPnl: { fr: 'PnL Stressé', en: 'Stress PnL' },
+  emotionImpact: { fr: 'Impact des Émotions', en: 'Emotion Impact' },
+  positiveImpact: { fr: 'Impact positif', en: 'Positive impact' },
+  negativeImpact: { fr: 'Impact négatif', en: 'Negative impact' },
+  neutralImpact: { fr: 'Impact neutre', en: 'Neutral impact' },
+
+  // ============================================
+  // AI SUMMARY & REWARDS
+  // ============================================
+  aiDailySummary: { fr: 'Résumé IA du Jour', en: 'AI Daily Summary' },
+  rewardChests: { fr: 'Coffres de Récompenses', en: 'Reward Chests' },
+  aiStrengths: { fr: 'Points forts', en: 'Strengths' },
+  toImprove: { fr: 'À améliorer', en: 'To Improve' },
+  nextChest: { fr: 'Prochain coffre', en: 'Next chest' },
+  chestsUnlocked: { fr: 'Coffres débloqués', en: 'Chests unlocked' },
+  unlockedByDiscipline: { fr: 'Débloqués par la discipline', en: 'Unlocked by discipline' },
 };
 
 

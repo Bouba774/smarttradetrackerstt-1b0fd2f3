@@ -7,10 +7,13 @@ import { useStrategyAnalysis } from '@/hooks/useStrategyAnalysis';
 import { useSelfSabotage } from '@/hooks/useSelfSabotage';
 import { useDisciplineScore } from '@/hooks/useDisciplineScore';
 import { usePerformanceHeatmap } from '@/hooks/usePerformanceHeatmap';
+import { useEmotionCorrelation } from '@/hooks/useEmotionCorrelation';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import AIDailySummaryCard from '@/components/AIDailySummaryCard';
+import RewardChestsDisplay from '@/components/RewardChestsDisplay';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subMonths, addMonths, isWithinInterval, parseISO, getDay } from 'date-fns';
 import { fr, enUS } from 'date-fns/locale';
 import {
@@ -34,6 +37,7 @@ import {
   Clock,
   Flame,
   AlertCircle,
+  Heart,
 } from 'lucide-react';
 import GaugeChart from '@/components/ui/GaugeChart';
 
@@ -100,6 +104,7 @@ const Reports: React.FC = () => {
   const selfSabotage = useSelfSabotage(periodTrades, language);
   const disciplineScore = useDisciplineScore(periodTrades);
   const heatmap = usePerformanceHeatmap(periodTrades, language);
+  const emotionCorrelation = useEmotionCorrelation(periodTrades);
 
   // Calculate basic statistics
   const stats = useMemo(() => {
@@ -651,6 +656,102 @@ const Reports: React.FC = () => {
                 })}
               </div>
             </div>
+          </div>
+
+          {/* Emotion Correlation */}
+          <div className="glass-card p-6 animate-fade-in">
+            <div className="flex items-center gap-2 mb-4">
+              <Heart className="w-5 h-5 text-pink-500" />
+              <h3 className="font-display font-semibold text-foreground">{t('emotionCorrelation')}</h3>
+            </div>
+
+            {/* Calm vs Stress Comparison */}
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              <div className="p-4 rounded-lg bg-profit/10 border border-profit/30">
+                <p className="text-sm text-muted-foreground mb-1">
+                  {language === 'fr' ? 'Calme' : 'Calm'}
+                </p>
+                <p className={cn(
+                  "text-xl font-display font-bold",
+                  emotionCorrelation.calmPnl >= 0 ? "text-profit" : "text-loss"
+                )}>
+                  {formatAmount(emotionCorrelation.calmPnl, true)}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Winrate: {emotionCorrelation.calmWinRate}%
+                </p>
+              </div>
+              <div className="p-4 rounded-lg bg-loss/10 border border-loss/30">
+                <p className="text-sm text-muted-foreground mb-1">
+                  {language === 'fr' ? 'Stressé' : 'Stressed'}
+                </p>
+                <p className={cn(
+                  "text-xl font-display font-bold",
+                  emotionCorrelation.stressPnl >= 0 ? "text-profit" : "text-loss"
+                )}>
+                  {formatAmount(emotionCorrelation.stressPnl, true)}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Winrate: {emotionCorrelation.stressWinRate}%
+                </p>
+              </div>
+            </div>
+
+            {/* Emotion Chart */}
+            {emotionCorrelation.correlations.length > 0 && (
+              <div className="h-[200px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={emotionCorrelation.correlations.slice(0, 6)} layout="vertical">
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <XAxis type="number" stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                    <YAxis dataKey="emotion" type="category" stroke="hsl(var(--muted-foreground))" fontSize={11} width={70} />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: 'hsl(var(--popover))',
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '8px',
+                      }}
+                      formatter={(value: number, name: string) => {
+                        if (name === 'winRate') return [`${value}%`, 'Winrate'];
+                        if (name === 'avgPnl') return [formatAmount(value, true), 'PnL Moyen'];
+                        return [value, name];
+                      }}
+                    />
+                    <Bar dataKey="winRate" name="winRate" radius={[0, 4, 4, 0]}>
+                      {emotionCorrelation.correlations.slice(0, 6).map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+
+            {/* Best/Worst Emotion */}
+            {(emotionCorrelation.bestEmotion || emotionCorrelation.worstEmotion) && (
+              <div className="flex gap-4 mt-4">
+                {emotionCorrelation.bestEmotion && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <TrendingUp className="w-4 h-4 text-profit" />
+                    <span className="text-muted-foreground">{language === 'fr' ? 'Meilleure' : 'Best'}:</span>
+                    <span className="font-medium text-profit">{emotionCorrelation.bestEmotion}</span>
+                  </div>
+                )}
+                {emotionCorrelation.worstEmotion && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <TrendingDown className="w-4 h-4 text-loss" />
+                    <span className="text-muted-foreground">{language === 'fr' ? 'Pire' : 'Worst'}:</span>
+                    <span className="font-medium text-loss">{emotionCorrelation.worstEmotion}</span>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* AI Summary & Reward Chests */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <AIDailySummaryCard trades={trades} />
+            <RewardChestsDisplay trades={trades} />
           </div>
 
           {/* Daily PnL */}
