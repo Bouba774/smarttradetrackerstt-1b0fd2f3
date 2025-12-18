@@ -18,6 +18,19 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command';
+import {
   Settings as SettingsIcon,
   Moon,
   Sun,
@@ -33,6 +46,8 @@ import {
   Focus,
   Target,
   Shield,
+  Check,
+  ChevronsUpDown,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -57,6 +72,103 @@ const defaultSettings: AppSettings = {
   fontSize: 'standard',
   background: 'default',
   currency: 'USD',
+};
+
+// Language Selector Component with Search
+interface LanguageSelectorProps {
+  language: Language;
+  languages: typeof import('@/lib/i18n').LANGUAGES;
+  onLanguageChange: (lang: Language) => void;
+  t: (key: string) => string;
+}
+
+const LanguageSelector: React.FC<LanguageSelectorProps> = ({ 
+  language, 
+  languages, 
+  onLanguageChange, 
+  t 
+}) => {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  
+  const selectedLang = languages.find(l => l.code === language);
+  
+  const filteredLanguages = languages.filter(lang => 
+    lang.name.toLowerCase().includes(search.toLowerCase()) ||
+    lang.nativeName.toLowerCase().includes(search.toLowerCase()) ||
+    lang.code.toLowerCase().includes(search.toLowerCase())
+  );
+
+  return (
+    <div className="glass-card p-6 animate-fade-in" style={{ animationDelay: '150ms' }}>
+      <div className="flex items-center gap-3 mb-4">
+        <Languages className="w-5 h-5 text-primary" />
+        <h3 className="font-display font-semibold text-foreground">
+          {t('language')}
+        </h3>
+      </div>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            role="combobox"
+            aria-expanded={open}
+            className="w-full justify-between h-11 bg-secondary/30 border-border hover:bg-secondary/50"
+          >
+            <div className="flex items-center gap-2">
+              <span className="text-lg">{selectedLang?.flag}</span>
+              <span className="font-medium">{selectedLang?.nativeName}</span>
+            </div>
+            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0 z-50" align="start">
+          <Command className="bg-popover">
+            <CommandInput 
+              placeholder={language === 'fr' ? 'Rechercher une langue...' : 'Search language...'} 
+              value={search}
+              onValueChange={setSearch}
+              className="h-10"
+            />
+            <CommandList className="max-h-64">
+              <CommandEmpty>
+                {language === 'fr' ? 'Aucune langue trouvée.' : 'No language found.'}
+              </CommandEmpty>
+              <CommandGroup>
+                {filteredLanguages.map((lang) => (
+                  <CommandItem
+                    key={lang.code}
+                    value={`${lang.name} ${lang.nativeName} ${lang.code}`}
+                    onSelect={() => {
+                      onLanguageChange(lang.code);
+                      setOpen(false);
+                      setSearch('');
+                    }}
+                    className="cursor-pointer"
+                  >
+                    <Check
+                      className={cn(
+                        "mr-2 h-4 w-4",
+                        language === lang.code ? "opacity-100" : "opacity-0"
+                      )}
+                    />
+                    <span className="text-lg mr-2">{lang.flag}</span>
+                    <span className="font-medium">{lang.nativeName}</span>
+                    <span className="text-muted-foreground text-xs ml-2">({lang.name})</span>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
+      <p className="text-xs text-muted-foreground mt-2">
+        {language === 'fr' 
+          ? 'Sélectionnez votre langue préférée pour l\'interface' 
+          : 'Select your preferred language for the interface'}
+      </p>
+    </div>
+  );
 };
 
 const Settings: React.FC = () => {
@@ -311,43 +423,12 @@ const Settings: React.FC = () => {
       </div>
 
       {/* Language */}
-      <div className="glass-card p-6 animate-fade-in" style={{ animationDelay: '150ms' }}>
-        <div className="flex items-center gap-3 mb-4">
-          <Languages className="w-5 h-5 text-primary" />
-          <h3 className="font-display font-semibold text-foreground">
-            {t('language')}
-          </h3>
-        </div>
-        <Select 
-          value={language} 
-          onValueChange={(value) => handleLanguageChange(value as Language)}
-        >
-          <SelectTrigger className="w-full">
-            <SelectValue>
-              <div className="flex items-center gap-2">
-                <span className="text-lg">{languages.find(l => l.code === language)?.flag}</span>
-                <span>{languages.find(l => l.code === language)?.nativeName}</span>
-              </div>
-            </SelectValue>
-          </SelectTrigger>
-          <SelectContent className="bg-popover border-border max-h-80 z-50">
-            {languages.map((lang) => (
-              <SelectItem key={lang.code} value={lang.code}>
-                <div className="flex items-center gap-2">
-                  <span className="text-lg">{lang.flag}</span>
-                  <span className="font-medium">{lang.nativeName}</span>
-                  <span className="text-muted-foreground text-xs ml-1">({lang.name})</span>
-                </div>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <p className="text-xs text-muted-foreground mt-2">
-          {language === 'fr' 
-            ? 'Sélectionnez votre langue préférée pour l\'interface' 
-            : 'Select your preferred language for the interface'}
-        </p>
-      </div>
+      <LanguageSelector 
+        language={language}
+        languages={languages}
+        onLanguageChange={handleLanguageChange}
+        t={t}
+      />
 
       {/* Font Size */}
       <div className="glass-card p-6 animate-fade-in" style={{ animationDelay: '200ms' }}>
