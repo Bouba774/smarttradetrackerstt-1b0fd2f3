@@ -34,7 +34,6 @@ import {
 } from 'lucide-react';
 import ScrollReveal from '@/components/landing/ScrollReveal';
 import ParticleBackground from '@/components/landing/ParticleBackground';
-import ScreenshotCarousel from '@/components/landing/ScreenshotCarousel';
 import FeatureShowcase from '@/components/landing/FeatureShowcase';
 import AnimatedStats from '@/components/landing/AnimatedStats';
 import { APP_NAME, APP_VERSION } from '@/lib/version';
@@ -44,17 +43,6 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-
-// Import real application screenshots
-import screenshotDashboard1 from '@/assets/screenshot-dashboard-1.jpg';
-import screenshotDashboard2 from '@/assets/screenshot-dashboard-2.jpg';
-import screenshotAddTrade from '@/assets/screenshot-add-trade.jpg';
-import screenshotHistory from '@/assets/screenshot-history.jpg';
-import screenshotReports from '@/assets/screenshot-reports.jpg';
-import screenshotPsychology from '@/assets/screenshot-psychology.jpg';
-import screenshotJournal from '@/assets/screenshot-journal.jpg';
-import screenshotChallenges from '@/assets/screenshot-challenges.jpg';
-import screenshotProfile from '@/assets/screenshot-profile.jpg';
 
 const Landing = () => {
   const { language, setLanguage, languages, t } = useLanguage();
@@ -406,75 +394,6 @@ const Landing = () => {
               ))}
             </div>
 
-            {/* Hero Dashboard Images - Responsive showcase */}
-            <ScrollReveal animation="fade-up" delay={500}>
-              <div className="relative max-w-6xl mx-auto">
-                <div className="absolute -inset-4 bg-gradient-to-r from-primary/20 via-profit/20 to-primary/20 rounded-3xl blur-2xl opacity-50" />
-                
-                {/* Mobile: Interactive Carousel */}
-                <div className="block md:hidden">
-                  <ScreenshotCarousel 
-                    screenshots={[
-                      { src: screenshotDashboard1, altKey: 'screenshotDashboardAlt', titleKey: 'screenshotDashboardTitle' },
-                      { src: screenshotReports, altKey: 'screenshotReportsAlt', titleKey: 'screenshotReportsTitle' },
-                      { src: screenshotHistory, altKey: 'screenshotHistoryAlt', titleKey: 'screenshotHistoryTitle' },
-                      { src: screenshotPsychology, altKey: 'screenshotPsychologyAlt', titleKey: 'screenshotPsychologyTitle' },
-                      { src: screenshotChallenges, altKey: 'screenshotChallengesAlt', titleKey: 'screenshotChallengesTitle' },
-                    ]}
-                  />
-                </div>
-
-                {/* Desktop: Multiple images showcase */}
-                <div className="hidden md:grid grid-cols-3 gap-4">
-                <div className="relative rounded-2xl overflow-hidden border border-border/50 shadow-2xl transform hover:scale-[1.02] transition-transform duration-300 aspect-[720/1505]">
-                    <img 
-                      src={screenshotDashboard1} 
-                      alt={t('landingDashboard')}
-                      className="w-full h-full object-cover"
-                      loading="eager"
-                      decoding="async"
-                      fetchPriority="high"
-                      width={720}
-                      height={1505}
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-background/60 via-transparent to-transparent" />
-                    <div className="absolute bottom-3 left-3 right-3">
-                      <p className="text-xs font-medium text-foreground/90">{t('landingDashboard')}</p>
-                    </div>
-                  </div>
-                  <div className="relative rounded-2xl overflow-hidden border border-border/50 shadow-2xl transform hover:scale-[1.02] transition-transform duration-300 translate-y-4 aspect-[720/1128]">
-                    <img 
-                      src={screenshotReports} 
-                      alt={t('landingDetailedReports')}
-                      className="w-full h-full object-cover"
-                      loading="lazy"
-                      decoding="async"
-                      width={720}
-                      height={1128}
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-background/60 via-transparent to-transparent" />
-                    <div className="absolute bottom-3 left-3 right-3">
-                      <p className="text-xs font-medium text-foreground/90">{t('landingDetailedReports')}</p>
-                    </div>
-                  </div>
-                  <div className="relative rounded-2xl overflow-hidden border border-border/50 shadow-2xl transform hover:scale-[1.02] transition-transform duration-300 aspect-[720/1218]">
-                    <img 
-                      src={screenshotHistory} 
-                      alt={t('landingCompleteHistory')}
-                      className="w-full h-full object-cover"
-                      loading="lazy"
-                      decoding="async"
-                      width={720}
-                      height={1218}
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-background/60 via-transparent to-transparent" />
-                    <div className="absolute bottom-3 left-3 right-3">
-                      <p className="text-xs font-medium text-foreground/90">{t('landingCompleteHistory')}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </ScrollReveal>
           </div>
         </section>
 
@@ -510,75 +429,6 @@ const Landing = () => {
               <FeatureShowcase language={language} />
             </ScrollReveal>
 
-            {/* Screenshot Gallery */}
-            <ScrollReveal animation="fade-up" delay={200}>
-              <div className="mt-20">
-                <div className="text-center mb-10">
-                  <h3 className="text-xl font-semibold text-foreground mb-2">
-                    {t('landingDiscoverInterface')}
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    {t('landingIntuitiveExperience')}
-                  </p>
-                </div>
-
-                {/* Mobile Carousel */}
-                <div className="block md:hidden">
-                  <ScreenshotCarousel 
-                    screenshots={[
-                      { src: screenshotDashboard1, altKey: 'screenshotDashboardAlt', titleKey: 'screenshotDashboardTitle' },
-                      { src: screenshotDashboard2, altKey: 'screenshotChartsAlt', titleKey: 'screenshotChartsTitle' },
-                      { src: screenshotAddTrade, altKey: 'screenshotAddTradeAlt', titleKey: 'screenshotAddTradeTitle' },
-                      { src: screenshotHistory, altKey: 'screenshotHistoryAlt', titleKey: 'screenshotHistoryTitle' },
-                      { src: screenshotReports, altKey: 'screenshotReportsAlt', titleKey: 'screenshotReportsTitle' },
-                      { src: screenshotPsychology, altKey: 'screenshotPsychologyAlt', titleKey: 'screenshotPsychologyTitle' },
-                      { src: screenshotJournal, altKey: 'screenshotJournalAlt', titleKey: 'screenshotJournalTitle' },
-                      { src: screenshotChallenges, altKey: 'screenshotChallengesAlt', titleKey: 'screenshotChallengesTitle' },
-                      { src: screenshotProfile, altKey: 'screenshotProfileAlt', titleKey: 'screenshotProfileTitle' },
-                    ]}
-                  />
-                </div>
-
-                {/* Desktop Grid with hover effects */}
-                <div className="hidden md:grid grid-cols-3 lg:grid-cols-4 gap-4">
-                  {[
-                    { src: screenshotDashboard1, titleFr: 'Tableau de bord', titleEn: 'Dashboard' },
-                    { src: screenshotReports, titleFr: 'Rapports', titleEn: 'Reports' },
-                    { src: screenshotAddTrade, titleFr: 'Ajout de trade', titleEn: 'Add trade' },
-                    { src: screenshotHistory, titleFr: 'Historique', titleEn: 'History' },
-                    { src: screenshotPsychology, titleFr: 'Psychologie', titleEn: 'Psychology' },
-                    { src: screenshotJournal, titleFr: 'Journal', titleEn: 'Journal' },
-                    { src: screenshotChallenges, titleFr: 'Défis', titleEn: 'Challenges' },
-                    { src: screenshotProfile, titleFr: 'Profil', titleEn: 'Profile' },
-                  ].map((item, index) => (
-                    <div 
-                      key={index} 
-                      className="relative rounded-2xl overflow-hidden border border-border/50 shadow-xl group cursor-pointer"
-                      style={{
-                        animationDelay: `${index * 0.05}s`,
-                      }}
-                    >
-                      {/* Glow effect */}
-                      <div className="absolute -inset-0.5 bg-gradient-to-r from-primary/50 to-profit/50 rounded-2xl opacity-0 group-hover:opacity-100 blur transition-opacity duration-300" />
-                      
-                      <div className="relative bg-card rounded-2xl overflow-hidden">
-                        <img 
-                          src={item.src} 
-                          alt={language === 'fr' ? item.titleFr : item.titleEn}
-                          className="w-full h-40 lg:h-48 object-cover object-top transform group-hover:scale-110 transition-transform duration-500"
-                          loading="lazy"
-                          decoding="async"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                        <div className="absolute bottom-0 left-0 right-0 p-3 translate-y-full group-hover:translate-y-0 transition-transform duration-300">
-                          <p className="text-sm font-medium text-foreground">{language === 'fr' ? item.titleFr : item.titleEn}</p>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </ScrollReveal>
           </div>
         </section>
 
@@ -641,29 +491,6 @@ const Landing = () => {
                 </div>
               </ScrollReveal>
               
-              <ScrollReveal animation="fade-left">
-                <div className="relative">
-                  <div className="absolute -inset-4 bg-gradient-to-br from-primary/10 to-profit/10 rounded-3xl blur-xl" />
-                  <div className="grid gap-4">
-                    <div className="relative rounded-xl md:rounded-2xl overflow-hidden border border-border/50 shadow-xl transform hover:scale-[1.02] transition-transform duration-300">
-                      <img 
-                        src={screenshotJournal} 
-                        alt={t('journal')}
-                        className="w-full h-48 sm:h-56 md:h-64 object-cover object-top"
-                        loading="lazy"
-                      />
-                    </div>
-                    <div className="relative rounded-xl md:rounded-2xl overflow-hidden border border-border/50 shadow-xl transform hover:scale-[1.02] transition-transform duration-300">
-                      <img 
-                        src={screenshotProfile} 
-                        alt={t('profile')}
-                        className="w-full h-48 sm:h-56 md:h-64 object-cover object-top"
-                        loading="lazy"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </ScrollReveal>
             </div>
           </div>
         </section>
@@ -697,38 +524,22 @@ const Landing = () => {
           </div>
         </section>
 
-        {/* Psychology/Mission Image Section */}
+        {/* Psychology/Mission Section */}
         <section className="py-24 sm:py-32 bg-card/20">
           <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="grid lg:grid-cols-2 gap-16 items-center">
-              <ScrollReveal animation="fade-right">
-                <div className="relative">
-                  <div className="absolute -inset-4 bg-gradient-to-br from-primary/10 to-loss/10 rounded-3xl blur-xl" />
-                  <div className="relative rounded-xl md:rounded-2xl overflow-hidden border border-border/50 shadow-xl transform hover:scale-[1.02] transition-transform duration-300">
-                    <img 
-                      src={screenshotPsychology} 
-                      alt={t('landingTradingPsychology')}
-                      className="w-full h-64 sm:h-80 md:h-96 object-cover object-top"
-                      loading="lazy"
-                    />
-                  </div>
-                </div>
-              </ScrollReveal>
-
-              <ScrollReveal animation="fade-left">
-                <div>
-                  <span className="text-sm text-primary font-medium mb-4 block">
-                    {t('landingTradingPsychology')}
-                  </span>
-                  <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-6">
-                    {t('landingMasterEmotions')}
-                  </h2>
-                  <p className="text-muted-foreground leading-relaxed">
-                    {t('landingPsychologyDesc')}
-                  </p>
-                </div>
-              </ScrollReveal>
-            </div>
+            <ScrollReveal animation="fade-up">
+              <div className="text-center">
+                <span className="text-sm text-primary font-medium mb-4 block">
+                  {t('landingTradingPsychology')}
+                </span>
+                <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-6">
+                  {t('landingMasterEmotions')}
+                </h2>
+                <p className="text-muted-foreground leading-relaxed max-w-2xl mx-auto">
+                  {t('landingPsychologyDesc')}
+                </p>
+              </div>
+            </ScrollReveal>
           </div>
         </section>
 
