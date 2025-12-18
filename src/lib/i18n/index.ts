@@ -7,6 +7,12 @@ import { ar } from './locales/ar';
 import { pt } from './locales/pt';
 import { de } from './locales/de';
 import { ja } from './locales/ja';
+import { it } from './locales/it';
+import { ru } from './locales/ru';
+import { ko } from './locales/ko';
+import { tr } from './locales/tr';
+import { hi } from './locales/hi';
+import { vi } from './locales/vi';
 
 // Translation cache with complete translations
 const translationCache: Partial<Record<Language, TranslationDictionary>> = {
@@ -18,9 +24,14 @@ const translationCache: Partial<Record<Language, TranslationDictionary>> = {
   pt,
   de,
   ja,
+  it,
+  ru,
+  ko,
+  tr,
+  hi,
+  vi,
   // Fallback to English for remaining languages
-  hi: en, bn: en, ru: en, ur: en, ko: en, tr: en, it: en, vi: en,
-  th: en, fa: en, sw: en, nl: en, id: en, ms: en, pl: en, uk: en,
+  bn: en, ur: en, th: en, fa: en, sw: en, nl: en, id: en, ms: en, pl: en, uk: en,
   ro: en, ha: en, yo: en, ig: en, ta: en, te: en,
 };
 

@@ -324,7 +324,7 @@ const Landing = () => {
               
               <Link to="/auth">
                 <Button size="sm" className="bg-gradient-primary hover:opacity-90 text-primary-foreground">
-                  {language === 'fr' ? 'Connexion' : 'Login'}
+                  {t('login')}
                 </Button>
               </Link>
             </div>
@@ -340,14 +340,14 @@ const Landing = () => {
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-8">
                 <div className="w-1.5 h-1.5 rounded-full bg-profit animate-pulse" />
                 <span className="text-xs text-primary font-medium">
-                  {language === 'fr' ? 'Nouvelle version disponible' : 'New version available'}
+                  {t('landingNewVersion')}
                 </span>
               </div>
             </ScrollReveal>
             
             <ScrollReveal animation="fade-up" delay={100}>
               <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-6 leading-[1.1] tracking-tight">
-                <span className="text-foreground">{language === 'fr' ? 'Tradez avec ' : 'Trade with '}</span>
+                <span className="text-foreground">{t('landingTradeWith')} </span>
                 <br className="sm:hidden" />
                 <span 
                   className="text-gradient-primary inline-block text-left"
@@ -364,9 +364,7 @@ const Landing = () => {
             
             <ScrollReveal animation="fade-up" delay={200}>
               <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed">
-                {language === 'fr' 
-                  ? 'Le journal de trading intelligent pour suivre vos performances, maîtriser vos émotions et progresser chaque jour.' 
-                  : 'The intelligent trading journal to track your performance, master your emotions and progress every day.'}
+                {t('landingHeroDesc')}
               </p>
             </ScrollReveal>
             
@@ -374,7 +372,7 @@ const Landing = () => {
               <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-20">
                 <Link to="/auth">
                   <Button size="lg" className="bg-gradient-primary hover:opacity-90 text-primary-foreground px-8 h-12 text-base group">
-                    {language === 'fr' ? 'Commencer gratuitement' : 'Get started free'}
+                    {t('landingGetStartedFree')}
                     <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
                   </Button>
                 </Link>
@@ -382,7 +380,7 @@ const Landing = () => {
                   onClick={() => scrollToSection('features')} 
                   className="flex items-center gap-2 px-6 h-12 text-base text-muted-foreground hover:text-foreground transition-colors"
                 >
-                  {language === 'fr' ? 'En savoir plus' : 'Learn more'}
+                  {t('landingLearnMore')}
                   <ChevronDown className="w-4 h-4" />
                 </button>
               </div>
@@ -391,9 +389,9 @@ const Landing = () => {
             {/* Stats with counter animation */}
             <div id="stats-section" className="grid grid-cols-3 gap-6 max-w-xl mx-auto mb-16">
               {[
-                { value: activeTraders, suffix: '+', label: language === 'fr' ? 'Traders' : 'Traders', width: '5ch' },
-                { value: averageRating, suffix: '', label: language === 'fr' ? 'Note' : 'Rating', isRating: true, width: '3ch' },
-                { value: tradesRecorded, suffix: 'K', label: language === 'fr' ? 'Trades' : 'Trades', width: '4ch' },
+                { value: activeTraders, suffix: '+', label: t('landingTraders'), width: '5ch' },
+                { value: averageRating, suffix: '', label: t('landingRating'), isRating: true, width: '3ch' },
+                { value: tradesRecorded, suffix: 'K', label: t('landingTrades'), width: '4ch' },
               ].map((stat, index) => (
                 <ScrollReveal key={index} animation="scale" delay={400 + index * 100}>
                   <div className="text-center" style={{ minHeight: '60px' }}>
@@ -432,7 +430,7 @@ const Landing = () => {
                 <div className="relative rounded-2xl overflow-hidden border border-border/50 shadow-2xl transform hover:scale-[1.02] transition-transform duration-300 aspect-[720/1505]">
                     <img 
                       src={screenshotDashboard1} 
-                      alt={language === 'fr' ? 'Statistiques principales' : 'Main statistics'}
+                      alt={t('landingDashboard')}
                       className="w-full h-full object-cover"
                       loading="eager"
                       decoding="async"
@@ -442,13 +440,13 @@ const Landing = () => {
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-background/60 via-transparent to-transparent" />
                     <div className="absolute bottom-3 left-3 right-3">
-                      <p className="text-xs font-medium text-foreground/90">{language === 'fr' ? 'Tableau de bord' : 'Dashboard'}</p>
+                      <p className="text-xs font-medium text-foreground/90">{t('landingDashboard')}</p>
                     </div>
                   </div>
                   <div className="relative rounded-2xl overflow-hidden border border-border/50 shadow-2xl transform hover:scale-[1.02] transition-transform duration-300 translate-y-4 aspect-[720/1128]">
                     <img 
                       src={screenshotReports} 
-                      alt={language === 'fr' ? 'Rapports de trading' : 'Trading reports'}
+                      alt={t('landingDetailedReports')}
                       className="w-full h-full object-cover"
                       loading="lazy"
                       decoding="async"
@@ -457,13 +455,13 @@ const Landing = () => {
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-background/60 via-transparent to-transparent" />
                     <div className="absolute bottom-3 left-3 right-3">
-                      <p className="text-xs font-medium text-foreground/90">{language === 'fr' ? 'Rapports détaillés' : 'Detailed reports'}</p>
+                      <p className="text-xs font-medium text-foreground/90">{t('landingDetailedReports')}</p>
                     </div>
                   </div>
                   <div className="relative rounded-2xl overflow-hidden border border-border/50 shadow-2xl transform hover:scale-[1.02] transition-transform duration-300 aspect-[720/1218]">
                     <img 
                       src={screenshotHistory} 
-                      alt={language === 'fr' ? 'Historique des trades' : 'Trade history'}
+                      alt={t('landingCompleteHistory')}
                       className="w-full h-full object-cover"
                       loading="lazy"
                       decoding="async"
@@ -472,7 +470,7 @@ const Landing = () => {
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-background/60 via-transparent to-transparent" />
                     <div className="absolute bottom-3 left-3 right-3">
-                      <p className="text-xs font-medium text-foreground/90">{language === 'fr' ? 'Historique complet' : 'Complete history'}</p>
+                      <p className="text-xs font-medium text-foreground/90">{t('landingCompleteHistory')}</p>
                     </div>
                   </div>
                 </div>
@@ -495,17 +493,15 @@ const Landing = () => {
                 <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-6">
                   <Zap className="w-4 h-4 text-primary" />
                   <span className="text-sm text-primary font-medium">
-                    {language === 'fr' ? '8 Fonctionnalités Puissantes' : '8 Powerful Features'}
+                    {t('landingPowerfulFeatures')}
                   </span>
                 </div>
                 <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground mb-4">
-                  {language === 'fr' ? 'Tout ce qu\'il vous faut pour' : 'Everything you need to'}
-                  <span className="text-gradient-primary"> {language === 'fr' ? 'réussir' : 'succeed'}</span>
+                  {t('landingEverythingYouNeed')}
+                  <span className="text-gradient-primary"> {t('landingSucceed')}</span>
                 </h2>
                 <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                  {language === 'fr' 
-                    ? 'Des outils professionnels conçus pour améliorer votre discipline, analyser vos performances et transformer votre trading.'
-                    : 'Professional tools designed to improve your discipline, analyze your performance and transform your trading.'}
+                  {t('landingFeaturesDesc')}
                 </p>
               </div>
             </ScrollReveal>
@@ -520,10 +516,10 @@ const Landing = () => {
               <div className="mt-20">
                 <div className="text-center mb-10">
                   <h3 className="text-xl font-semibold text-foreground mb-2">
-                    {language === 'fr' ? 'Découvrez l\'interface' : 'Discover the interface'}
+                    {t('landingDiscoverInterface')}
                   </h3>
                   <p className="text-sm text-muted-foreground">
-                    {language === 'fr' ? 'Une expérience utilisateur intuitive et professionnelle' : 'An intuitive and professional user experience'}
+                    {t('landingIntuitiveExperience')}
                   </p>
                 </div>
 
@@ -600,16 +596,14 @@ const Landing = () => {
                 <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-profit/10 border border-profit/20 mb-6">
                   <Activity className="w-4 h-4 text-profit animate-pulse" />
                   <span className="text-sm text-profit font-medium">
-                    {language === 'fr' ? 'Statistiques en direct' : 'Live Statistics'}
+                    {t('landingLiveStats')}
                   </span>
                 </div>
                 <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
-                  {language === 'fr' ? 'Suivez vos performances' : 'Track your performance'}
+                  {t('landingTrackPerformance')}
                 </h2>
                 <p className="text-muted-foreground max-w-xl mx-auto">
-                  {language === 'fr' 
-                    ? 'Des statistiques professionnelles pour prendre de meilleures décisions.'
-                    : 'Professional statistics to make better decisions.'}
+                  {t('landingTrackDesc')}
                 </p>
               </div>
             </ScrollReveal>
@@ -627,15 +621,13 @@ const Landing = () => {
               <ScrollReveal animation="fade-right">
                 <div>
                   <span className="text-sm text-primary font-medium mb-4 block">
-                    {language === 'fr' ? 'Avantages' : 'Benefits'}
+                    {t('landingBenefits')}
                   </span>
                   <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-6">
-                    {language === 'fr' ? 'Pourquoi choisir Smart Trade Tracker ?' : 'Why choose Smart Trade Tracker?'}
+                    {t('landingWhyChoose')} Smart Trade Tracker?
                   </h2>
                   <p className="text-muted-foreground mb-8 leading-relaxed">
-                    {language === 'fr' 
-                      ? 'Une solution complète conçue par un trader pour les traders. Chaque fonctionnalité a été pensée pour améliorer votre discipline et vos performances.' 
-                      : 'A complete solution designed by a trader for traders. Every feature has been designed to improve your discipline and performance.'}
+                    {t('landingBenefitsDesc')}
                   </p>
                   
                   <div className="grid gap-3">
@@ -654,12 +646,11 @@ const Landing = () => {
               <ScrollReveal animation="fade-left">
                 <div className="relative">
                   <div className="absolute -inset-4 bg-gradient-to-br from-primary/10 to-profit/10 rounded-3xl blur-xl" />
-                  {/* Stack 2 images on desktop, single on mobile */}
                   <div className="grid gap-4">
                     <div className="relative rounded-xl md:rounded-2xl overflow-hidden border border-border/50 shadow-xl transform hover:scale-[1.02] transition-transform duration-300">
                       <img 
                         src={screenshotJournal} 
-                        alt={language === 'fr' ? 'Journal de trading' : 'Trading journal'}
+                        alt={t('journal')}
                         className="w-full h-48 sm:h-56 md:h-64 object-cover object-top"
                         loading="lazy"
                       />
@@ -667,7 +658,7 @@ const Landing = () => {
                     <div className="relative rounded-xl md:rounded-2xl overflow-hidden border border-border/50 shadow-xl transform hover:scale-[1.02] transition-transform duration-300">
                       <img 
                         src={screenshotProfile} 
-                        alt={language === 'fr' ? 'Profil utilisateur' : 'User profile'}
+                        alt={t('profile')}
                         className="w-full h-48 sm:h-56 md:h-64 object-cover object-top"
                         loading="lazy"
                       />
@@ -679,16 +670,15 @@ const Landing = () => {
           </div>
         </section>
 
-        {/* Trust Section */}
         <section id="trust" className="py-24 sm:py-32">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <ScrollReveal animation="fade-up">
               <div className="text-center mb-16">
                 <span className="text-sm text-primary font-medium mb-4 block">
-                  {language === 'fr' ? 'Notre Engagement' : 'Our Commitment'}
+                  {t('landingOurCommitment')}
                 </span>
                 <h2 className="text-3xl sm:text-4xl font-bold text-foreground">
-                  {language === 'fr' ? 'Votre confiance, notre priorité' : 'Your trust, our priority'}
+                  {t('landingYourTrust')}
                 </h2>
               </div>
             </ScrollReveal>
@@ -719,7 +709,7 @@ const Landing = () => {
                   <div className="relative rounded-xl md:rounded-2xl overflow-hidden border border-border/50 shadow-xl transform hover:scale-[1.02] transition-transform duration-300">
                     <img 
                       src={screenshotPsychology} 
-                      alt={language === 'fr' ? 'Analyse psychologique du trading' : 'Trading psychological analysis'}
+                      alt={t('landingTradingPsychology')}
                       className="w-full h-64 sm:h-80 md:h-96 object-cover object-top"
                       loading="lazy"
                     />
@@ -730,15 +720,13 @@ const Landing = () => {
               <ScrollReveal animation="fade-left">
                 <div>
                   <span className="text-sm text-primary font-medium mb-4 block">
-                    {language === 'fr' ? 'Psychologie du Trading' : 'Trading Psychology'}
+                    {t('landingTradingPsychology')}
                   </span>
                   <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-6">
-                    {language === 'fr' ? 'Maîtrisez vos émotions' : 'Master your emotions'}
+                    {t('landingMasterEmotions')}
                   </h2>
                   <p className="text-muted-foreground leading-relaxed">
-                    {language === 'fr' 
-                      ? 'La psychologie représente 80% du succès en trading. Notre outil vous aide à identifier vos patterns émotionnels, comprendre vos biais et développer une discipline de fer pour prendre de meilleures décisions.' 
-                      : 'Psychology represents 80% of trading success. Our tool helps you identify your emotional patterns, understand your biases and develop iron discipline to make better decisions.'}
+                    {t('landingPsychologyDesc')}
                   </p>
                 </div>
               </ScrollReveal>
@@ -752,10 +740,10 @@ const Landing = () => {
             <ScrollReveal animation="fade-up">
               <div className="text-center mb-16">
                 <span className="text-sm text-primary font-medium mb-4 block">
-                  {language === 'fr' ? 'Témoignages' : 'Testimonials'}
+                  {t('landingTestimonials')}
                 </span>
                 <h2 className="text-3xl sm:text-4xl font-bold text-foreground">
-                  {language === 'fr' ? 'Ce que disent nos traders' : 'What our traders say'}
+                  {t('landingWhatTradersSay')}
                 </h2>
               </div>
             </ScrollReveal>
@@ -797,10 +785,10 @@ const Landing = () => {
             <ScrollReveal animation="fade-up">
               <div className="text-center mb-16">
                 <span className="text-sm text-primary font-medium mb-4 block">
-                  {language === 'fr' ? 'FAQ' : 'FAQ'}
+                  {t('landingFaq')}
                 </span>
                 <h2 className="text-3xl sm:text-4xl font-bold text-foreground">
-                  {language === 'fr' ? 'Questions fréquentes' : 'Frequently asked questions'}
+                  {t('landingFaqTitle')}
                 </h2>
               </div>
             </ScrollReveal>
@@ -834,16 +822,14 @@ const Landing = () => {
           <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <ScrollReveal animation="fade-up">
               <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-6">
-                {language === 'fr' ? 'Prêt à transformer votre trading ?' : 'Ready to transform your trading?'}
+                {t('landingReadyToTransform')}
               </h2>
               <p className="text-lg text-muted-foreground mb-10 max-w-xl mx-auto">
-                {language === 'fr' 
-                  ? 'Rejoignez des milliers de traders qui ont déjà amélioré leur discipline avec Smart Trade Tracker.' 
-                  : 'Join thousands of traders who have already improved their discipline with Smart Trade Tracker.'}
+                {t('landingCtaDesc')}
               </p>
               <Link to="/auth">
                 <Button size="lg" className="bg-gradient-primary hover:opacity-90 text-primary-foreground px-10 h-12 text-base">
-                  {language === 'fr' ? 'Commencer maintenant' : 'Get started now'}
+                  {t('landingGetStartedNow')}
                   <ArrowRight className="w-4 h-4 ml-2" />
                 </Button>
               </Link>
@@ -865,13 +851,13 @@ const Landing = () => {
             
             <div className="flex items-center gap-6 text-sm text-muted-foreground">
               <Link to="/privacy-policy" className="hover:text-foreground transition-colors">
-                {language === 'fr' ? 'Confidentialité' : 'Privacy'}
+                {t('landingPrivacyFooter')}
               </Link>
               <Link to="/terms-of-use" className="hover:text-foreground transition-colors">
-                {language === 'fr' ? 'Conditions' : 'Terms'}
+                {t('landingTermsFooter')}
               </Link>
               <Link to="/about" className="hover:text-foreground transition-colors">
-                {language === 'fr' ? 'À propos' : 'About'}
+                {t('landingAboutFooter')}
               </Link>
             </div>
             
