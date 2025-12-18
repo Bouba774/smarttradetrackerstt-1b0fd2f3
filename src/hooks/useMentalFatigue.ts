@@ -14,7 +14,7 @@ export interface MentalFatigueIndex {
   shouldPause: boolean;
 }
 
-export const useMentalFatigue = (trades: Trade[], language: 'fr' | 'en' = 'fr'): MentalFatigueIndex => {
+export const useMentalFatigue = (trades: Trade[], language: string = 'fr'): MentalFatigueIndex => {
   return useMemo(() => {
     const now = new Date();
     const todayTrades = trades.filter(t => isToday(parseISO(t.trade_date)));

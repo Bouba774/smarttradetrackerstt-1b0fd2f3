@@ -32,7 +32,7 @@ const DISCIPLINE_RULES = {
   maxConsecutiveLosses: 3,
 };
 
-export const useDisciplineStreaks = (trades: Trade[], language: 'fr' | 'en' = 'fr'): DisciplineStreaks => {
+export const useDisciplineStreaks = (trades: Trade[], language: string = 'fr'): DisciplineStreaks => {
   return useMemo(() => {
     const defaultStreaks: DisciplineStreaks = {
       currentStreak: 0,

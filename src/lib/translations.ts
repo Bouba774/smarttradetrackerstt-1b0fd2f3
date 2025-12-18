@@ -1,7 +1,7 @@
 // Complete translation system for Smart Trade Tracker
 // All UI strings must be defined here for full multilingual support
 
-export type Language = 'fr' | 'en';
+export type Language = 'en' | 'fr' | 'es' | 'pt' | 'ar' | 'zh' | 'hi' | 'ru' | 'de' | 'ja';
 
 export interface Translations {
   [key: string]: {

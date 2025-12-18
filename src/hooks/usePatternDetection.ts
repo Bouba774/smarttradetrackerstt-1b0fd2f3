@@ -27,7 +27,7 @@ export interface PatternDetection {
   weaknesses: string[];
 }
 
-export const usePatternDetection = (trades: Trade[], language: 'fr' | 'en' = 'fr'): PatternDetection => {
+export const usePatternDetection = (trades: Trade[], language: string = 'fr'): PatternDetection => {
   return useMemo(() => {
     const defaultResult: PatternDetection = {
       personalPatterns: [],

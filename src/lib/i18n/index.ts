@@ -36,5 +36,5 @@ export function getTranslation(key: string, translations: TranslationDictionary)
 }
 
 // Re-export everything
-export { Language, DEFAULT_LANGUAGE, getBrowserLanguage, isRTL, LANGUAGES, getLanguageInfo };
-export type { TranslationDictionary };
+export { DEFAULT_LANGUAGE, getBrowserLanguage, isRTL, LANGUAGES, getLanguageInfo };
+export type { Language, TranslationDictionary };

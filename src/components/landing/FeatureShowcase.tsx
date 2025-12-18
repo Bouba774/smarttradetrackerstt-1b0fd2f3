@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 
 interface FeatureShowcaseProps {
-  language: 'fr' | 'en';
+  language: string;
 }
 
 const FeatureShowcase: React.FC<FeatureShowcaseProps> = ({ language }) => {

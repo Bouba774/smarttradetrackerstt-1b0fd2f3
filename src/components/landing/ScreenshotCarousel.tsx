@@ -12,7 +12,7 @@ interface Screenshot {
 
 interface ScreenshotCarouselProps {
   screenshots: Screenshot[];
-  language: 'fr' | 'en';
+  language: string;
 }
 
 const ScreenshotCarousel: React.FC<ScreenshotCarouselProps> = ({ screenshots, language }) => {

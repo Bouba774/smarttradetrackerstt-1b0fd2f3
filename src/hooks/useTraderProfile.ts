@@ -16,7 +16,7 @@ export interface TraderProfile {
   icon: string;
 }
 
-export const useTraderProfile = (trades: Trade[], language: 'fr' | 'en' = 'fr'): TraderProfile | null => {
+export const useTraderProfile = (trades: Trade[], language: string = 'fr'): TraderProfile | null => {
   return useMemo(() => {
     if (!trades || trades.length < 5) return null;
 

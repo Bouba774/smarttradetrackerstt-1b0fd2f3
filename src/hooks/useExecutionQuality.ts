@@ -20,7 +20,7 @@ export interface ExecutionQuality {
   overallScore: number;
 }
 
-export const useExecutionQuality = (trades: Trade[], language: 'fr' | 'en' = 'fr'): ExecutionQuality => {
+export const useExecutionQuality = (trades: Trade[], language: string = 'fr'): ExecutionQuality => {
   return useMemo(() => {
     if (!trades || trades.length === 0) {
       return {

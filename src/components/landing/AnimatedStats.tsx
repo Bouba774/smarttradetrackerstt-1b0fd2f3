@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { TrendingUp, TrendingDown, Activity, Zap, Target, Award } from 'lucide-react';
 
 interface AnimatedStatsProps {
-  language: 'fr' | 'en';
+  language: string;
 }
 
 const AnimatedStats: React.FC<AnimatedStatsProps> = ({ language }) => {

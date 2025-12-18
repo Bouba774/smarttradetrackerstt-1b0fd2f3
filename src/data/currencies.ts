@@ -61,7 +61,7 @@ export const CURRENCIES: Currency[] = [
   { code: 'ZAR', name: 'South African Rand', nameFr: 'Rand sud-africain', decimals: 2, symbol: 'R' },
 ];
 
-export const getCurrencyLabel = (currency: Currency, language: 'fr' | 'en'): string => {
+export const getCurrencyLabel = (currency: Currency, language: string): string => {
   const name = language === 'fr' ? currency.nameFr : currency.name;
   return `${name} (${currency.code})`;
 };

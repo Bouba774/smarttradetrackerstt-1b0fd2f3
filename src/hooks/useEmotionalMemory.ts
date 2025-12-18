@@ -23,7 +23,7 @@ export interface EmotionalMemory {
   bestEmotion: string | null;
 }
 
-export const useEmotionalMemory = (trades: Trade[], language: 'fr' | 'en' = 'fr'): EmotionalMemory => {
+export const useEmotionalMemory = (trades: Trade[], language: string = 'fr'): EmotionalMemory => {
   return useMemo(() => {
     if (!trades || trades.length === 0) {
       return {

@@ -49,7 +49,7 @@ export const validatePassword = (password: string): { isValid: boolean; errors: 
   };
 };
 
-export const createPasswordSchema = (language: 'fr' | 'en') => {
+export const createPasswordSchema = (language: string) => {
   return z
     .string()
     .min(8, language === 'fr' ? 'Au moins 8 caractères requis' : 'At least 8 characters required')
