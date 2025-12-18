@@ -224,6 +224,7 @@ export const translations: Translations = {
   calculatedLot: { fr: 'Taille de Lot Calculée', en: 'Calculated Lot Size' },
   calculate: { fr: 'Calculer', en: 'Calculate' },
   sendToTrade: { fr: 'Envoyer vers Ajout de Trade', en: 'Send to Add Trade' },
+  dataSentToTrade: { fr: 'Données envoyées vers l\'ajout de trade', en: 'Data sent to add trade' },
 
   // ============================================
   // SETTINGS

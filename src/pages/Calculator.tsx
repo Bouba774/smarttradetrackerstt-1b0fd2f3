@@ -14,12 +14,15 @@ import {
 import { cn } from '@/lib/utils';
 import { Calculator as CalcIcon, ArrowRight, AlertTriangle, CheckCircle, Send, Search, TrendingUp, TrendingDown } from 'lucide-react';
 import { toast } from 'sonner';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+
+export const PENDING_TRADE_KEY = 'pending_trade_data';
 import { ASSET_CATEGORIES, PIP_VALUES, DECIMALS, getPipSize, getAssetCategory } from '@/data/assets';
 
 const Calculator: React.FC = () => {
   const { t } = useLanguage();
   const { formatAmount, getCurrencySymbol, currency } = useCurrency();
+  const navigate = useNavigate();
   const [assetSearch, setAssetSearch] = useState('');
 
   const [formData, setFormData] = useState({
@@ -399,15 +402,27 @@ const Calculator: React.FC = () => {
               )}
 
               {/* Send to Trade */}
-              <Link to="/add-trade">
-                <Button
-                  variant="outline"
-                  className="w-full mt-6 gap-2 border-primary/50 hover:bg-primary/10"
-                >
-                  <Send className="w-4 h-4" />
-                  {t('sendToTrade')}
-                </Button>
-              </Link>
+              <Button
+                variant="outline"
+                className="w-full mt-6 gap-2 border-primary/50 hover:bg-primary/10"
+                onClick={() => {
+                  const pendingTradeData = {
+                    asset: formData.asset,
+                    entryPrice: formData.entryPrice,
+                    stopLoss: formData.stopLoss,
+                    takeProfit: formData.takeProfit,
+                    lotSize: results.lotSize.toString(),
+                    direction: results.direction,
+                    risk: formData.riskPercent,
+                  };
+                  localStorage.setItem(PENDING_TRADE_KEY, JSON.stringify(pendingTradeData));
+                  toast.success(t('dataSentToTrade'));
+                  navigate('/add-trade');
+                }}
+              >
+                <Send className="w-4 h-4" />
+                {t('sendToTrade')}
+              </Button>
             </div>
           )}
 

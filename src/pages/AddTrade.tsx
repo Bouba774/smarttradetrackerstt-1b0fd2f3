@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useTrades } from '@/hooks/useTrades';
 import { useTradeImages } from '@/hooks/useTradeImages';
@@ -34,6 +34,7 @@ import {
 import { toast } from 'sonner';
 import { ASSET_CATEGORIES, ALL_ASSETS } from '@/data/assets';
 import { validateTradeForm, validateImageFiles, sanitizeText } from '@/lib/tradeValidation';
+import { PENDING_TRADE_KEY } from './Calculator';
 
 const DEFAULT_SETUPS = [
   'Breakout', 'Pullback', 'Reversal', 'Range', 'Trend Following',
@@ -82,20 +83,73 @@ const AddTrade: React.FC = () => {
   const [customSetup, setCustomSetup] = useState('');
   const [exitMethod, setExitMethod] = useState<'sl' | 'tp' | 'manual'>('manual');
   
-  const [formData, setFormData] = useState({
-    asset: '',
-    setup: '',
-    timeframe: '',
-    entryPrice: '',
-    exitPrice: '',
-    stopLoss: '',
-    takeProfit: '',
-    lotSize: '',
-    pnl: '',
-    risk: '',
-    emotion: '',
-    notes: '',
+  const [formData, setFormData] = useState(() => {
+    // Load pending trade data from localStorage on initial mount
+    const savedData = localStorage.getItem(PENDING_TRADE_KEY);
+    if (savedData) {
+      try {
+        const parsed = JSON.parse(savedData);
+        return {
+          asset: parsed.asset || '',
+          setup: '',
+          timeframe: '',
+          entryPrice: parsed.entryPrice || '',
+          exitPrice: '',
+          stopLoss: parsed.stopLoss || '',
+          takeProfit: parsed.takeProfit || '',
+          lotSize: parsed.lotSize || '',
+          pnl: '',
+          risk: parsed.risk || '',
+          emotion: '',
+          notes: '',
+        };
+      } catch {
+        return {
+          asset: '',
+          setup: '',
+          timeframe: '',
+          entryPrice: '',
+          exitPrice: '',
+          stopLoss: '',
+          takeProfit: '',
+          lotSize: '',
+          pnl: '',
+          risk: '',
+          emotion: '',
+          notes: '',
+        };
+      }
+    }
+    return {
+      asset: '',
+      setup: '',
+      timeframe: '',
+      entryPrice: '',
+      exitPrice: '',
+      stopLoss: '',
+      takeProfit: '',
+      lotSize: '',
+      pnl: '',
+      risk: '',
+      emotion: '',
+      notes: '',
+    };
   });
+
+  // Load direction from localStorage on mount
+  useEffect(() => {
+    const savedData = localStorage.getItem(PENDING_TRADE_KEY);
+    if (savedData) {
+      try {
+        const parsed = JSON.parse(savedData);
+        if (parsed.direction) {
+          setDirection(parsed.direction);
+        }
+      } catch {
+        // Ignore parse errors
+      }
+    }
+  }, []);
 
   // Filter assets based on search
   const filteredAssets = useMemo(() => {
@@ -275,6 +329,9 @@ const AddTrade: React.FC = () => {
         duration_seconds: durationSeconds,
         timeframe: formData.timeframe || customTimeframe || null,
       });
+      
+      // Clear pending trade data from localStorage only after successful save
+      localStorage.removeItem(PENDING_TRADE_KEY);
       
       toast.success(t('tradeRegistered'));
       
