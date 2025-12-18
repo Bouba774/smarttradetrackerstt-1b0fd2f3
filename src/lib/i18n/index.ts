@@ -13,6 +13,22 @@ import { ko } from './locales/ko';
 import { tr } from './locales/tr';
 import { hi } from './locales/hi';
 import { vi } from './locales/vi';
+import { th } from './locales/th';
+import { fa } from './locales/fa';
+import { sw } from './locales/sw';
+import { nl } from './locales/nl';
+import { id } from './locales/id';
+import { ms } from './locales/ms';
+import { pl } from './locales/pl';
+import { uk } from './locales/uk';
+import { ro } from './locales/ro';
+import { bn } from './locales/bn';
+import { ur } from './locales/ur';
+import { ha } from './locales/ha';
+import { yo } from './locales/yo';
+import { ig } from './locales/ig';
+import { ta } from './locales/ta';
+import { te } from './locales/te';
 
 // Translation cache with complete translations
 const translationCache: Partial<Record<Language, TranslationDictionary>> = {
@@ -30,9 +46,22 @@ const translationCache: Partial<Record<Language, TranslationDictionary>> = {
   tr,
   hi,
   vi,
-  // Fallback to English for remaining languages
-  bn: en, ur: en, th: en, fa: en, sw: en, nl: en, id: en, ms: en, pl: en, uk: en,
-  ro: en, ha: en, yo: en, ig: en, ta: en, te: en,
+  th,
+  fa,
+  sw,
+  nl,
+  id,
+  ms,
+  pl,
+  uk,
+  ro,
+  bn,
+  ur,
+  ha,
+  yo,
+  ig,
+  ta,
+  te,
 };
 
 // Lazy load translations
