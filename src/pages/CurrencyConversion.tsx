@@ -6,9 +6,10 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Switch } from '@/components/ui/switch';
 import { 
   ArrowRightLeft, RefreshCw, Clock, TrendingUp, TrendingDown, 
-  AlertCircle, Search, Star, History, Coins, DollarSign, Wifi, WifiOff
+  AlertCircle, Search, Star, History, Coins, DollarSign, Wifi, WifiOff, Grid2X2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -138,6 +139,14 @@ const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes for crypto rates
 const HISTORY_KEY = 'crypto-conversion-history';
 const FAVORITES_KEY = 'crypto-conversion-favorites';
 
+interface MultiConversion {
+  id: number;
+  fromAsset: string;
+  toAsset: string;
+  amount: string;
+  result: number | null;
+}
+
 const CurrencyConversion: React.FC = () => {
   const { language } = useLanguage();
   
@@ -157,6 +166,13 @@ const CurrencyConversion: React.FC = () => {
   const [favorites, setFavorites] = useState<string[]>(['BTC', 'ETH', 'USD', 'EUR', 'USDT']);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [activeTab, setActiveTab] = useState<'all' | 'fiat' | 'crypto'>('all');
+  const [isMultiMode, setIsMultiMode] = useState(false);
+  const [multiConversions, setMultiConversions] = useState<MultiConversion[]>([
+    { id: 1, fromAsset: 'BTC', toAsset: 'USD', amount: '1', result: null },
+    { id: 2, fromAsset: 'ETH', toAsset: 'EUR', amount: '1', result: null },
+    { id: 3, fromAsset: 'USD', toAsset: 'XAF', amount: '100', result: null },
+    { id: 4, fromAsset: 'USDT', toAsset: 'NGN', amount: '1000', result: null },
+  ]);
 
   // Handle online/offline status
   useEffect(() => {
@@ -314,7 +330,7 @@ const CurrencyConversion: React.FC = () => {
     return () => clearInterval(interval);
   }, [fetchRates]);
 
-  // Auto-convert on change
+  // Auto-convert on change (single mode)
   useEffect(() => {
     if (amount && rates[fromAsset] && rates[toAsset]) {
       const numAmount = parseFloat(amount.replace(/,/g, ''));
@@ -332,6 +348,80 @@ const CurrencyConversion: React.FC = () => {
     }
     setResult(null);
   }, [amount, fromAsset, toAsset, rates]);
+
+  // Auto-convert multi conversions
+  useEffect(() => {
+    if (Object.keys(rates).length === 0) return;
+    
+    const updated = multiConversions.map(conv => {
+      if (conv.amount && rates[conv.fromAsset] && rates[conv.toAsset]) {
+        const numAmount = parseFloat(conv.amount.replace(/,/g, ''));
+        if (!isNaN(numAmount)) {
+          const amountInUSD = numAmount / rates[conv.fromAsset];
+          const converted = amountInUSD * rates[conv.toAsset];
+          if (conv.result !== converted) {
+            return { ...conv, result: converted };
+          }
+        }
+      }
+      if (conv.result !== null && (!conv.amount || !rates[conv.fromAsset] || !rates[conv.toAsset])) {
+        return { ...conv, result: null };
+      }
+      return conv;
+    });
+    
+    // Only update if something changed
+    const hasChanged = updated.some((u, i) => u.result !== multiConversions[i].result);
+    if (hasChanged) {
+      setMultiConversions(updated);
+    }
+  }, [rates]);
+
+  const updateMultiConversion = (id: number, field: keyof MultiConversion, value: string) => {
+    setMultiConversions(prev => prev.map(conv => {
+      if (conv.id !== id) return conv;
+      
+      const updated = { ...conv, [field]: value };
+      
+      // Recalculate result immediately
+      if (updated.amount && rates[updated.fromAsset] && rates[updated.toAsset]) {
+        const numAmount = parseFloat(updated.amount.replace(/,/g, ''));
+        if (!isNaN(numAmount)) {
+          const amountInUSD = numAmount / rates[updated.fromAsset];
+          updated.result = amountInUSD * rates[updated.toAsset];
+        } else {
+          updated.result = null;
+        }
+      } else {
+        updated.result = null;
+      }
+      
+      return updated;
+    }));
+  };
+
+  const swapMultiConversion = (id: number) => {
+    setMultiConversions(prev => prev.map(conv => {
+      if (conv.id !== id) return conv;
+      
+      const swapped = { ...conv, fromAsset: conv.toAsset, toAsset: conv.fromAsset };
+      
+      // Recalculate result
+      if (swapped.amount && rates[swapped.fromAsset] && rates[swapped.toAsset]) {
+        const numAmount = parseFloat(swapped.amount.replace(/,/g, ''));
+        if (!isNaN(numAmount)) {
+          const amountInUSD = numAmount / rates[swapped.fromAsset];
+          swapped.result = amountInUSD * rates[swapped.toAsset];
+        } else {
+          swapped.result = null;
+        }
+      } else {
+        swapped.result = null;
+      }
+      
+      return swapped;
+    }));
+  };
 
   const handleSwap = () => {
     setFromAsset(toAsset);
@@ -518,6 +608,20 @@ const CurrencyConversion: React.FC = () => {
                   </TabsTrigger>
                 </TabsList>
               </Tabs>
+              
+              {/* Multi-mode toggle */}
+              <div className="flex items-center gap-2 px-2 py-1 rounded-lg bg-secondary/50">
+                <Grid2X2 className="w-4 h-4 text-muted-foreground" />
+                <span className="text-xs text-muted-foreground hidden sm:inline">
+                  {language === 'fr' ? 'Multi' : 'Multi'}
+                </span>
+                <Switch
+                  checked={isMultiMode}
+                  onCheckedChange={setIsMultiMode}
+                  className="scale-75"
+                />
+              </div>
+              
               <Button
                 variant="ghost"
                 size="sm"
@@ -539,7 +643,175 @@ const CurrencyConversion: React.FC = () => {
             </div>
           )}
 
-          <div className="grid gap-4 md:grid-cols-[1fr,auto,1fr]">
+          {/* Multi-conversion mode */}
+          {isMultiMode ? (
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground text-center">
+                {language === 'fr' 
+                  ? 'Convertissez 4 actifs simultanément'
+                  : 'Convert 4 assets simultaneously'}
+              </p>
+              
+              <div className="grid gap-4 md:grid-cols-2">
+                {multiConversions.map((conv, index) => {
+                  const fromData = getAsset(conv.fromAsset);
+                  const toData = getAsset(conv.toAsset);
+                  const convRate = rates[conv.fromAsset] && rates[conv.toAsset] 
+                    ? rates[conv.toAsset] / rates[conv.fromAsset]
+                    : null;
+                  
+                  return (
+                    <Card key={conv.id} className="border-primary/20 bg-secondary/20">
+                      <CardContent className="p-4 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <Badge variant="outline" className="text-xs">
+                            #{index + 1}
+                          </Badge>
+                          {convRate && (
+                            <span className="text-xs text-muted-foreground font-mono">
+                              1 {conv.fromAsset} = {formatNumber(convRate, 6)} {conv.toAsset}
+                            </span>
+                          )}
+                        </div>
+                        
+                        <div className="flex items-center gap-2">
+                          {/* Amount input */}
+                          <Input
+                            type="text"
+                            value={conv.amount}
+                            onChange={(e) => updateMultiConversion(conv.id, 'amount', e.target.value.replace(/[^0-9.,]/g, ''))}
+                            className="w-24 h-10 text-sm font-semibold bg-background/50"
+                            placeholder="0"
+                          />
+                          
+                          {/* From select */}
+                          <Select 
+                            value={conv.fromAsset} 
+                            onValueChange={(v) => updateMultiConversion(conv.id, 'fromAsset', v)}
+                          >
+                            <SelectTrigger className="w-28 h-10 bg-background/50">
+                              <SelectValue>
+                                <div className="flex items-center gap-1.5">
+                                  <div className={cn(
+                                    "w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold",
+                                    fromData?.type === 'crypto' ? "bg-primary/20 text-primary" : "bg-secondary text-foreground"
+                                  )}>
+                                    {fromData?.symbol.slice(0, 2)}
+                                  </div>
+                                  <span className="text-sm font-medium">{conv.fromAsset}</span>
+                                </div>
+                              </SelectValue>
+                            </SelectTrigger>
+                            <SelectContent className="max-h-[300px]">
+                              {ALL_ASSETS.map((asset) => (
+                                <SelectItem key={`multi-from-${conv.id}-${asset.code}`} value={asset.code}>
+                                  <div className="flex items-center gap-2">
+                                    <div className={cn(
+                                      "w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold",
+                                      asset.type === 'crypto' ? "bg-primary/20 text-primary" : "bg-secondary text-foreground"
+                                    )}>
+                                      {asset.symbol.slice(0, 2)}
+                                    </div>
+                                    <span>{asset.code}</span>
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          
+                          {/* Swap button */}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => swapMultiConversion(conv.id)}
+                            className="h-10 w-10 rounded-full hover:bg-primary/20"
+                          >
+                            <ArrowRightLeft className="w-4 h-4 text-primary" />
+                          </Button>
+                          
+                          {/* To select */}
+                          <Select 
+                            value={conv.toAsset} 
+                            onValueChange={(v) => updateMultiConversion(conv.id, 'toAsset', v)}
+                          >
+                            <SelectTrigger className="w-28 h-10 bg-background/50">
+                              <SelectValue>
+                                <div className="flex items-center gap-1.5">
+                                  <div className={cn(
+                                    "w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold",
+                                    toData?.type === 'crypto' ? "bg-primary/20 text-primary" : "bg-secondary text-foreground"
+                                  )}>
+                                    {toData?.symbol.slice(0, 2)}
+                                  </div>
+                                  <span className="text-sm font-medium">{conv.toAsset}</span>
+                                </div>
+                              </SelectValue>
+                            </SelectTrigger>
+                            <SelectContent className="max-h-[300px]">
+                              {ALL_ASSETS.map((asset) => (
+                                <SelectItem key={`multi-to-${conv.id}-${asset.code}`} value={asset.code}>
+                                  <div className="flex items-center gap-2">
+                                    <div className={cn(
+                                      "w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold",
+                                      asset.type === 'crypto' ? "bg-primary/20 text-primary" : "bg-secondary text-foreground"
+                                    )}>
+                                      {asset.symbol.slice(0, 2)}
+                                    </div>
+                                    <span>{asset.code}</span>
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
+                        {/* Result */}
+                        <div className="flex items-center justify-between p-3 rounded-lg bg-primary/10 border border-primary/30">
+                          <span className="text-sm text-muted-foreground">
+                            {language === 'fr' ? 'Résultat' : 'Result'}
+                          </span>
+                          <span className="text-lg font-bold text-primary">
+                            {conv.result !== null && toData
+                              ? `${formatNumber(conv.result, Math.min(toData.decimals, 6))} ${conv.toAsset}`
+                              : '—'}
+                          </span>
+                        </div>
+                        
+                        {/* 24h change indicators */}
+                        <div className="flex items-center gap-4 text-xs">
+                          {priceChanges[conv.fromAsset] !== undefined && (
+                            <div className="flex items-center gap-1">
+                              <span className="text-muted-foreground">{conv.fromAsset}:</span>
+                              <span className={cn(
+                                "font-medium",
+                                priceChanges[conv.fromAsset] >= 0 ? "text-profit" : "text-loss"
+                              )}>
+                                {priceChanges[conv.fromAsset] >= 0 ? '+' : ''}{priceChanges[conv.fromAsset].toFixed(2)}%
+                              </span>
+                            </div>
+                          )}
+                          {priceChanges[conv.toAsset] !== undefined && (
+                            <div className="flex items-center gap-1">
+                              <span className="text-muted-foreground">{conv.toAsset}:</span>
+                              <span className={cn(
+                                "font-medium",
+                                priceChanges[conv.toAsset] >= 0 ? "text-profit" : "text-loss"
+                              )}>
+                                {priceChanges[conv.toAsset] >= 0 ? '+' : ''}{priceChanges[conv.toAsset].toFixed(2)}%
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            /* Single conversion mode - existing UI */
+            <>
+              <div className="grid gap-4 md:grid-cols-[1fr,auto,1fr]">
             {/* From Asset */}
             <div className="space-y-3">
               <label className="text-sm font-medium text-muted-foreground">
@@ -806,6 +1078,8 @@ const CurrencyConversion: React.FC = () => {
             <History className="w-4 h-4 mr-2" />
             {language === 'fr' ? 'Sauvegarder la conversion' : 'Save Conversion'}
           </Button>
+            </>
+          )}
         </CardContent>
       </Card>
 
