@@ -61,9 +61,12 @@ const AppSidebar: React.FC = () => {
   return (
     <>
       {/* Mobile overlay */}
-      {isMobile && isOpen && (
+      {isMobile && (
         <div 
-          className="fixed inset-0 bg-background/80 backdrop-blur-sm z-40 transition-opacity duration-300"
+          className={cn(
+            "fixed inset-0 bg-background/80 backdrop-blur-sm z-40 transition-all duration-300",
+            isOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+          )}
           onClick={toggleSidebar}
         />
       )}
