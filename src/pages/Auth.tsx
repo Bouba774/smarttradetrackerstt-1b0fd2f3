@@ -17,17 +17,6 @@ import TurnstileWidget from '@/components/TurnstileWidget';
 // Cloudflare Turnstile Site Key (public key, safe to expose in client code)
 const TURNSTILE_SITE_KEY = '0x4AAAAAACG-_s2EZYR5V8_J';
 
-// Disable Turnstile in preview/development environments (Cloudflare requires whitelisted domains)
-const isPreviewOrDev = () => {
-  const hostname = window.location.hostname;
-  return hostname === 'localhost' || 
-         hostname.includes('lovableproject.com') || 
-         hostname.includes('preview') ||
-         hostname.includes('127.0.0.1');
-};
-
-const HAS_TURNSTILE = !isPreviewOrDev();
-
 const Auth: React.FC = () => {
   const { signIn, signUp, user, loading } = useAuth();
   const { language, t } = useLanguage();
@@ -44,6 +33,17 @@ const Auth: React.FC = () => {
   const [errors, setErrors] = useState<{ email?: string; password?: string; nickname?: string }>({});
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [isBlocked, setIsBlocked] = useState(false);
+
+  // Disable Turnstile in preview/development environments (Cloudflare requires whitelisted domains)
+  const isPreviewOrDev = (): boolean => {
+    const hostname = window.location.hostname;
+    return hostname === 'localhost' || 
+           hostname.includes('lovableproject.com') || 
+           hostname.includes('preview') ||
+           hostname.includes('127.0.0.1');
+  };
+  
+  const hasTurnstile = !isPreviewOrDev();
 
   const emailSchema = z.string().email(t('invalidEmail'));
   const passwordSchema = createPasswordSchema(language);
@@ -110,8 +110,8 @@ const Auth: React.FC = () => {
       return;
     }
 
-    // Check captcha if site key is configured
-    if (TURNSTILE_SITE_KEY && !captchaToken) {
+    // Check captcha only if Turnstile is enabled (not in preview/dev)
+    if (hasTurnstile && !captchaToken) {
       toast.error(language === 'fr' ? 'Veuillez compléter le captcha' : 'Please complete the captcha');
       return;
     }
@@ -148,8 +148,8 @@ const Auth: React.FC = () => {
       }
     }
 
-    // Backend verification of Turnstile token
-    if (TURNSTILE_SITE_KEY && captchaToken) {
+    // Backend verification of Turnstile token (only if Turnstile is enabled)
+    if (hasTurnstile && captchaToken) {
       try {
         const { data, error } = await supabase.functions.invoke('verify-turnstile', {
           body: { token: captchaToken }
@@ -401,7 +401,7 @@ const Auth: React.FC = () => {
             )}
 
             {/* Cloudflare Turnstile */}
-            {HAS_TURNSTILE && (
+            {hasTurnstile && (
               <TurnstileWidget
                 siteKey={TURNSTILE_SITE_KEY!}
                 onVerify={(token) => setCaptchaToken(token)}
@@ -414,7 +414,7 @@ const Auth: React.FC = () => {
 
             <Button
               type="submit"
-              disabled={isSubmitting || (HAS_TURNSTILE && !captchaToken)}
+              disabled={isSubmitting || (hasTurnstile && !captchaToken)}
               className="w-full bg-gradient-primary hover:opacity-90 font-display h-12"
             >
               {isSubmitting ? (
