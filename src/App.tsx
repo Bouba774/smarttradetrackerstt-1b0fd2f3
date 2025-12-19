@@ -18,6 +18,7 @@ import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
 // Lazy load non-critical pages to reduce initial bundle
+const MarketOverview = lazy(() => import("./pages/MarketOverview"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const AddTrade = lazy(() => import("./pages/AddTrade"));
 const History = lazy(() => import("./pages/History"));
@@ -92,6 +93,7 @@ const AppContent = () => {
           <Route path="/about" element={<About />} />
           
           {/* All other routes with layout */}
+          <Route path="/market-overview" element={<ProtectedRoute><Layout><MarketOverview /></Layout></ProtectedRoute>} />
           <Route path="/dashboard" element={<ProtectedRoute><Layout><Dashboard /></Layout></ProtectedRoute>} />
           <Route path="/add-trade" element={<ProtectedRoute><Layout><AddTrade /></Layout></ProtectedRoute>} />
           <Route path="/history" element={<ProtectedRoute><Layout><History /></Layout></ProtectedRoute>} />
