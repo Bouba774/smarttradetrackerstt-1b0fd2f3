@@ -240,6 +240,17 @@ const Auth: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Dev Mode Badge */}
+      {!hasTurnstile && (
+        <div className="absolute top-4 right-4 z-50">
+          <div className="px-3 py-1.5 rounded-full bg-amber-500/20 border border-amber-500/30 backdrop-blur-sm">
+            <span className="text-xs font-medium text-amber-500">
+              🛠️ {language === 'fr' ? 'Mode Dev - Captcha désactivé' : 'Dev Mode - Captcha disabled'}
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* Background effects */}
       <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-profit/5" />
       <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-3xl" />
