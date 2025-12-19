@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Calendar as CalendarUI } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar, Clock, AlertTriangle, TrendingUp, TrendingDown, Minus, Filter, RefreshCw, Loader2, ChevronLeft, ChevronRight, CalendarIcon } from 'lucide-react';
+import { Calendar, Clock, AlertTriangle, TrendingUp, TrendingDown, Minus, Filter, RefreshCw, Loader2, ChevronLeft, ChevronRight, CalendarIcon, Database } from 'lucide-react';
 import { format, addDays, subDays, differenceInMinutes, differenceInSeconds, isSameDay } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
@@ -27,6 +27,17 @@ interface EconomicEvent {
   actual: string | null;
 }
 
+interface CachedData {
+  events: any[];
+  timestamp: number;
+  date: string;
+}
+
+const CACHE_KEY = 'economic-calendar-cache';
+const CACHE_DURATION_TODAY = 30 * 60 * 1000; // 30 minutes for today
+const CACHE_DURATION_PAST = 24 * 60 * 60 * 1000; // 24 hours for past dates
+const CACHE_DURATION_FUTURE = 2 * 60 * 60 * 1000; // 2 hours for future dates
+
 const countryNames: Record<string, string> = {
   'US': 'États-Unis',
   'EU': 'Zone Euro',
@@ -39,6 +50,57 @@ const countryNames: Record<string, string> = {
   'NZ': 'Nouvelle-Zélande',
 };
 
+// Cache utilities
+const getCache = (): Record<string, CachedData> => {
+  try {
+    const cached = localStorage.getItem(CACHE_KEY);
+    return cached ? JSON.parse(cached) : {};
+  } catch {
+    return {};
+  }
+};
+
+const setCache = (date: string, events: any[]) => {
+  try {
+    const cache = getCache();
+    cache[date] = {
+      events,
+      timestamp: Date.now(),
+      date,
+    };
+    // Keep only last 14 days of cache
+    const dates = Object.keys(cache).sort();
+    if (dates.length > 14) {
+      dates.slice(0, dates.length - 14).forEach(d => delete cache[d]);
+    }
+    localStorage.setItem(CACHE_KEY, JSON.stringify(cache));
+  } catch (e) {
+    console.error('Error saving cache:', e);
+  }
+};
+
+const getCachedData = (dateStr: string): CachedData | null => {
+  const cache = getCache();
+  const cached = cache[dateStr];
+  
+  if (!cached) return null;
+  
+  const now = Date.now();
+  const today = format(new Date(), 'yyyy-MM-dd');
+  const isPast = dateStr < today;
+  const isToday = dateStr === today;
+  
+  let maxAge = CACHE_DURATION_FUTURE;
+  if (isToday) maxAge = CACHE_DURATION_TODAY;
+  else if (isPast) maxAge = CACHE_DURATION_PAST;
+  
+  if (now - cached.timestamp > maxAge) {
+    return null; // Cache expired
+  }
+  
+  return cached;
+};
+
 const EconomicCalendar: React.FC = () => {
   const [events, setEvents] = useState<EconomicEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -48,11 +110,59 @@ const EconomicCalendar: React.FC = () => {
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const [isFromCache, setIsFromCache] = useState(false);
 
-  const fetchForexFactoryData = async (date: Date) => {
+  const parseEventsData = useCallback((data: any[], date: Date): EconomicEvent[] => {
+    return data.map((event: any, index: number) => {
+      let eventTime = new Date(date);
+      if (event.time && event.time !== 'All Day') {
+        const timeParts = event.time.match(/(\d{1,2}):(\d{2})\s*(am|pm)?/i);
+        if (timeParts) {
+          let hours = parseInt(timeParts[1]);
+          const minutes = parseInt(timeParts[2]);
+          const isPM = timeParts[3]?.toLowerCase() === 'pm';
+          if (isPM && hours !== 12) hours += 12;
+          if (!isPM && hours === 12) hours = 0;
+          eventTime.setHours(hours, minutes, 0, 0);
+        }
+      }
+
+      return {
+        id: event.id || `ff-${index}`,
+        time: eventTime,
+        country: countryNames[event.country] || event.country,
+        countryCode: event.country,
+        currency: event.currency,
+        event: event.event,
+        impact: event.impact,
+        previous: event.previous !== '-' ? event.previous : null,
+        forecast: event.forecast !== '-' ? event.forecast : null,
+        actual: event.actual !== '-' ? event.actual : null,
+      };
+    });
+  }, []);
+
+  const fetchForexFactoryData = useCallback(async (date: Date, forceRefresh = false) => {
+    const formattedDate = format(date, 'yyyy-MM-dd');
+    
+    // Check cache first (unless force refresh)
+    if (!forceRefresh) {
+      const cached = getCachedData(formattedDate);
+      if (cached && cached.events.length > 0) {
+        console.log('Using cached data for:', formattedDate);
+        const parsedEvents = parseEventsData(cached.events, date);
+        setEvents(parsedEvents.sort((a, b) => a.time.getTime() - b.time.getTime()));
+        setLastUpdate(new Date(cached.timestamp));
+        setIsFromCache(true);
+        setIsLoading(false);
+        return;
+      }
+    }
+
     setIsLoading(true);
+    setIsFromCache(false);
+    
     try {
-      const formattedDate = format(date, 'yyyy-MM-dd');
       console.log('Fetching ForexFactory data for date:', formattedDate);
       
       const { data, error } = await supabase.functions.invoke('scrape-forex-factory', {
@@ -66,35 +176,10 @@ const EconomicCalendar: React.FC = () => {
       }
 
       if (data?.success && data?.events?.length > 0) {
-        const parsedEvents: EconomicEvent[] = data.events.map((event: any, index: number) => {
-          // Parse time string to Date
-          let eventTime = new Date(date);
-          if (event.time && event.time !== 'All Day') {
-            const timeParts = event.time.match(/(\d{1,2}):(\d{2})\s*(am|pm)?/i);
-            if (timeParts) {
-              let hours = parseInt(timeParts[1]);
-              const minutes = parseInt(timeParts[2]);
-              const isPM = timeParts[3]?.toLowerCase() === 'pm';
-              if (isPM && hours !== 12) hours += 12;
-              if (!isPM && hours === 12) hours = 0;
-              eventTime.setHours(hours, minutes, 0, 0);
-            }
-          }
-
-          return {
-            id: event.id || `ff-${index}`,
-            time: eventTime,
-            country: countryNames[event.country] || event.country,
-            countryCode: event.country,
-            currency: event.currency,
-            event: event.event,
-            impact: event.impact,
-            previous: event.previous !== '-' ? event.previous : null,
-            forecast: event.forecast !== '-' ? event.forecast : null,
-            actual: event.actual !== '-' ? event.actual : null,
-          };
-        });
-
+        // Save to cache
+        setCache(formattedDate, data.events);
+        
+        const parsedEvents = parseEventsData(data.events, date);
         setEvents(parsedEvents.sort((a, b) => a.time.getTime() - b.time.getTime()));
         setLastUpdate(new Date());
         toast.success('Calendrier économique mis à jour');
@@ -108,7 +193,7 @@ const EconomicCalendar: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [parseEventsData]);
 
   useEffect(() => {
     fetchForexFactoryData(selectedDate);
@@ -202,9 +287,10 @@ const EconomicCalendar: React.FC = () => {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => fetchForexFactoryData(selectedDate)}
+              onClick={() => fetchForexFactoryData(selectedDate, true)}
               disabled={isLoading}
               className="h-8"
+              title="Rafraîchir les données"
             >
               {isLoading ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -212,6 +298,12 @@ const EconomicCalendar: React.FC = () => {
                 <RefreshCw className="h-4 w-4" />
               )}
             </Button>
+            {isFromCache && (
+              <Badge variant="outline" className="text-xs gap-1">
+                <Database className="h-3 w-3" />
+                Cache
+              </Badge>
+            )}
             <div className="flex items-center gap-2">
               <Switch
                 id="highImpact"
