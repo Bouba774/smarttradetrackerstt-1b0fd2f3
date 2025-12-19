@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
 import VideoPlayer from '@/components/VideoPlayer';
+import ImageGallery from '@/components/ImageGallery';
 
 interface TradeMediaDisplayProps {
   images?: string[] | null;
@@ -19,6 +20,8 @@ const TradeMediaDisplay: React.FC<TradeMediaDisplayProps> = ({
   const { language } = useLanguage();
   const [playingAudio, setPlayingAudio] = useState<string | null>(null);
   const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
+  const [galleryOpen, setGalleryOpen] = useState(false);
+  const [galleryIndex, setGalleryIndex] = useState(0);
   const audioRefs = useRef<Map<string, HTMLAudioElement>>(new Map());
 
   const hasImages = images && images.length > 0;
@@ -84,11 +87,13 @@ const TradeMediaDisplay: React.FC<TradeMediaDisplayProps> = ({
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
           {/* Images */}
           {images?.map((imageUrl, idx) => (
-            <a
+            <button
               key={`img-${idx}`}
-              href={imageUrl}
-              target="_blank"
-              rel="noopener noreferrer"
+              type="button"
+              onClick={() => {
+                setGalleryIndex(idx);
+                setGalleryOpen(true);
+              }}
               className="relative aspect-video rounded-lg overflow-hidden border border-border hover:border-primary transition-colors group"
             >
               <img
@@ -101,7 +106,7 @@ const TradeMediaDisplay: React.FC<TradeMediaDisplayProps> = ({
                   <ImageIcon className="w-3 h-3" />
                 </div>
               </div>
-            </a>
+            </button>
           ))}
 
           {/* Videos */}
@@ -179,6 +184,14 @@ const TradeMediaDisplay: React.FC<TradeMediaDisplayProps> = ({
         open={!!selectedVideo}
         onClose={() => setSelectedVideo(null)}
         title={language === 'fr' ? 'Vidéo du trade' : 'Trade Video'}
+      />
+
+      {/* Image Gallery Modal */}
+      <ImageGallery
+        images={images || []}
+        initialIndex={galleryIndex}
+        isOpen={galleryOpen}
+        onClose={() => setGalleryOpen(false)}
       />
     </>
   );
