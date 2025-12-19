@@ -4,20 +4,20 @@ import { supabase } from '@/integrations/supabase/client';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { 
   Monitor, Smartphone, Tablet, Globe, Users, Clock, 
-  MapPin, Wifi, Calendar, Filter, RefreshCw, ChevronDown, Download, FileText 
+  MapPin, Wifi, Filter, RefreshCw, ChevronDown, ChevronRight, Download, FileText, User
 } from 'lucide-react';
 import { format, subDays, isAfter, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, Legend
+  PieChart, Pie, Cell
 } from 'recharts';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -56,6 +56,7 @@ const SessionsAdmin: React.FC = () => {
   const [deviceFilter, setDeviceFilter] = useState('all');
   const [countryFilter, setCountryFilter] = useState('all');
   const [showFilters, setShowFilters] = useState(false);
+  const [expandedUsers, setExpandedUsers] = useState<Set<string>>(new Set());
 
   const { data: sessions, isLoading, refetch } = useQuery({
     queryKey: ['user-sessions'],
@@ -94,16 +95,43 @@ const SessionsAdmin: React.FC = () => {
     return filtered;
   }, [sessions, dateFilter, deviceFilter, countryFilter]);
 
+  // Group sessions by user
+  const sessionsByUser = useMemo(() => {
+    const grouped: Record<string, UserSession[]> = {};
+    filteredSessions.forEach(session => {
+      if (!grouped[session.user_id]) {
+        grouped[session.user_id] = [];
+      }
+      grouped[session.user_id].push(session);
+    });
+    return grouped;
+  }, [filteredSessions]);
+
+  // Toggle user expansion
+  const toggleUser = (userId: string) => {
+    setExpandedUsers(prev => {
+      const next = new Set(prev);
+      if (next.has(userId)) {
+        next.delete(userId);
+      } else {
+        next.add(userId);
+      }
+      return next;
+    });
+  };
+
   // Statistics
   const stats = useMemo(() => {
     if (!filteredSessions.length) return null;
     
+    const uniqueUsers = new Set(filteredSessions.map(s => s.user_id));
     const uniqueCountries = new Set(filteredSessions.map(s => s.country).filter(Boolean));
     const uniqueBrowsers = new Set(filteredSessions.map(s => s.browser_name).filter(Boolean));
     const mobileCount = filteredSessions.filter(s => s.is_mobile).length;
     
     return {
       totalSessions: filteredSessions.length,
+      uniqueUsers: uniqueUsers.size,
       uniqueCountries: uniqueCountries.size,
       uniqueBrowsers: uniqueBrowsers.size,
       mobilePercentage: Math.round((mobileCount / filteredSessions.length) * 100),
@@ -325,6 +353,7 @@ const SessionsAdmin: React.FC = () => {
   const t = {
     title: language === 'fr' ? 'Sessions Utilisateurs' : 'User Sessions',
     totalSessions: language === 'fr' ? 'Total Sessions' : 'Total Sessions',
+    uniqueUsers: language === 'fr' ? 'Utilisateurs' : 'Users',
     uniqueCountries: language === 'fr' ? 'Pays' : 'Countries',
     browsers: language === 'fr' ? 'Navigateurs' : 'Browsers',
     mobileUsage: language === 'fr' ? 'Usage Mobile' : 'Mobile Usage',
@@ -333,6 +362,7 @@ const SessionsAdmin: React.FC = () => {
     byDevice: language === 'fr' ? 'Par Appareil' : 'By Device',
     byOS: language === 'fr' ? 'Par Système' : 'By OS',
     byVendor: language === 'fr' ? 'Par Marque' : 'By Brand',
+    sessionsByUser: language === 'fr' ? 'Sessions par Utilisateur' : 'Sessions by User',
     recentSessions: language === 'fr' ? 'Sessions Récentes' : 'Recent Sessions',
     date: language === 'fr' ? 'Date' : 'Date',
     device: language === 'fr' ? 'Appareil' : 'Device',
@@ -354,6 +384,8 @@ const SessionsAdmin: React.FC = () => {
     noData: language === 'fr' ? 'Aucune session trouvée' : 'No sessions found',
     exportCSV: language === 'fr' ? 'Export CSV' : 'Export CSV',
     exportPDF: language === 'fr' ? 'Export PDF' : 'Export PDF',
+    sessions: language === 'fr' ? 'sessions' : 'sessions',
+    lastActivity: language === 'fr' ? 'Dernière activité' : 'Last activity',
   };
 
   if (isLoading) {
@@ -454,12 +486,25 @@ const SessionsAdmin: React.FC = () => {
 
       {/* Stats Cards */}
       {stats && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           <Card>
             <CardContent className="pt-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-lg bg-primary/10">
-                  <Users className="h-5 w-5 text-primary" />
+                  <User className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold">{stats.uniqueUsers}</p>
+                  <p className="text-xs text-muted-foreground">{t.uniqueUsers}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-chart-1/10">
+                  <Users className="h-5 w-5 text-chart-1" />
                 </div>
                 <div>
                   <p className="text-2xl font-bold">{stats.totalSessions}</p>
@@ -680,102 +725,107 @@ const SessionsAdmin: React.FC = () => {
         </Card>
       </div>
 
-      {/* Sessions Table */}
+      {/* Sessions By User */}
       <Card>
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
-            <Clock className="h-4 w-4" />
-            {t.recentSessions}
+            <User className="h-4 w-4" />
+            {t.sessionsByUser}
+            <Badge variant="secondary" className="ml-2">{stats?.uniqueUsers || 0} {t.uniqueUsers}</Badge>
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <ScrollArea className="h-[400px]">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{t.date}</TableHead>
-                  <TableHead>{t.device}</TableHead>
-                  <TableHead>{t.browser}</TableHead>
-                  <TableHead>{t.screen}</TableHead>
-                  <TableHead>{t.location}</TableHead>
-                  <TableHead>{t.ip}</TableHead>
-                  <TableHead>{t.isp}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredSessions.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
-                      {t.noData}
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filteredSessions.slice(0, 100).map((session) => (
-                    <TableRow key={session.id}>
-                      <TableCell>
-                        <div className="flex flex-col">
-                          <span className="font-medium">
-                            {format(parseISO(session.session_start), 'dd MMM yyyy', { locale: language === 'fr' ? fr : undefined })}
-                          </span>
-                          <span className="text-xs text-muted-foreground">
-                            {format(parseISO(session.session_start), 'HH:mm')}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          {getDeviceIcon(session.device_type)}
-                          <div className="flex flex-col">
-                            <span className="text-sm font-medium">{session.device_vendor || 'Unknown'}</span>
-                            <span className="text-xs text-muted-foreground">{session.device_model || '-'}</span>
+          <ScrollArea className="h-[500px]">
+            {Object.keys(sessionsByUser).length === 0 ? (
+              <div className="text-center text-muted-foreground py-8">{t.noData}</div>
+            ) : (
+              <div className="space-y-2">
+                {Object.entries(sessionsByUser)
+                  .sort((a, b) => b[1].length - a[1].length)
+                  .map(([userId, userSessions]) => {
+                    const isExpanded = expandedUsers.has(userId);
+                    const lastSession = userSessions[0];
+                    const uniqueDevices = new Set(userSessions.map(s => s.device_type)).size;
+                    const uniqueCountries = new Set(userSessions.map(s => s.country).filter(Boolean)).size;
+                    
+                    return (
+                      <Collapsible key={userId} open={isExpanded} onOpenChange={() => toggleUser(userId)}>
+                        <CollapsibleTrigger asChild>
+                          <div className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-accent/50 cursor-pointer transition-colors">
+                            <div className="flex items-center gap-3">
+                              {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                              <div className="p-2 rounded-full bg-primary/10">
+                                <User className="h-4 w-4 text-primary" />
+                              </div>
+                              <div>
+                                <p className="font-mono text-sm">{userId.slice(0, 8)}...</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {t.lastActivity}: {format(parseISO(lastSession.session_start), 'dd MMM yyyy HH:mm', { locale: language === 'fr' ? fr : undefined })}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-4">
+                              <Badge variant="outline">{userSessions.length} {t.sessions}</Badge>
+                              <div className="flex items-center gap-1 text-muted-foreground">
+                                {getDeviceIcon(lastSession.device_type)}
+                                <span className="text-xs">{uniqueDevices}</span>
+                              </div>
+                              <div className="flex items-center gap-1 text-muted-foreground">
+                                <Globe className="h-4 w-4" />
+                                <span className="text-xs">{uniqueCountries}</span>
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-col">
-                          <span className="text-sm">{session.browser_name || 'Unknown'} {session.browser_version || ''}</span>
-                          <span className="text-xs text-muted-foreground">
-                            {session.os_name || '-'} {session.os_version || ''}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-col">
-                          <span className="text-sm">
-                            {session.screen_width && session.screen_height 
-                              ? `${session.screen_width}x${session.screen_height}` 
-                              : '-'}
-                          </span>
-                          <span className="text-xs text-muted-foreground">{session.language || '-'}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                          <div className="flex flex-col">
-                            <span className="text-sm">{session.city || 'Unknown'}</span>
-                            <span className="text-xs text-muted-foreground">
-                              {[session.region, session.country].filter(Boolean).join(', ') || '-'}
-                            </span>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent>
+                          <div className="ml-8 mt-2 border-l-2 border-border pl-4">
+                            <Table>
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead>{t.date}</TableHead>
+                                  <TableHead>{t.device}</TableHead>
+                                  <TableHead>{t.browser}</TableHead>
+                                  <TableHead>{t.location}</TableHead>
+                                  <TableHead>{t.ip}</TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {userSessions.slice(0, 20).map((session) => (
+                                  <TableRow key={session.id}>
+                                    <TableCell>
+                                      <span className="text-sm">
+                                        {format(parseISO(session.session_start), 'dd/MM/yy HH:mm')}
+                                      </span>
+                                    </TableCell>
+                                    <TableCell>
+                                      <div className="flex items-center gap-2">
+                                        {getDeviceIcon(session.device_type)}
+                                        <span className="text-sm">{session.device_vendor || 'Unknown'}</span>
+                                      </div>
+                                    </TableCell>
+                                    <TableCell>
+                                      <span className="text-sm">{session.browser_name || 'Unknown'}</span>
+                                    </TableCell>
+                                    <TableCell>
+                                      <div className="flex items-center gap-1">
+                                        <MapPin className="h-3 w-3 text-muted-foreground" />
+                                        <span className="text-sm">{session.city || session.country || '-'}</span>
+                                      </div>
+                                    </TableCell>
+                                    <TableCell>
+                                      <span className="text-xs font-mono text-muted-foreground">{session.ip_address || '-'}</span>
+                                    </TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
                           </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <span className="text-xs font-mono text-muted-foreground">
-                          {session.ip_address || '-'}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Wifi className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                          <span className="text-sm truncate max-w-[120px]">{session.isp || '-'}</span>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+                        </CollapsibleContent>
+                      </Collapsible>
+                    );
+                  })}
+              </div>
+            )}
           </ScrollArea>
         </CardContent>
       </Card>
