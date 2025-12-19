@@ -409,6 +409,15 @@ const MetaTraderConnection: React.FC = () => {
                 </div>
               </div>
 
+              {/* Security Warning about password */}
+              <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                <p className="text-xs text-amber-600 dark:text-amber-400">
+                  ⚠️ {language === 'fr' 
+                    ? 'Votre mot de passe sera transmis au service MetaApi pour la connexion. Il est recommandé d\'utiliser un compte de trading dédié ou un mot de passe investisseur en lecture seule si possible.' 
+                    : 'Your password will be transmitted to MetaApi service for connection. We recommend using a dedicated trading account or a read-only investor password if possible.'}
+                </p>
+              </div>
+
               {/* Initial Balance & Currency */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">

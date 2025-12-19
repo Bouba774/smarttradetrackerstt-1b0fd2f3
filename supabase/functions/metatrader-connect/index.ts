@@ -98,7 +98,8 @@ serve(async (req) => {
       }
 
       // Create account via MetaApi
-      console.log(`Creating MetaApi account for ${login}@${server}`);
+      // SECURITY: Do not log password or sensitive credentials
+      console.log(`Creating MetaApi account for login@server (credentials hidden)`);
       
       const provisioningResponse = await fetch('https://mt-provisioning-api-v1.agiliumtrade.agiliumtrade.ai/users/current/accounts', {
         method: 'POST',
