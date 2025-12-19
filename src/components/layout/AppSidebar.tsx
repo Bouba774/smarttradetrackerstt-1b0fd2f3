@@ -36,8 +36,8 @@ import { APP_VERSION } from '@/lib/version';
 const AppSidebar: React.FC = () => {
   const { t } = useLanguage();
   const location = useLocation();
-  const { state, toggleSidebar, isMobile } = useSidebar();
-  const isOpen = state === 'expanded';
+  const { state, openMobile, setOpenMobile, isMobile } = useSidebar();
+  const isOpen = isMobile ? openMobile : state === 'expanded';
 
   const navItems = [
     { path: '/dashboard', icon: LayoutDashboard, label: t('dashboard') },
@@ -57,14 +57,15 @@ const AppSidebar: React.FC = () => {
   ];
 
   const handleNavClick = () => {
-    // Always close sidebar on mobile after navigation
+    // Close sidebar on mobile after navigation
+    if (isMobile && openMobile) {
+      setOpenMobile(false);
+    }
+  };
+
+  const handleClose = () => {
     if (isMobile) {
-      // Use setTimeout to ensure navigation happens before closing
-      setTimeout(() => {
-        if (state === 'expanded') {
-          toggleSidebar();
-        }
-      }, 50);
+      setOpenMobile(false);
     }
   };
 
@@ -74,7 +75,7 @@ const AppSidebar: React.FC = () => {
       {isMobile && isOpen && (
         <div 
           className="fixed inset-0 bg-background/80 backdrop-blur-sm z-40"
-          onClick={toggleSidebar}
+          onClick={handleClose}
         />
       )}
       
@@ -107,7 +108,7 @@ const AppSidebar: React.FC = () => {
             {/* Close button on mobile */}
             {isMobile && (
               <button
-                onClick={toggleSidebar}
+                onClick={handleClose}
                 className="w-8 h-8 rounded-lg flex items-center justify-center bg-secondary/50 hover:bg-primary/20 transition-colors touch-target"
                 aria-label="Close menu"
               >
