@@ -1,8 +1,28 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+// Get allowed origins from environment or use defaults
+const getAllowedOrigin = (origin: string): string => {
+  const allowedOrigins = [
+    'https://sfdudueswogeusuofbbi.lovableproject.com',
+    'https://smarttradetracker.app',
+    'https://www.smarttradetracker.app',
+    'http://localhost:5173',
+    'http://localhost:3000',
+  ];
+  
+  if (allowedOrigins.includes(origin)) {
+    return origin;
+  }
+  return 'https://sfdudueswogeusuofbbi.lovableproject.com';
+};
+
+const getCorsHeaders = (req: Request) => {
+  const origin = req.headers.get('Origin') || '';
+  return {
+    "Access-Control-Allow-Origin": getAllowedOrigin(origin),
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+  };
 };
 
 interface SecurityEmailRequest {
@@ -251,6 +271,8 @@ const getEmailContent = (request: SecurityEmailRequest) => {
 };
 
 const handler = async (req: Request): Promise<Response> => {
+  const corsHeaders = getCorsHeaders(req);
+  
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -303,6 +325,7 @@ const handler = async (req: Request): Promise<Response> => {
     );
   } catch (error: any) {
     console.error("Error in security-email function:", error);
+    const corsHeaders = getCorsHeaders(req);
     return new Response(
       JSON.stringify({ error: error.message }),
       { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
