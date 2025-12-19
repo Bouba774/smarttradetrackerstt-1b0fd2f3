@@ -7,6 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 interface SecuritySettings {
   pinEnabled: boolean;
   pinHash: string | null;
+  pinSalt: string | null;
   pinLength: 4 | 6;
   autoLockTimeout: number;
   confidentialMode: boolean;
@@ -56,7 +57,7 @@ interface SecurityContextType {
   
   // Actions
   lock: () => void;
-  unlock: (pin: string) => boolean;
+  unlock: (pin: string) => Promise<boolean>;
   unlockWithBiometric: () => Promise<boolean>;
   setupPin: (pin: string) => Promise<void>;
   changePin: (oldPin: string, newPin: string) => Promise<boolean>;
@@ -75,6 +76,7 @@ interface SecurityContextType {
 const defaultSettings: SecuritySettings = {
   pinEnabled: false,
   pinHash: null,
+  pinSalt: null,
   pinLength: 4,
   autoLockTimeout: 0,
   confidentialMode: false,
@@ -107,15 +109,32 @@ const LOCKOUT_DURATIONS = [
 
 const MAX_HISTORY_ENTRIES = 50;
 
-const hashPin = (pin: string): string => {
-  let hash = 0;
-  for (let i = 0; i < pin.length; i++) {
-    const char = pin.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash;
+// Secure PIN hashing via Edge Function
+const hashPinSecure = async (pin: string): Promise<{ hash: string; salt: string }> => {
+  const { data, error } = await supabase.functions.invoke('hash-pin', {
+    body: { pin, action: 'create' },
+  });
+  
+  if (error) {
+    console.error('Error hashing PIN:', error);
+    throw new Error('Failed to hash PIN');
   }
-  const salt = 'stt-secure-';
-  return salt + Math.abs(hash).toString(16);
+  
+  return { hash: data.hash, salt: data.salt };
+};
+
+// Verify PIN via Edge Function
+const verifyPinSecure = async (pin: string, existingHash: string, existingSalt: string): Promise<boolean> => {
+  const { data, error } = await supabase.functions.invoke('hash-pin', {
+    body: { pin, action: 'verify', existingHash, existingSalt },
+  });
+  
+  if (error) {
+    console.error('Error verifying PIN:', error);
+    return false;
+  }
+  
+  return data.valid;
 };
 
 // Check if WebAuthn/biometric is available
@@ -211,7 +230,7 @@ export const SecurityProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       try {
         const { data, error } = await supabase
           .from('user_settings')
-          .select('pin_enabled, pin_hash, pin_length, auto_lock_timeout, confidential_mode, max_attempts, wipe_on_max_attempts, biometric_enabled, known_devices')
+          .select('pin_enabled, pin_hash, pin_salt, pin_length, auto_lock_timeout, confidential_mode, max_attempts, wipe_on_max_attempts, biometric_enabled, known_devices')
           .eq('user_id', user.id)
           .single();
 
@@ -223,6 +242,7 @@ export const SecurityProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           const dbSettings: SecuritySettings = {
             pinEnabled: data.pin_enabled ?? false,
             pinHash: data.pin_hash ?? null,
+            pinSalt: (data as { pin_salt?: string }).pin_salt ?? null,
             pinLength: (data.pin_length as 4 | 6) ?? 4,
             autoLockTimeout: data.auto_lock_timeout ?? 0,
             confidentialMode: data.confidential_mode ?? false,
@@ -326,6 +346,7 @@ export const SecurityProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           user_id: user.id,
           pin_enabled: newSettings.pinEnabled,
           pin_hash: newSettings.pinHash,
+          pin_salt: newSettings.pinSalt,
           pin_length: newSettings.pinLength,
           auto_lock_timeout: newSettings.autoLockTimeout,
           confidential_mode: newSettings.confidentialMode,
@@ -506,7 +527,7 @@ export const SecurityProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   }, [settings.pinEnabled, user]);
 
-  const unlock = useCallback((pin: string): boolean => {
+  const unlock = useCallback(async (pin: string): Promise<boolean> => {
     if (lockoutState.isBlocked) {
       addAttempt(false, 'pin', true);
       return false;
@@ -516,9 +537,12 @@ export const SecurityProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       return false;
     }
 
-    const pinHash = hashPin(pin);
+    // Verify PIN using secure server-side hashing
+    const isValid = settings.pinHash && settings.pinSalt 
+      ? await verifyPinSecure(pin, settings.pinHash, settings.pinSalt)
+      : false;
     
-    if (pinHash === settings.pinHash) {
+    if (isValid) {
       setIsLocked(false);
       const newState = { ...defaultLockoutState };
       setLockoutState(newState);
@@ -643,11 +667,12 @@ export const SecurityProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   }, [settings.biometricEnabled, biometricAvailable, lockoutState, user, resetActivityTimer, saveLockoutState, addAttempt]);
 
   const setupPin = useCallback(async (pin: string) => {
-    const pinHash = hashPin(pin);
+    const { hash: pinHash, salt: pinSalt } = await hashPinSecure(pin);
     const newSettings = {
       ...settings,
       pinEnabled: true,
       pinHash,
+      pinSalt,
       pinLength: pin.length as 4 | 6,
     };
     setSettings(newSettings);
@@ -675,13 +700,17 @@ export const SecurityProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   }, [settings, saveSettingsToDb, user]);
 
   const changePin = useCallback(async (oldPin: string, newPin: string): Promise<boolean> => {
-    const oldPinHash = hashPin(oldPin);
+    // Verify old PIN
+    const isValid = settings.pinHash && settings.pinSalt 
+      ? await verifyPinSecure(oldPin, settings.pinHash, settings.pinSalt)
+      : false;
     
-    if (oldPinHash === settings.pinHash) {
-      const newPinHash = hashPin(newPin);
+    if (isValid) {
+      const { hash: newPinHash, salt: newPinSalt } = await hashPinSecure(newPin);
       const newSettings = {
         ...settings,
         pinHash: newPinHash,
+        pinSalt: newPinSalt,
         pinLength: newPin.length as 4 | 6,
       };
       setSettings(newSettings);
@@ -692,13 +721,17 @@ export const SecurityProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   }, [settings, saveSettingsToDb]);
 
   const disablePin = useCallback(async (pin: string): Promise<boolean> => {
-    const pinHash = hashPin(pin);
+    // Verify PIN
+    const isValid = settings.pinHash && settings.pinSalt 
+      ? await verifyPinSecure(pin, settings.pinHash, settings.pinSalt)
+      : false;
     
-    if (pinHash === settings.pinHash) {
+    if (isValid) {
       const newSettings = {
         ...settings,
         pinEnabled: false,
         pinHash: null,
+        pinSalt: null,
         biometricEnabled: false,
       };
       setSettings(newSettings);
@@ -797,10 +830,11 @@ export const SecurityProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   }, [user, language, sendSecurityEmail]);
 
   const resetPinWithToken = useCallback(async (token: string, newPin: string): Promise<boolean> => {
-    const newPinHash = hashPin(newPin);
+    const { hash: newPinHash, salt: newPinSalt } = await hashPinSecure(newPin);
     const newSettings = {
       ...settings,
       pinHash: newPinHash,
+      pinSalt: newPinSalt,
       pinLength: newPin.length as 4 | 6,
     };
     setSettings(newSettings);

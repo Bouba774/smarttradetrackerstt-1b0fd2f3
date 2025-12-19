@@ -49,11 +49,18 @@ export const useTradeImages = () => {
         continue;
       }
 
-      const { data } = supabase.storage
+      // Get signed URL for private bucket
+      const { data: signedUrlData, error: signedUrlError } = await supabase.storage
         .from('trade-images')
-        .getPublicUrl(fileName);
+        .createSignedUrl(fileName, 60 * 60 * 24 * 365); // 1 year validity
 
-      uploadedUrls.push(data.publicUrl);
+      if (signedUrlError || !signedUrlData?.signedUrl) {
+        console.error('Error creating signed URL:', signedUrlError);
+        toast.error(`Erreur lors de la génération de l'URL: ${file.name}`);
+        continue;
+      }
+
+      uploadedUrls.push(signedUrlData.signedUrl);
     }
 
     return uploadedUrls;
