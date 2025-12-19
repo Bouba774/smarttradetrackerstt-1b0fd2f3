@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
   Monitor, Smartphone, Tablet, Globe, Users, Clock, 
-  MapPin, Wifi, Calendar, Filter, RefreshCw, ChevronDown 
+  MapPin, Wifi, Calendar, Filter, RefreshCw, ChevronDown, Download, FileText 
 } from 'lucide-react';
 import { format, subDays, isAfter, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -19,6 +19,9 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend
 } from 'recharts';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import { toast } from 'sonner';
 
 interface UserSession {
   id: string;
@@ -169,6 +172,143 @@ const SessionsAdmin: React.FC = () => {
     }
   };
 
+  // Export to CSV
+  const exportToCSV = useCallback(() => {
+    if (!filteredSessions.length) {
+      toast.error(language === 'fr' ? 'Aucune donnée à exporter' : 'No data to export');
+      return;
+    }
+
+    const headers = [
+      'Date', 'User ID', 'Browser', 'Browser Version', 'OS', 'OS Version',
+      'Device Type', 'Device Vendor', 'Device Model', 'Screen', 'Language',
+      'IP Address', 'Country', 'Region', 'City', 'Timezone', 'ISP', 'Is Mobile'
+    ];
+
+    const rows = filteredSessions.map(s => [
+      format(parseISO(s.session_start), 'yyyy-MM-dd HH:mm:ss'),
+      s.user_id,
+      s.browser_name || '',
+      s.browser_version || '',
+      s.os_name || '',
+      s.os_version || '',
+      s.device_type || '',
+      s.device_vendor || '',
+      s.device_model || '',
+      s.screen_width && s.screen_height ? `${s.screen_width}x${s.screen_height}` : '',
+      s.language || '',
+      s.ip_address || '',
+      s.country || '',
+      s.region || '',
+      s.city || '',
+      s.timezone || '',
+      s.isp || '',
+      s.is_mobile ? 'Yes' : 'No'
+    ]);
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+    ].join('\n');
+
+    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `sessions_export_${format(new Date(), 'yyyy-MM-dd')}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    toast.success(language === 'fr' ? 'Export CSV réussi' : 'CSV export successful');
+  }, [filteredSessions, language]);
+
+  // Export to PDF
+  const exportToPDF = useCallback(() => {
+    if (!filteredSessions.length) {
+      toast.error(language === 'fr' ? 'Aucune donnée à exporter' : 'No data to export');
+      return;
+    }
+
+    try {
+      const doc = new jsPDF('landscape', 'mm', 'a4');
+      const pageWidth = doc.internal.pageSize.getWidth();
+
+      // Header
+      doc.setFillColor(34, 34, 34);
+      doc.rect(0, 0, pageWidth, 25, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(18);
+      doc.text(language === 'fr' ? 'Rapport Sessions Utilisateurs' : 'User Sessions Report', 14, 16);
+      doc.setFontSize(10);
+      doc.text(format(new Date(), 'dd/MM/yyyy HH:mm'), pageWidth - 14, 16, { align: 'right' });
+
+      // Stats summary
+      doc.setTextColor(0, 0, 0);
+      doc.setFontSize(12);
+      let yPos = 35;
+
+      if (stats) {
+        doc.setFontSize(10);
+        doc.text(`${language === 'fr' ? 'Total Sessions' : 'Total Sessions'}: ${stats.totalSessions}`, 14, yPos);
+        doc.text(`${language === 'fr' ? 'Pays' : 'Countries'}: ${stats.uniqueCountries}`, 80, yPos);
+        doc.text(`${language === 'fr' ? 'Navigateurs' : 'Browsers'}: ${stats.uniqueBrowsers}`, 140, yPos);
+        doc.text(`${language === 'fr' ? 'Mobile' : 'Mobile'}: ${stats.mobilePercentage}%`, 200, yPos);
+        yPos += 10;
+      }
+
+      // Table
+      const tableData = filteredSessions.slice(0, 100).map(s => [
+        format(parseISO(s.session_start), 'dd/MM/yy HH:mm'),
+        s.browser_name || '-',
+        s.os_name || '-',
+        s.device_type || '-',
+        s.country || '-',
+        s.city || '-',
+        s.isp || '-'
+      ]);
+
+      autoTable(doc, {
+        startY: yPos,
+        head: [[
+          language === 'fr' ? 'Date' : 'Date',
+          language === 'fr' ? 'Navigateur' : 'Browser',
+          language === 'fr' ? 'OS' : 'OS',
+          language === 'fr' ? 'Appareil' : 'Device',
+          language === 'fr' ? 'Pays' : 'Country',
+          language === 'fr' ? 'Ville' : 'City',
+          language === 'fr' ? 'FAI' : 'ISP'
+        ]],
+        body: tableData,
+        styles: { fontSize: 8, cellPadding: 2 },
+        headStyles: { fillColor: [59, 130, 246], textColor: 255 },
+        alternateRowStyles: { fillColor: [245, 245, 245] },
+        margin: { left: 14, right: 14 }
+      });
+
+      // Footer with page numbers
+      const pageCount = doc.getNumberOfPages();
+      for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setTextColor(128, 128, 128);
+        doc.text(
+          `Page ${i} / ${pageCount}`,
+          pageWidth / 2,
+          doc.internal.pageSize.getHeight() - 10,
+          { align: 'center' }
+        );
+      }
+
+      doc.save(`sessions_report_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+      toast.success(language === 'fr' ? 'Export PDF réussi' : 'PDF export successful');
+    } catch (error) {
+      console.error('PDF export error:', error);
+      toast.error(language === 'fr' ? 'Erreur lors de l\'export PDF' : 'PDF export failed');
+    }
+  }, [filteredSessions, stats, language]);
+
   const t = {
     title: language === 'fr' ? 'Sessions Utilisateurs' : 'User Sessions',
     totalSessions: language === 'fr' ? 'Total Sessions' : 'Total Sessions',
@@ -195,6 +335,8 @@ const SessionsAdmin: React.FC = () => {
     allCountries: language === 'fr' ? 'Tous les pays' : 'All countries',
     refresh: language === 'fr' ? 'Actualiser' : 'Refresh',
     noData: language === 'fr' ? 'Aucune session trouvée' : 'No sessions found',
+    exportCSV: language === 'fr' ? 'Export CSV' : 'Export CSV',
+    exportPDF: language === 'fr' ? 'Export PDF' : 'Export PDF',
   };
 
   if (isLoading) {
@@ -229,6 +371,14 @@ const SessionsAdmin: React.FC = () => {
           <Button variant="outline" size="sm" onClick={() => refetch()} className="gap-2">
             <RefreshCw className="h-4 w-4" />
             {t.refresh}
+          </Button>
+          <Button variant="outline" size="sm" onClick={exportToCSV} className="gap-2">
+            <Download className="h-4 w-4" />
+            {t.exportCSV}
+          </Button>
+          <Button variant="outline" size="sm" onClick={exportToPDF} className="gap-2">
+            <FileText className="h-4 w-4" />
+            {t.exportPDF}
           </Button>
         </div>
       </div>
