@@ -20,3 +20,6 @@ verify_jwt = false
 
 [functions.scrape-forex-factory]
 verify_jwt = false
+
+[functions.scrape-forex-news]
+verify_jwt = false
