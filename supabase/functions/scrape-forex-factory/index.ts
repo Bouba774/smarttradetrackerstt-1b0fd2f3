@@ -223,150 +223,6 @@ async function scrapeWithFirecrawl(dateStr: string): Promise<EconomicEvent[]> {
   }
 }
 
-// Fetch from FCS API (free economic calendar API for current week)
-async function fetchFromFCSAPI(dateStr: string): Promise<EconomicEvent[]> {
-  try {
-    const date = new Date(dateStr);
-    const formattedDate = date.toISOString().split('T')[0];
-    
-    console.log('Fetching from FCS API for date:', formattedDate);
-    
-    const response = await fetch(`https://nfs.faireconomy.media/ff_calendar_thisweek.json`, {
-      headers: {
-        'Accept': 'application/json',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-      },
-    });
-    
-    if (!response.ok) {
-      console.log('FCS API response not ok:', response.status);
-      return [];
-    }
-    
-    const data = await response.json();
-    
-    if (!Array.isArray(data)) {
-      console.log('FCS API response is not an array');
-      return [];
-    }
-    
-    const events: EconomicEvent[] = [];
-    let eventIndex = 0;
-    
-    for (const item of data) {
-      try {
-        const eventDate = item.date?.split('T')[0];
-        
-        if (eventDate === formattedDate) {
-          const currency = item.country || '';
-          
-          if (!currencyToCountry[currency]) continue;
-          
-          let impact: 'high' | 'medium' | 'low' = 'low';
-          const impactStr = String(item.impact || '').toLowerCase();
-          if (impactStr === 'high' || impactStr === 'red' || item.impact === 3) {
-            impact = 'high';
-          } else if (impactStr === 'medium' || impactStr === 'orange' || item.impact === 2) {
-            impact = 'medium';
-          }
-          
-          // Extract time from date string
-          let time = 'All Day';
-          if (item.date && item.date.includes('T')) {
-            const timePart = item.date.split('T')[1];
-            if (timePart) {
-              const [hours, minutes] = timePart.split(':');
-              if (hours && minutes) {
-                const hour = parseInt(hours);
-                const ampm = hour >= 12 ? 'pm' : 'am';
-                const hour12 = hour % 12 || 12;
-                time = `${hour12}:${minutes}${ampm}`;
-              }
-            }
-          }
-          
-          eventIndex++;
-          events.push({
-            id: `fcs-${dateStr}-${eventIndex}`,
-            time,
-            country: currencyToCountry[currency] || currency,
-            currency,
-            event: item.title || item.event || 'Economic Event',
-            impact,
-            previous: String(item.previous || '-'),
-            forecast: String(item.forecast || '-'),
-            actual: String(item.actual || '-'),
-          });
-        }
-      } catch (e) {
-        console.error('Error parsing FCS event:', e);
-      }
-    }
-    
-    console.log(`FCS API returned ${events.length} events for ${formattedDate}`);
-    return events;
-  } catch (error) {
-    console.error('Error fetching from FCS API:', error);
-    return [];
-  }
-}
-
-// Static fallback data
-function getStaticEventsForDate(dateStr: string): EconomicEvent[] {
-  const date = new Date(dateStr);
-  const dayOfWeek = date.getDay();
-  const dayOfMonth = date.getDate();
-  
-  const weeklyEvents: Record<number, EconomicEvent[]> = {
-    0: [],
-    1: [
-      { id: `${dateStr}-mon-1`, time: '09:00am', country: 'EU', currency: 'EUR', event: 'German Ifo Business Climate', impact: 'high', previous: '87.3', forecast: '87.5', actual: '-' },
-      { id: `${dateStr}-mon-2`, time: '10:00am', country: 'EU', currency: 'EUR', event: 'ECB President Speech', impact: 'high', previous: '-', forecast: '-', actual: '-' },
-    ],
-    2: [
-      { id: `${dateStr}-tue-1`, time: '07:00am', country: 'GB', currency: 'GBP', event: 'Claimant Count Change', impact: 'high', previous: '26.7K', forecast: '28.0K', actual: '-' },
-      { id: `${dateStr}-tue-2`, time: '10:00am', country: 'EU', currency: 'EUR', event: 'ZEW Economic Sentiment', impact: 'high', previous: '7.4', forecast: '6.8', actual: '-' },
-      { id: `${dateStr}-tue-3`, time: '01:30pm', country: 'US', currency: 'USD', event: 'Building Permits', impact: 'medium', previous: '1.42M', forecast: '1.45M', actual: '-' },
-    ],
-    3: [
-      { id: `${dateStr}-wed-1`, time: '07:00am', country: 'GB', currency: 'GBP', event: 'CPI y/y', impact: 'high', previous: '2.3%', forecast: '2.5%', actual: '-' },
-      { id: `${dateStr}-wed-2`, time: '01:30pm', country: 'US', currency: 'USD', event: 'Core Durable Goods Orders m/m', impact: 'medium', previous: '0.2%', forecast: '0.3%', actual: '-' },
-      { id: `${dateStr}-wed-3`, time: '03:30pm', country: 'US', currency: 'USD', event: 'Crude Oil Inventories', impact: 'medium', previous: '-1.4M', forecast: '0.8M', actual: '-' },
-    ],
-    4: [
-      { id: `${dateStr}-thu-1`, time: '08:30am', country: 'CH', currency: 'CHF', event: 'SNB Interest Rate Decision', impact: 'high', previous: '0.50%', forecast: '0.25%', actual: '-' },
-      { id: `${dateStr}-thu-2`, time: '01:30pm', country: 'US', currency: 'USD', event: 'Initial Jobless Claims', impact: 'high', previous: '242K', forecast: '230K', actual: '-' },
-      { id: `${dateStr}-thu-3`, time: '01:30pm', country: 'US', currency: 'USD', event: 'Final GDP q/q', impact: 'high', previous: '2.8%', forecast: '2.8%', actual: '-' },
-    ],
-    5: [
-      { id: `${dateStr}-fri-1`, time: '07:00am', country: 'GB', currency: 'GBP', event: 'Retail Sales m/m', impact: 'high', previous: '-0.7%', forecast: '0.5%', actual: '-' },
-      { id: `${dateStr}-fri-2`, time: '01:30pm', country: 'US', currency: 'USD', event: 'Core PCE Price Index m/m', impact: 'high', previous: '0.3%', forecast: '0.2%', actual: '-' },
-    ],
-    6: [],
-  };
-  
-  const baseEvents = weeklyEvents[dayOfWeek] || [];
-  const additionalEvents: EconomicEvent[] = [];
-  
-  // NFP on first Friday
-  if (dayOfWeek === 5 && dayOfMonth <= 7) {
-    additionalEvents.push(
-      { id: `${dateStr}-nfp-1`, time: '01:30pm', country: 'US', currency: 'USD', event: 'Non-Farm Employment Change', impact: 'high', previous: '227K', forecast: '160K', actual: '-' },
-      { id: `${dateStr}-nfp-2`, time: '01:30pm', country: 'US', currency: 'USD', event: 'Unemployment Rate', impact: 'high', previous: '4.2%', forecast: '4.2%', actual: '-' },
-    );
-  }
-  
-  // CPI mid-month
-  if (dayOfMonth >= 12 && dayOfMonth <= 15 && dayOfWeek >= 1 && dayOfWeek <= 5) {
-    additionalEvents.push(
-      { id: `${dateStr}-cpi-1`, time: '01:30pm', country: 'US', currency: 'USD', event: 'Core CPI m/m', impact: 'high', previous: '0.3%', forecast: '0.3%', actual: '-' },
-      { id: `${dateStr}-cpi-2`, time: '01:30pm', country: 'US', currency: 'USD', event: 'CPI y/y', impact: 'high', previous: '2.7%', forecast: '2.8%', actual: '-' },
-    );
-  }
-  
-  return [...baseEvents, ...additionalEvents];
-}
-
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -385,41 +241,17 @@ Deno.serve(async (req) => {
       requestedDate = new Date().toISOString().split('T')[0];
     }
 
-    console.log('=== Fetching economic events for date:', requestedDate, '===');
+    console.log('=== Fetching Forex Factory events for date:', requestedDate, '===');
 
-    let events: EconomicEvent[] = [];
-    let source = 'unknown';
-
-    // Strategy 1: Try Firecrawl first (works for any date)
-    events = await scrapeWithFirecrawl(requestedDate);
-    if (events.length > 0) {
-      source = 'firecrawl';
-      console.log('Using Firecrawl data:', events.length, 'events');
-    }
-
-    // Strategy 2: Try FCS API (works for current week)
-    if (events.length === 0) {
-      events = await fetchFromFCSAPI(requestedDate);
-      if (events.length > 0) {
-        source = 'fcs-api';
-        console.log('Using FCS API data:', events.length, 'events');
-      }
-    }
-
-    // Strategy 3: Fallback to static data
-    if (events.length === 0) {
-      events = getStaticEventsForDate(requestedDate);
-      source = 'static';
-      console.log('Using static fallback data:', events.length, 'events');
-    }
-
-    console.log(`=== Returning ${events.length} events from ${source} ===`);
+    const events = await scrapeWithFirecrawl(requestedDate);
+    
+    console.log(`=== Returning ${events.length} events from Forex Factory ===`);
 
     return new Response(
       JSON.stringify({ 
         success: true, 
         events,
-        source,
+        source: 'forexfactory',
         date: requestedDate,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -428,14 +260,12 @@ Deno.serve(async (req) => {
     console.error('Error in scrape-forex-factory:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     
-    const fallbackEvents = getStaticEventsForDate(new Date().toISOString().split('T')[0]);
-    
     return new Response(
       JSON.stringify({ 
-        success: true, 
-        events: fallbackEvents, 
-        source: 'static',
-        warning: errorMessage,
+        success: false, 
+        events: [], 
+        source: 'error',
+        error: errorMessage,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
