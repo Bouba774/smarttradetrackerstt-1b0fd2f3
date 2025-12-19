@@ -221,6 +221,7 @@ export type Database = {
       trades: {
         Row: {
           asset: string
+          audios: string[] | null
           created_at: string
           custom_setup: string | null
           direction: string
@@ -243,9 +244,11 @@ export type Database = {
           trade_date: string
           updated_at: string
           user_id: string
+          videos: string[] | null
         }
         Insert: {
           asset: string
+          audios?: string[] | null
           created_at?: string
           custom_setup?: string | null
           direction: string
@@ -268,9 +271,11 @@ export type Database = {
           trade_date?: string
           updated_at?: string
           user_id: string
+          videos?: string[] | null
         }
         Update: {
           asset?: string
+          audios?: string[] | null
           created_at?: string
           custom_setup?: string | null
           direction?: string
@@ -293,6 +298,7 @@ export type Database = {
           trade_date?: string
           updated_at?: string
           user_id?: string
+          videos?: string[] | null
         }
         Relationships: []
       }

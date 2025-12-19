@@ -1,7 +1,8 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useTrades } from '@/hooks/useTrades';
-import { useTradeImages } from '@/hooks/useTradeImages';
+import { useTradeMedia } from '@/hooks/useTradeMedia';
+import TradeMediaUploader, { type MediaItem } from '@/components/TradeMediaUploader';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -21,20 +22,17 @@ import { format } from 'date-fns';
 import { fr, enUS } from 'date-fns/locale';
 import {
   CalendarIcon,
-  Upload,
-  X,
   TrendingUp,
   TrendingDown,
   Save,
   Sparkles,
   Search,
-  Image as ImageIcon,
   Loader2,
   Trash2,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { ASSET_CATEGORIES, ALL_ASSETS } from '@/data/assets';
-import { validateTradeForm, validateImageFiles, sanitizeText } from '@/lib/tradeValidation';
+import { ASSET_CATEGORIES } from '@/data/assets';
+import { validateTradeForm, sanitizeText } from '@/lib/tradeValidation';
 import { PENDING_TRADE_KEY } from './Calculator';
 
 const DEFAULT_SETUPS = [
@@ -67,7 +65,7 @@ const TAGS = [
 const AddTrade: React.FC = () => {
   const { t, language } = useLanguage();
   const { addTrade } = useTrades();
-  const { uploadImages } = useTradeImages();
+  const { uploadMedia } = useTradeMedia();
   const locale = language === 'fr' ? fr : enUS;
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -78,8 +76,7 @@ const AddTrade: React.FC = () => {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [assetSearch, setAssetSearch] = useState('');
   const [customAsset, setCustomAsset] = useState('');
-  const [imageFiles, setImageFiles] = useState<File[]>([]);
-  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
   const [customTimeframe, setCustomTimeframe] = useState('');
   const [customSetup, setCustomSetup] = useState('');
   const [exitMethod, setExitMethod] = useState<'sl' | 'tp' | 'manual'>('manual');
@@ -212,34 +209,8 @@ const AddTrade: React.FC = () => {
     );
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files) return;
-
-    const newFiles = Array.from(files);
-    const allFiles = [...imageFiles, ...newFiles];
-    
-    // Validate all files including existing ones
-    const validation = validateImageFiles(allFiles);
-    if (!validation.valid) {
-      validation.errors.forEach(error => toast.error(error));
-      return;
-    }
-
-    setImageFiles(allFiles);
-
-    newFiles.forEach(file => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        setImagePreviews(prev => [...prev, reader.result as string]);
-      };
-      reader.readAsDataURL(file);
-    });
-  };
-
-  const removeImage = (index: number) => {
-    setImageFiles(prev => prev.filter((_, i) => i !== index));
-    setImagePreviews(prev => prev.filter((_, i) => i !== index));
+  const handleMediaError = (error: string) => {
+    toast.error(error);
   };
 
   const calculateQualityScore = () => {
@@ -283,23 +254,15 @@ const AddTrade: React.FC = () => {
       return;
     }
 
-    // Validate images if present
-    if (imageFiles.length > 0) {
-      const imageValidation = validateImageFiles(imageFiles);
-      if (!imageValidation.valid) {
-        imageValidation.errors.forEach(error => toast.error(error));
-        return;
-      }
-    }
     
     setIsSubmitting(true);
     
     try {
-      // Upload images first
-      let uploadedImageUrls: string[] = [];
-      if (imageFiles.length > 0) {
-        uploadedImageUrls = await uploadImages(imageFiles);
-      }
+      // Upload all media files
+      const mediaFiles = mediaItems.map(item => item.file);
+      const uploadedMedia = mediaFiles.length > 0 
+        ? await uploadMedia(mediaFiles) 
+        : { images: [], videos: [], audios: [] };
 
       const pnl = parseFloat(formData.pnl) || null;
       let result: 'win' | 'loss' | 'breakeven' | 'pending' | null = null;
@@ -356,7 +319,7 @@ const AddTrade: React.FC = () => {
         profit_loss: pnl,
         notes: formData.notes ? sanitizeText(formData.notes) : null,
         emotions: formData.emotion || null,
-        images: uploadedImageUrls.length > 0 ? uploadedImageUrls : null,
+        images: uploadedMedia.images.length > 0 ? uploadedMedia.images : null,
         trade_date: date.toISOString(),
         exit_timestamp: exitTimestamp,
         exit_method: exitTimestamp ? exitMethod : null,
@@ -386,8 +349,7 @@ const AddTrade: React.FC = () => {
       });
       setDirection('buy');
       setSelectedTags([]);
-      setImageFiles([]);
-      setImagePreviews([]);
+      setMediaItems([]);
       setCustomAsset('');
       setCustomSetup('');
       setCustomTimeframe('');
@@ -842,41 +804,12 @@ const AddTrade: React.FC = () => {
           </div>
 
           <div className="space-y-2">
-            <Label>{t('images')} ({imagePreviews.length}/4)</Label>
-            
-            {/* Image Preview Grid */}
-            {imagePreviews.length > 0 && (
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                {imagePreviews.map((img, index) => (
-                  <div key={index} className="relative aspect-video rounded-lg overflow-hidden border border-border">
-                    <img src={img} alt={`Capture ${index + 1}`} className="w-full h-full object-cover" />
-                    <button
-                      type="button"
-                      onClick={() => removeImage(index)}
-                      className="absolute top-2 right-2 p-1 rounded-full bg-loss/80 text-loss-foreground hover:bg-loss transition-colors"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {imagePreviews.length < 4 && (
-              <label className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-primary/50 transition-colors cursor-pointer block">
-                <input
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={handleImageUpload}
-                  className="hidden"
-                />
-                <ImageIcon className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
-                <p className="text-sm text-muted-foreground">
-                  Cliquez ou glissez vos captures d'écran (max 4)
-                </p>
-              </label>
-            )}
+            <Label>{language === 'fr' ? 'Médias (images, vidéos, audio)' : 'Media (images, videos, audio)'}</Label>
+            <TradeMediaUploader
+              mediaItems={mediaItems}
+              onMediaChange={setMediaItems}
+              onError={handleMediaError}
+            />
           </div>
         </div>
 
