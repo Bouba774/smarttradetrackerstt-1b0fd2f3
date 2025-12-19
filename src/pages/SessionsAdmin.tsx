@@ -908,6 +908,7 @@ const SessionsAdmin: React.FC = () => {
                             {/* Profile Info */}
                             {profile && (
                               <div className="p-3 rounded-lg bg-muted/50 border">
+                                <p className="text-xs font-medium text-muted-foreground mb-2">{language === 'fr' ? 'Informations Profil' : 'Profile Info'}</p>
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                                   <div>
                                     <p className="text-muted-foreground text-xs">{language === 'fr' ? 'Style de trading' : 'Trading Style'}</p>
@@ -928,6 +929,124 @@ const SessionsAdmin: React.FC = () => {
                                 </div>
                               </div>
                             )}
+                            
+                            {/* Device & Location Summary */}
+                            {(() => {
+                              // Get unique device info from all sessions
+                              const devices = new Map<string, { count: number; vendor: string; model: string; type: string }>();
+                              const browsers = new Map<string, number>();
+                              const oses = new Map<string, number>();
+                              const locations = new Map<string, { count: number; city: string; country: string }>();
+                              const isps = new Map<string, number>();
+                              
+                              userSessions.forEach(s => {
+                                // Devices
+                                const deviceKey = `${s.device_vendor || 'Unknown'}-${s.device_model || 'Unknown'}`;
+                                const existing = devices.get(deviceKey);
+                                if (existing) {
+                                  existing.count++;
+                                } else {
+                                  devices.set(deviceKey, { 
+                                    count: 1, 
+                                    vendor: s.device_vendor || 'Unknown', 
+                                    model: s.device_model || '-',
+                                    type: s.device_type || 'desktop'
+                                  });
+                                }
+                                
+                                // Browsers
+                                const browserKey = s.browser_name || 'Unknown';
+                                browsers.set(browserKey, (browsers.get(browserKey) || 0) + 1);
+                                
+                                // OS
+                                const osKey = `${s.os_name || 'Unknown'} ${s.os_version || ''}`.trim();
+                                oses.set(osKey, (oses.get(osKey) || 0) + 1);
+                                
+                                // Locations
+                                const locKey = `${s.city || 'Unknown'}-${s.country || 'Unknown'}`;
+                                const existingLoc = locations.get(locKey);
+                                if (existingLoc) {
+                                  existingLoc.count++;
+                                } else {
+                                  locations.set(locKey, { count: 1, city: s.city || 'Unknown', country: s.country || 'Unknown' });
+                                }
+                                
+                                // ISPs
+                                const ispKey = s.isp || 'Unknown';
+                                isps.set(ispKey, (isps.get(ispKey) || 0) + 1);
+                              });
+                              
+                              return (
+                                <div className="p-3 rounded-lg bg-chart-2/5 border border-chart-2/20">
+                                  <p className="text-xs font-medium text-chart-2 mb-3">{language === 'fr' ? 'Appareils & Connexions' : 'Devices & Connections'}</p>
+                                  
+                                  {/* Devices */}
+                                  <div className="mb-3">
+                                    <p className="text-xs text-muted-foreground mb-1">{language === 'fr' ? 'Appareils utilisés' : 'Devices Used'}</p>
+                                    <div className="flex flex-wrap gap-2">
+                                      {Array.from(devices.values()).map((d, i) => (
+                                        <Badge key={i} variant="outline" className="text-xs flex items-center gap-1">
+                                          {getDeviceIcon(d.type)}
+                                          <span className="font-medium">{d.vendor}</span>
+                                          <span className="text-muted-foreground">{d.model}</span>
+                                          <span className="text-muted-foreground">({d.count})</span>
+                                        </Badge>
+                                      ))}
+                                    </div>
+                                  </div>
+                                  
+                                  {/* Browsers & OS */}
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                                    <div>
+                                      <p className="text-xs text-muted-foreground mb-1">{language === 'fr' ? 'Navigateurs' : 'Browsers'}</p>
+                                      <div className="flex flex-wrap gap-1">
+                                        {Array.from(browsers.entries()).map(([name, count]) => (
+                                          <Badge key={name} variant="secondary" className="text-xs">
+                                            {name} ({count})
+                                          </Badge>
+                                        ))}
+                                      </div>
+                                    </div>
+                                    <div>
+                                      <p className="text-xs text-muted-foreground mb-1">{language === 'fr' ? 'Systèmes' : 'Operating Systems'}</p>
+                                      <div className="flex flex-wrap gap-1">
+                                        {Array.from(oses.entries()).map(([name, count]) => (
+                                          <Badge key={name} variant="secondary" className="text-xs">
+                                            {name} ({count})
+                                          </Badge>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  </div>
+                                  
+                                  {/* Locations & ISPs */}
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    <div>
+                                      <p className="text-xs text-muted-foreground mb-1">{language === 'fr' ? 'Localisations' : 'Locations'}</p>
+                                      <div className="flex flex-wrap gap-1">
+                                        {Array.from(locations.values()).map((loc, i) => (
+                                          <Badge key={i} variant="outline" className="text-xs">
+                                            <MapPin className="h-3 w-3 mr-1" />
+                                            {loc.city}, {loc.country} ({loc.count})
+                                          </Badge>
+                                        ))}
+                                      </div>
+                                    </div>
+                                    <div>
+                                      <p className="text-xs text-muted-foreground mb-1">{language === 'fr' ? 'FAI' : 'ISPs'}</p>
+                                      <div className="flex flex-wrap gap-1">
+                                        {Array.from(isps.entries()).slice(0, 5).map(([name, count]) => (
+                                          <Badge key={name} variant="outline" className="text-xs">
+                                            <Wifi className="h-3 w-3 mr-1" />
+                                            {name.length > 20 ? name.slice(0, 20) + '...' : name} ({count})
+                                          </Badge>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })()}
                           </div>
                           <div className="ml-4 md:ml-8 border-l-2 border-border pl-2 md:pl-4 overflow-x-auto">
                             <Table>
