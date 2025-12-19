@@ -10,4 +10,7 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.security-email]
-verify_jwt = false
+verify_jwt = true
+
+[functions.hash-pin]
+verify_jwt = true
