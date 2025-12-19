@@ -471,37 +471,37 @@ const SessionsAdmin: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6 p-4 md:p-6 max-w-full overflow-x-hidden">
+    <div className="space-y-4 md:space-y-6 p-2 sm:p-4 md:p-6 max-w-full overflow-x-hidden">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="flex flex-col gap-3">
         <div>
-          <h1 className="text-2xl font-bold">{t.title}</h1>
-          <p className="text-muted-foreground text-sm">
+          <h1 className="text-xl sm:text-2xl font-bold">{t.title}</h1>
+          <p className="text-muted-foreground text-xs sm:text-sm">
             {filteredSessions.length} {language === 'fr' ? 'sessions' : 'sessions'}
           </p>
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
           <Button
             variant="outline"
             size="sm"
             onClick={() => setShowFilters(!showFilters)}
-            className="gap-2"
+            className="gap-1 sm:gap-2 text-xs sm:text-sm h-8 sm:h-9"
           >
-            <Filter className="h-4 w-4" />
-            <span className="hidden sm:inline">{t.filters}</span>
-            <ChevronDown className={`h-4 w-4 transition-transform ${showFilters ? 'rotate-180' : ''}`} />
+            <Filter className="h-3 w-3 sm:h-4 sm:w-4" />
+            <span>{t.filters}</span>
+            <ChevronDown className={`h-3 w-3 sm:h-4 sm:w-4 transition-transform ${showFilters ? 'rotate-180' : ''}`} />
           </Button>
-          <Button variant="outline" size="sm" onClick={() => refetch()} className="gap-2">
-            <RefreshCw className="h-4 w-4" />
-            <span className="hidden sm:inline">{t.refresh}</span>
+          <Button variant="outline" size="sm" onClick={() => refetch()} className="gap-1 sm:gap-2 text-xs sm:text-sm h-8 sm:h-9">
+            <RefreshCw className="h-3 w-3 sm:h-4 sm:w-4" />
+            <span className="hidden xs:inline">{t.refresh}</span>
           </Button>
-          <Button variant="outline" size="sm" onClick={exportToCSV} className="gap-2">
-            <Download className="h-4 w-4" />
-            <span className="hidden sm:inline">{t.exportCSV}</span>
+          <Button variant="outline" size="sm" onClick={exportToCSV} className="gap-1 sm:gap-2 text-xs sm:text-sm h-8 sm:h-9">
+            <Download className="h-3 w-3 sm:h-4 sm:w-4" />
+            <span className="hidden xs:inline">CSV</span>
           </Button>
-          <Button variant="outline" size="sm" onClick={exportToPDF} className="gap-2">
-            <FileText className="h-4 w-4" />
-            <span className="hidden sm:inline">{t.exportPDF}</span>
+          <Button variant="outline" size="sm" onClick={exportToPDF} className="gap-1 sm:gap-2 text-xs sm:text-sm h-8 sm:h-9">
+            <FileText className="h-3 w-3 sm:h-4 sm:w-4" />
+            <span className="hidden xs:inline">PDF</span>
           </Button>
         </div>
       </div>
@@ -509,12 +509,12 @@ const SessionsAdmin: React.FC = () => {
       {/* Filters */}
       {showFilters && (
         <Card>
-          <CardContent className="pt-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <CardContent className="pt-3 sm:pt-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
               <div>
-                <label className="text-sm font-medium mb-2 block">{t.period}</label>
+                <label className="text-xs sm:text-sm font-medium mb-1.5 sm:mb-2 block">{t.period}</label>
                 <Select value={dateFilter} onValueChange={setDateFilter}>
-                  <SelectTrigger>
+                  <SelectTrigger className="h-8 sm:h-10 text-xs sm:text-sm">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -526,9 +526,9 @@ const SessionsAdmin: React.FC = () => {
                 </Select>
               </div>
               <div>
-                <label className="text-sm font-medium mb-2 block">{t.device}</label>
+                <label className="text-xs sm:text-sm font-medium mb-1.5 sm:mb-2 block">{t.device}</label>
                 <Select value={deviceFilter} onValueChange={setDeviceFilter}>
-                  <SelectTrigger>
+                  <SelectTrigger className="h-8 sm:h-10 text-xs sm:text-sm">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -540,9 +540,9 @@ const SessionsAdmin: React.FC = () => {
                 </Select>
               </div>
               <div>
-                <label className="text-sm font-medium mb-2 block">{t.location}</label>
+                <label className="text-xs sm:text-sm font-medium mb-1.5 sm:mb-2 block">{t.location}</label>
                 <Select value={countryFilter} onValueChange={setCountryFilter}>
-                  <SelectTrigger>
+                  <SelectTrigger className="h-8 sm:h-10 text-xs sm:text-sm">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -560,68 +560,68 @@ const SessionsAdmin: React.FC = () => {
 
       {/* Stats Cards */}
       {stats && (
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-4">
           <Card>
-            <CardContent className="pt-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-primary/10">
-                  <User className="h-5 w-5 text-primary" />
+            <CardContent className="p-2 sm:pt-4 sm:p-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="p-1.5 sm:p-2 rounded-lg bg-primary/10">
+                  <User className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">{stats.uniqueUsers}</p>
-                  <p className="text-xs text-muted-foreground">{t.uniqueUsers}</p>
+                  <p className="text-lg sm:text-2xl font-bold">{stats.uniqueUsers}</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">{t.uniqueUsers}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
           <Card>
-            <CardContent className="pt-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-chart-1/10">
-                  <Users className="h-5 w-5 text-chart-1" />
+            <CardContent className="p-2 sm:pt-4 sm:p-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="p-1.5 sm:p-2 rounded-lg bg-chart-1/10">
+                  <Users className="h-4 w-4 sm:h-5 sm:w-5 text-chart-1" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">{stats.totalSessions}</p>
-                  <p className="text-xs text-muted-foreground">{t.totalSessions}</p>
+                  <p className="text-lg sm:text-2xl font-bold">{stats.totalSessions}</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">{t.totalSessions}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
           <Card>
-            <CardContent className="pt-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-chart-2/10">
-                  <Globe className="h-5 w-5 text-chart-2" />
+            <CardContent className="p-2 sm:pt-4 sm:p-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="p-1.5 sm:p-2 rounded-lg bg-chart-2/10">
+                  <Globe className="h-4 w-4 sm:h-5 sm:w-5 text-chart-2" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">{stats.uniqueCountries}</p>
-                  <p className="text-xs text-muted-foreground">{t.uniqueCountries}</p>
+                  <p className="text-lg sm:text-2xl font-bold">{stats.uniqueCountries}</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">{t.uniqueCountries}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
           <Card>
-            <CardContent className="pt-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-chart-3/10">
-                  <Monitor className="h-5 w-5 text-chart-3" />
+            <CardContent className="p-2 sm:pt-4 sm:p-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="p-1.5 sm:p-2 rounded-lg bg-chart-3/10">
+                  <Monitor className="h-4 w-4 sm:h-5 sm:w-5 text-chart-3" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">{stats.uniqueBrowsers}</p>
-                  <p className="text-xs text-muted-foreground">{t.browsers}</p>
+                  <p className="text-lg sm:text-2xl font-bold">{stats.uniqueBrowsers}</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">{t.browsers}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
-          <Card>
-            <CardContent className="pt-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-chart-4/10">
-                  <Smartphone className="h-5 w-5 text-chart-4" />
+          <Card className="col-span-2 sm:col-span-1">
+            <CardContent className="p-2 sm:pt-4 sm:p-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="p-1.5 sm:p-2 rounded-lg bg-chart-4/10">
+                  <Smartphone className="h-4 w-4 sm:h-5 sm:w-5 text-chart-4" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">{stats.mobilePercentage}%</p>
-                  <p className="text-xs text-muted-foreground">{t.mobileUsage}</p>
+                  <p className="text-lg sm:text-2xl font-bold">{stats.mobilePercentage}%</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">{t.mobileUsage}</p>
                 </div>
               </div>
             </CardContent>
@@ -630,27 +630,28 @@ const SessionsAdmin: React.FC = () => {
       )}
 
       {/* Charts */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
         {/* Countries Chart */}
         <Card>
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <Globe className="h-4 w-4" />
+          <CardHeader className="pb-2 sm:pb-4">
+            <CardTitle className="text-sm sm:text-base flex items-center gap-2">
+              <Globe className="h-3 w-3 sm:h-4 sm:w-4" />
               {t.byCountry}
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="h-[250px]">
+          <CardContent className="p-2 sm:p-4">
+            <div className="h-[180px] sm:h-[220px]">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={countryData} layout="vertical">
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                  <XAxis type="number" className="text-xs" />
-                  <YAxis dataKey="name" type="category" width={80} className="text-xs" />
+                  <XAxis type="number" className="text-[10px] sm:text-xs" tick={{ fontSize: 10 }} />
+                  <YAxis dataKey="name" type="category" width={60} className="text-[10px] sm:text-xs" tick={{ fontSize: 10 }} />
                   <Tooltip 
                     contentStyle={{ 
                       backgroundColor: 'hsl(var(--card))', 
                       border: '1px solid hsl(var(--border))',
-                      borderRadius: '8px'
+                      borderRadius: '8px',
+                      fontSize: '12px'
                     }} 
                   />
                   <Bar dataKey="value" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
@@ -662,25 +663,25 @@ const SessionsAdmin: React.FC = () => {
 
         {/* Browser Chart */}
         <Card>
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <Monitor className="h-4 w-4" />
+          <CardHeader className="pb-2 sm:pb-4">
+            <CardTitle className="text-sm sm:text-base flex items-center gap-2">
+              <Monitor className="h-3 w-3 sm:h-4 sm:w-4" />
               {t.byBrowser}
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="h-[250px]">
+          <CardContent className="p-2 sm:p-4">
+            <div className="h-[180px] sm:h-[220px]">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
                     data={browserData}
                     cx="50%"
                     cy="50%"
-                    innerRadius={50}
-                    outerRadius={80}
+                    innerRadius={35}
+                    outerRadius={60}
                     paddingAngle={2}
                     dataKey="value"
-                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                    label={({ name, percent }) => `${name.slice(0,6)} ${(percent * 100).toFixed(0)}%`}
                     labelLine={false}
                   >
                     {browserData.map((_, index) => (
@@ -691,7 +692,8 @@ const SessionsAdmin: React.FC = () => {
                     contentStyle={{ 
                       backgroundColor: 'hsl(var(--card))', 
                       border: '1px solid hsl(var(--border))',
-                      borderRadius: '8px'
+                      borderRadius: '8px',
+                      fontSize: '12px'
                     }} 
                   />
                 </PieChart>
@@ -702,22 +704,22 @@ const SessionsAdmin: React.FC = () => {
 
         {/* Device Chart */}
         <Card>
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <Smartphone className="h-4 w-4" />
+          <CardHeader className="pb-2 sm:pb-4">
+            <CardTitle className="text-sm sm:text-base flex items-center gap-2">
+              <Smartphone className="h-3 w-3 sm:h-4 sm:w-4" />
               {t.byDevice}
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="h-[250px]">
+          <CardContent className="p-2 sm:p-4">
+            <div className="h-[180px] sm:h-[220px]">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
                     data={deviceData}
                     cx="50%"
                     cy="50%"
-                    innerRadius={50}
-                    outerRadius={80}
+                    innerRadius={35}
+                    outerRadius={60}
                     paddingAngle={2}
                     dataKey="value"
                     label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
@@ -731,7 +733,8 @@ const SessionsAdmin: React.FC = () => {
                     contentStyle={{ 
                       backgroundColor: 'hsl(var(--card))', 
                       border: '1px solid hsl(var(--border))',
-                      borderRadius: '8px'
+                      borderRadius: '8px',
+                      fontSize: '12px'
                     }} 
                   />
                 </PieChart>
@@ -742,24 +745,25 @@ const SessionsAdmin: React.FC = () => {
 
         {/* OS Chart */}
         <Card>
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <Monitor className="h-4 w-4" />
+          <CardHeader className="pb-2 sm:pb-4">
+            <CardTitle className="text-sm sm:text-base flex items-center gap-2">
+              <Monitor className="h-3 w-3 sm:h-4 sm:w-4" />
               {t.byOS}
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="h-[250px]">
+          <CardContent className="p-2 sm:p-4">
+            <div className="h-[180px] sm:h-[220px]">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={osData} layout="vertical">
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                  <XAxis type="number" className="text-xs" />
-                  <YAxis dataKey="name" type="category" width={80} className="text-xs" />
+                  <XAxis type="number" className="text-[10px] sm:text-xs" tick={{ fontSize: 10 }} />
+                  <YAxis dataKey="name" type="category" width={60} className="text-[10px] sm:text-xs" tick={{ fontSize: 10 }} />
                   <Tooltip 
                     contentStyle={{ 
                       backgroundColor: 'hsl(var(--card))', 
                       border: '1px solid hsl(var(--border))',
-                      borderRadius: '8px'
+                      borderRadius: '8px',
+                      fontSize: '12px'
                     }} 
                   />
                   <Bar dataKey="value" fill="hsl(var(--chart-2))" radius={[0, 4, 4, 0]} />
@@ -770,25 +774,26 @@ const SessionsAdmin: React.FC = () => {
         </Card>
 
         {/* Device Vendor/Brand Chart */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <Smartphone className="h-4 w-4" />
+        <Card className="sm:col-span-2 lg:col-span-2">
+          <CardHeader className="pb-2 sm:pb-4">
+            <CardTitle className="text-sm sm:text-base flex items-center gap-2">
+              <Smartphone className="h-3 w-3 sm:h-4 sm:w-4" />
               {t.byVendor}
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="h-[250px]">
+          <CardContent className="p-2 sm:p-4">
+            <div className="h-[180px] sm:h-[220px]">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={vendorData} layout="vertical">
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                  <XAxis type="number" className="text-xs" />
-                  <YAxis dataKey="name" type="category" width={80} className="text-xs" />
+                  <XAxis type="number" className="text-[10px] sm:text-xs" tick={{ fontSize: 10 }} />
+                  <YAxis dataKey="name" type="category" width={70} className="text-[10px] sm:text-xs" tick={{ fontSize: 10 }} />
                   <Tooltip 
                     contentStyle={{ 
                       backgroundColor: 'hsl(var(--card))', 
                       border: '1px solid hsl(var(--border))',
-                      borderRadius: '8px'
+                      borderRadius: '8px',
+                      fontSize: '12px'
                     }} 
                   />
                   <Bar dataKey="value" fill="hsl(var(--chart-4))" radius={[0, 4, 4, 0]} />
@@ -801,17 +806,17 @@ const SessionsAdmin: React.FC = () => {
 
       {/* Sessions By User */}
       <Card>
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <User className="h-4 w-4" />
-            {t.sessionsByUser}
-            <Badge variant="secondary" className="ml-2">{stats?.uniqueUsers || 0} {t.uniqueUsers}</Badge>
+        <CardHeader className="pb-2 sm:pb-4">
+          <CardTitle className="text-sm sm:text-base flex items-center gap-2 flex-wrap">
+            <User className="h-3 w-3 sm:h-4 sm:w-4" />
+            <span>{t.sessionsByUser}</span>
+            <Badge variant="secondary" className="text-[10px] sm:text-xs">{stats?.uniqueUsers || 0} {t.uniqueUsers}</Badge>
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <ScrollArea className="h-[500px]">
+        <CardContent className="p-2 sm:p-4">
+          <ScrollArea className="h-[400px] sm:h-[500px]">
             {Object.keys(sessionsByUser).length === 0 ? (
-              <div className="text-center text-muted-foreground py-8">{t.noData}</div>
+              <div className="text-center text-muted-foreground py-8 text-sm">{t.noData}</div>
             ) : (
               <div className="space-y-2">
                 {Object.entries(sessionsByUser)
@@ -826,78 +831,75 @@ const SessionsAdmin: React.FC = () => {
                     return (
                       <Collapsible key={userId} open={isExpanded} onOpenChange={() => toggleUser(userId)}>
                         <CollapsibleTrigger asChild>
-                          <div className="flex flex-col md:flex-row md:items-center justify-between p-3 rounded-lg border bg-card hover:bg-accent/50 cursor-pointer transition-colors gap-3">
-                            <div className="flex items-center gap-3 min-w-0">
-                              {isExpanded ? <ChevronDown className="h-4 w-4 flex-shrink-0" /> : <ChevronRight className="h-4 w-4 flex-shrink-0" />}
+                          <div className="flex flex-col gap-2 p-2 sm:p-3 rounded-lg border bg-card hover:bg-accent/50 cursor-pointer transition-colors">
+                            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                              {isExpanded ? <ChevronDown className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" /> : <ChevronRight className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />}
                               {profile?.avatar_url ? (
                                 <img 
                                   src={profile.avatar_url} 
                                   alt={profile.nickname} 
-                                  className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+                                  className="w-6 h-6 sm:w-8 sm:h-8 rounded-full object-cover flex-shrink-0"
                                 />
                               ) : (
-                                <div className="p-2 rounded-full bg-primary/10 flex-shrink-0">
-                                  <User className="h-4 w-4 text-primary" />
+                                <div className="p-1.5 sm:p-2 rounded-full bg-primary/10 flex-shrink-0">
+                                  <User className="h-3 w-3 sm:h-4 sm:w-4 text-primary" />
                                 </div>
                               )}
-                              <div className="min-w-0">
-                                <p className="font-medium text-sm truncate">
+                              <div className="min-w-0 flex-1">
+                                <p className="font-medium text-xs sm:text-sm truncate">
                                   {profile?.nickname || userId.slice(0, 8) + '...'}
                                 </p>
-                                <p className="text-xs text-muted-foreground truncate">
-                                  {t.lastActivity}: {format(parseISO(lastSession.session_start), 'dd MMM yyyy HH:mm', { locale: language === 'fr' ? fr : undefined })}
+                                <p className="text-[10px] sm:text-xs text-muted-foreground truncate">
+                                  {format(parseISO(lastSession.session_start), 'dd MMM HH:mm', { locale: language === 'fr' ? fr : undefined })}
                                 </p>
                               </div>
                             </div>
-                            <div className="flex items-center gap-2 flex-wrap">
-                              {profile?.trading_style && (
-                                <Badge variant="secondary" className="text-xs">{profile.trading_style}</Badge>
-                              )}
+                            <div className="flex items-center gap-1.5 flex-wrap pl-5 sm:pl-7">
                               {profile?.level && (
-                                <Badge className="text-xs bg-chart-4/20 text-chart-4 hover:bg-chart-4/30">
-                                  Lv. {profile.level}
+                                <Badge className="text-[10px] sm:text-xs h-5 bg-chart-4/20 text-chart-4 hover:bg-chart-4/30">
+                                  Lv.{profile.level}
                                 </Badge>
                               )}
-                              <Badge variant="outline">{userSessions.length} {t.sessions}</Badge>
-                              <div className="flex items-center gap-1 text-muted-foreground">
+                              <Badge variant="outline" className="text-[10px] sm:text-xs h-5">{userSessions.length} sess.</Badge>
+                              <div className="flex items-center gap-0.5 text-muted-foreground">
                                 {getDeviceIcon(lastSession.device_type)}
-                                <span className="text-xs">{uniqueDevices}</span>
+                                <span className="text-[10px] sm:text-xs">{uniqueDevices}</span>
                               </div>
-                              <div className="flex items-center gap-1 text-muted-foreground">
-                                <Globe className="h-4 w-4" />
-                                <span className="text-xs">{uniqueCountries}</span>
+                              <div className="flex items-center gap-0.5 text-muted-foreground">
+                                <Globe className="h-3 w-3" />
+                                <span className="text-[10px] sm:text-xs">{uniqueCountries}</span>
                               </div>
                             </div>
                           </div>
                         </CollapsibleTrigger>
                         <CollapsibleContent>
                           {/* Profile & Trading Stats Details */}
-                          <div className="ml-4 md:ml-8 mt-2 mb-2 space-y-2 overflow-x-auto">
+                          <div className="ml-2 sm:ml-4 md:ml-8 mt-2 mb-2 space-y-2">
                             {/* Trading Stats */}
                             {(() => {
                               const tradingStats = tradingStatsMap.get(userId);
                               return tradingStats && tradingStats.totalTrades > 0 ? (
-                                <div className="p-3 rounded-lg bg-primary/5 border border-primary/20">
-                                  <p className="text-xs font-medium text-primary mb-2">{language === 'fr' ? 'Performance Trading' : 'Trading Performance'}</p>
-                                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                                <div className="p-2 sm:p-3 rounded-lg bg-primary/5 border border-primary/20">
+                                  <p className="text-[10px] sm:text-xs font-medium text-primary mb-2">{language === 'fr' ? 'Performance Trading' : 'Trading Performance'}</p>
+                                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4 text-xs sm:text-sm">
                                     <div>
-                                      <p className="text-muted-foreground text-xs">{language === 'fr' ? 'Total Trades' : 'Total Trades'}</p>
-                                      <p className="font-bold text-lg">{tradingStats.totalTrades}</p>
+                                      <p className="text-muted-foreground text-[10px] sm:text-xs">Trades</p>
+                                      <p className="font-bold text-sm sm:text-lg">{tradingStats.totalTrades}</p>
                                     </div>
                                     <div>
-                                      <p className="text-muted-foreground text-xs">Win Rate</p>
-                                      <p className={`font-bold text-lg ${tradingStats.winRate >= 50 ? 'text-green-500' : 'text-red-500'}`}>
+                                      <p className="text-muted-foreground text-[10px] sm:text-xs">Win Rate</p>
+                                      <p className={`font-bold text-sm sm:text-lg ${tradingStats.winRate >= 50 ? 'text-green-500' : 'text-red-500'}`}>
                                         {tradingStats.winRate}%
                                       </p>
                                     </div>
                                     <div>
-                                      <p className="text-muted-foreground text-xs">{language === 'fr' ? 'Victoires' : 'Wins'}</p>
-                                      <p className="font-bold text-lg text-green-500">{tradingStats.wins}</p>
+                                      <p className="text-muted-foreground text-[10px] sm:text-xs">{language === 'fr' ? 'Gains' : 'Wins'}</p>
+                                      <p className="font-bold text-sm sm:text-lg text-green-500">{tradingStats.wins}</p>
                                     </div>
                                     <div>
-                                      <p className="text-muted-foreground text-xs">{language === 'fr' ? 'Profit Total' : 'Total Profit'}</p>
-                                      <p className={`font-bold text-lg ${tradingStats.totalProfit >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                                        {tradingStats.totalProfit >= 0 ? '+' : ''}{tradingStats.totalProfit.toFixed(2)}
+                                      <p className="text-muted-foreground text-[10px] sm:text-xs">Profit</p>
+                                      <p className={`font-bold text-sm sm:text-lg ${tradingStats.totalProfit >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                                        {tradingStats.totalProfit >= 0 ? '+' : ''}{tradingStats.totalProfit.toFixed(0)}
                                       </p>
                                     </div>
                                   </div>
@@ -907,24 +909,24 @@ const SessionsAdmin: React.FC = () => {
                             
                             {/* Profile Info */}
                             {profile && (
-                              <div className="p-3 rounded-lg bg-muted/50 border">
-                                <p className="text-xs font-medium text-muted-foreground mb-2">{language === 'fr' ? 'Informations Profil' : 'Profile Info'}</p>
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                              <div className="p-2 sm:p-3 rounded-lg bg-muted/50 border">
+                                <p className="text-[10px] sm:text-xs font-medium text-muted-foreground mb-2">{language === 'fr' ? 'Profil' : 'Profile'}</p>
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4 text-xs sm:text-sm">
                                   <div>
-                                    <p className="text-muted-foreground text-xs">{language === 'fr' ? 'Style de trading' : 'Trading Style'}</p>
-                                    <p className="font-medium">{profile.trading_style || '-'}</p>
+                                    <p className="text-muted-foreground text-[10px] sm:text-xs">Style</p>
+                                    <p className="font-medium text-xs sm:text-sm truncate">{profile.trading_style || '-'}</p>
                                   </div>
                                   <div>
-                                    <p className="text-muted-foreground text-xs">{language === 'fr' ? 'Niveau' : 'Level'}</p>
-                                    <p className="font-medium">{profile.level || 1}</p>
+                                    <p className="text-muted-foreground text-[10px] sm:text-xs">{language === 'fr' ? 'Niveau' : 'Level'}</p>
+                                    <p className="font-medium text-xs sm:text-sm">{profile.level || 1}</p>
                                   </div>
                                   <div>
-                                    <p className="text-muted-foreground text-xs">{language === 'fr' ? 'Points totaux' : 'Total Points'}</p>
-                                    <p className="font-medium">{profile.total_points?.toLocaleString() || 0}</p>
+                                    <p className="text-muted-foreground text-[10px] sm:text-xs">Points</p>
+                                    <p className="font-medium text-xs sm:text-sm">{profile.total_points?.toLocaleString() || 0}</p>
                                   </div>
                                   <div>
-                                    <p className="text-muted-foreground text-xs">Bio</p>
-                                    <p className="font-medium truncate">{profile.bio || '-'}</p>
+                                    <p className="text-muted-foreground text-[10px] sm:text-xs">Bio</p>
+                                    <p className="font-medium text-xs sm:text-sm truncate">{profile.bio || '-'}</p>
                                   </div>
                                 </div>
                               </div>
@@ -938,57 +940,69 @@ const SessionsAdmin: React.FC = () => {
                               const oses = new Map<string, number>();
                               const locations = new Map<string, { count: number; city: string; country: string }>();
                               const isps = new Map<string, number>();
+                              const screens = new Map<string, number>();
                               
                               userSessions.forEach(s => {
-                                // Devices
-                                const deviceKey = `${s.device_vendor || 'Unknown'}-${s.device_model || 'Unknown'}`;
+                                // Devices - group by vendor + type for cleaner display
+                                const vendor = s.device_vendor || 'Unknown';
+                                const model = s.device_model || 'Device';
+                                const deviceKey = `${vendor}-${model}-${s.device_type || 'desktop'}`;
                                 const existing = devices.get(deviceKey);
                                 if (existing) {
                                   existing.count++;
                                 } else {
                                   devices.set(deviceKey, { 
                                     count: 1, 
-                                    vendor: s.device_vendor || 'Unknown', 
-                                    model: s.device_model || '-',
+                                    vendor: vendor,
+                                    model: model !== vendor ? model : '',
                                     type: s.device_type || 'desktop'
                                   });
                                 }
                                 
-                                // Browsers
-                                const browserKey = s.browser_name || 'Unknown';
+                                // Browsers with version
+                                const browserKey = `${s.browser_name || 'Unknown'}${s.browser_version ? ' ' + s.browser_version.split('.')[0] : ''}`;
                                 browsers.set(browserKey, (browsers.get(browserKey) || 0) + 1);
                                 
-                                // OS
-                                const osKey = `${s.os_name || 'Unknown'} ${s.os_version || ''}`.trim();
+                                // OS with version
+                                const osKey = `${s.os_name || 'Unknown'}${s.os_version ? ' ' + s.os_version : ''}`.trim();
                                 oses.set(osKey, (oses.get(osKey) || 0) + 1);
                                 
                                 // Locations
-                                const locKey = `${s.city || 'Unknown'}-${s.country || 'Unknown'}`;
-                                const existingLoc = locations.get(locKey);
-                                if (existingLoc) {
-                                  existingLoc.count++;
-                                } else {
-                                  locations.set(locKey, { count: 1, city: s.city || 'Unknown', country: s.country || 'Unknown' });
+                                if (s.city || s.country) {
+                                  const locKey = `${s.city || ''}-${s.country || ''}`;
+                                  const existingLoc = locations.get(locKey);
+                                  if (existingLoc) {
+                                    existingLoc.count++;
+                                  } else {
+                                    locations.set(locKey, { count: 1, city: s.city || '', country: s.country || '' });
+                                  }
                                 }
                                 
                                 // ISPs
-                                const ispKey = s.isp || 'Unknown';
-                                isps.set(ispKey, (isps.get(ispKey) || 0) + 1);
+                                if (s.isp) {
+                                  isps.set(s.isp, (isps.get(s.isp) || 0) + 1);
+                                }
+                                
+                                // Screens
+                                if (s.screen_width && s.screen_height) {
+                                  const screenKey = `${s.screen_width}×${s.screen_height}`;
+                                  screens.set(screenKey, (screens.get(screenKey) || 0) + 1);
+                                }
                               });
                               
                               return (
-                                <div className="p-3 rounded-lg bg-chart-2/5 border border-chart-2/20">
-                                  <p className="text-xs font-medium text-chart-2 mb-3">{language === 'fr' ? 'Appareils & Connexions' : 'Devices & Connections'}</p>
+                                <div className="p-2 sm:p-3 rounded-lg bg-chart-2/5 border border-chart-2/20 space-y-3">
+                                  <p className="text-[10px] sm:text-xs font-medium text-chart-2">{language === 'fr' ? 'Appareils & Connexions' : 'Devices & Connections'}</p>
                                   
                                   {/* Devices */}
-                                  <div className="mb-3">
-                                    <p className="text-xs text-muted-foreground mb-1">{language === 'fr' ? 'Appareils utilisés' : 'Devices Used'}</p>
-                                    <div className="flex flex-wrap gap-2">
+                                  <div>
+                                    <p className="text-[10px] sm:text-xs text-muted-foreground mb-1">{language === 'fr' ? 'Appareils' : 'Devices'}</p>
+                                    <div className="flex flex-wrap gap-1">
                                       {Array.from(devices.values()).map((d, i) => (
-                                        <Badge key={i} variant="outline" className="text-xs flex items-center gap-1">
+                                        <Badge key={i} variant="outline" className="text-[10px] sm:text-xs h-5 sm:h-6 flex items-center gap-1 px-1.5 sm:px-2">
                                           {getDeviceIcon(d.type)}
                                           <span className="font-medium">{d.vendor}</span>
-                                          <span className="text-muted-foreground">{d.model}</span>
+                                          {d.model && <span className="text-muted-foreground hidden sm:inline">{d.model}</span>}
                                           <span className="text-muted-foreground">({d.count})</span>
                                         </Badge>
                                       ))}
@@ -996,22 +1010,22 @@ const SessionsAdmin: React.FC = () => {
                                   </div>
                                   
                                   {/* Browsers & OS */}
-                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                     <div>
-                                      <p className="text-xs text-muted-foreground mb-1">{language === 'fr' ? 'Navigateurs' : 'Browsers'}</p>
+                                      <p className="text-[10px] sm:text-xs text-muted-foreground mb-1">{language === 'fr' ? 'Navigateurs' : 'Browsers'}</p>
                                       <div className="flex flex-wrap gap-1">
-                                        {Array.from(browsers.entries()).map(([name, count]) => (
-                                          <Badge key={name} variant="secondary" className="text-xs">
+                                        {Array.from(browsers.entries()).slice(0, 4).map(([name, count]) => (
+                                          <Badge key={name} variant="secondary" className="text-[10px] sm:text-xs h-5">
                                             {name} ({count})
                                           </Badge>
                                         ))}
                                       </div>
                                     </div>
                                     <div>
-                                      <p className="text-xs text-muted-foreground mb-1">{language === 'fr' ? 'Systèmes' : 'Operating Systems'}</p>
+                                      <p className="text-[10px] sm:text-xs text-muted-foreground mb-1">{language === 'fr' ? 'Systèmes' : 'OS'}</p>
                                       <div className="flex flex-wrap gap-1">
-                                        {Array.from(oses.entries()).map(([name, count]) => (
-                                          <Badge key={name} variant="secondary" className="text-xs">
+                                        {Array.from(oses.entries()).slice(0, 4).map(([name, count]) => (
+                                          <Badge key={name} variant="secondary" className="text-[10px] sm:text-xs h-5">
                                             {name} ({count})
                                           </Badge>
                                         ))}
@@ -1019,76 +1033,122 @@ const SessionsAdmin: React.FC = () => {
                                     </div>
                                   </div>
                                   
+                                  {/* Screens */}
+                                  {screens.size > 0 && (
+                                    <div>
+                                      <p className="text-[10px] sm:text-xs text-muted-foreground mb-1">{language === 'fr' ? 'Écrans' : 'Screens'}</p>
+                                      <div className="flex flex-wrap gap-1">
+                                        {Array.from(screens.entries()).slice(0, 4).map(([size, count]) => (
+                                          <Badge key={size} variant="outline" className="text-[10px] sm:text-xs h-5">
+                                            <Monitor className="h-2.5 w-2.5 mr-1" />
+                                            {size} ({count})
+                                          </Badge>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                  
                                   {/* Locations & ISPs */}
-                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                    <div>
-                                      <p className="text-xs text-muted-foreground mb-1">{language === 'fr' ? 'Localisations' : 'Locations'}</p>
-                                      <div className="flex flex-wrap gap-1">
-                                        {Array.from(locations.values()).map((loc, i) => (
-                                          <Badge key={i} variant="outline" className="text-xs">
-                                            <MapPin className="h-3 w-3 mr-1" />
-                                            {loc.city}, {loc.country} ({loc.count})
-                                          </Badge>
-                                        ))}
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                    {locations.size > 0 && (
+                                      <div>
+                                        <p className="text-[10px] sm:text-xs text-muted-foreground mb-1">{language === 'fr' ? 'Localisations' : 'Locations'}</p>
+                                        <div className="flex flex-wrap gap-1">
+                                          {Array.from(locations.values()).slice(0, 3).map((loc, i) => (
+                                            <Badge key={i} variant="outline" className="text-[10px] sm:text-xs h-5">
+                                              <MapPin className="h-2.5 w-2.5 mr-0.5" />
+                                              {loc.city && loc.country ? `${loc.city}, ${loc.country}` : loc.city || loc.country} ({loc.count})
+                                            </Badge>
+                                          ))}
+                                        </div>
                                       </div>
-                                    </div>
-                                    <div>
-                                      <p className="text-xs text-muted-foreground mb-1">{language === 'fr' ? 'FAI' : 'ISPs'}</p>
-                                      <div className="flex flex-wrap gap-1">
-                                        {Array.from(isps.entries()).slice(0, 5).map(([name, count]) => (
-                                          <Badge key={name} variant="outline" className="text-xs">
-                                            <Wifi className="h-3 w-3 mr-1" />
-                                            {name.length > 20 ? name.slice(0, 20) + '...' : name} ({count})
-                                          </Badge>
-                                        ))}
+                                    )}
+                                    {isps.size > 0 && (
+                                      <div>
+                                        <p className="text-[10px] sm:text-xs text-muted-foreground mb-1">FAI/ISP</p>
+                                        <div className="flex flex-wrap gap-1">
+                                          {Array.from(isps.entries()).slice(0, 2).map(([name, count]) => (
+                                            <Badge key={name} variant="outline" className="text-[10px] sm:text-xs h-5 max-w-[150px] sm:max-w-[200px]">
+                                              <Wifi className="h-2.5 w-2.5 mr-0.5 flex-shrink-0" />
+                                              <span className="truncate">{name}</span>
+                                              <span className="flex-shrink-0 ml-0.5">({count})</span>
+                                            </Badge>
+                                          ))}
+                                        </div>
                                       </div>
-                                    </div>
+                                    )}
                                   </div>
                                 </div>
                               );
                             })()}
                           </div>
-                          <div className="ml-4 md:ml-8 border-l-2 border-border pl-2 md:pl-4 overflow-x-auto">
-                            <Table>
-                              <TableHeader>
-                                <TableRow>
-                                  <TableHead>{t.date}</TableHead>
-                                  <TableHead>{t.device}</TableHead>
-                                  <TableHead>{t.browser}</TableHead>
-                                  <TableHead>{t.location}</TableHead>
-                                  <TableHead>{t.ip}</TableHead>
-                                </TableRow>
-                              </TableHeader>
-                              <TableBody>
-                                {userSessions.slice(0, 20).map((session) => (
-                                  <TableRow key={session.id}>
-                                    <TableCell>
-                                      <span className="text-sm">
-                                        {format(parseISO(session.session_start), 'dd/MM/yy HH:mm')}
-                                      </span>
-                                    </TableCell>
-                                    <TableCell>
-                                      <div className="flex items-center gap-2">
-                                        {getDeviceIcon(session.device_type)}
-                                        <span className="text-sm">{session.device_vendor || 'Unknown'}</span>
-                                      </div>
-                                    </TableCell>
-                                    <TableCell>
-                                      <span className="text-sm">{session.browser_name || 'Unknown'}</span>
-                                    </TableCell>
-                                    <TableCell>
-                                      <div className="flex items-center gap-1">
-                                        <MapPin className="h-3 w-3 text-muted-foreground" />
-                                        <span className="text-sm">{session.city || session.country || '-'}</span>
-                                      </div>
-                                    </TableCell>
-                                    <TableCell>
-                                      <span className="text-xs font-mono text-muted-foreground">{session.ip_address || '-'}</span>
-                                    </TableCell>
+                          
+                          {/* Sessions Table - Mobile Cards / Desktop Table */}
+                          <div className="ml-2 sm:ml-4 md:ml-8 border-l-2 border-border pl-2 sm:pl-4">
+                            {/* Mobile: Cards */}
+                            <div className="block sm:hidden space-y-2">
+                              {userSessions.slice(0, 10).map((session) => (
+                                <div key={session.id} className="p-2 rounded border bg-muted/30 text-xs space-y-1">
+                                  <div className="flex justify-between items-center">
+                                    <span className="font-medium">{format(parseISO(session.session_start), 'dd/MM/yy HH:mm')}</span>
+                                    <span className="text-[10px] font-mono text-muted-foreground">{session.ip_address || '-'}</span>
+                                  </div>
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <span className="flex items-center gap-1">
+                                      {getDeviceIcon(session.device_type)}
+                                      {session.device_vendor || 'Unknown'}
+                                    </span>
+                                    <span>• {session.browser_name || 'Unknown'}</span>
+                                  </div>
+                                  <div className="flex items-center gap-1 text-muted-foreground">
+                                    <MapPin className="h-3 w-3" />
+                                    {session.city || session.country || '-'}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                            
+                            {/* Desktop: Table */}
+                            <div className="hidden sm:block overflow-x-auto">
+                              <Table>
+                                <TableHeader>
+                                  <TableRow>
+                                    <TableHead className="text-xs">{t.date}</TableHead>
+                                    <TableHead className="text-xs">{t.device}</TableHead>
+                                    <TableHead className="text-xs">{t.browser}</TableHead>
+                                    <TableHead className="text-xs">{t.location}</TableHead>
+                                    <TableHead className="text-xs">{t.ip}</TableHead>
                                   </TableRow>
-                                ))}
-                              </TableBody>
-                            </Table>
+                                </TableHeader>
+                                <TableBody>
+                                  {userSessions.slice(0, 20).map((session) => (
+                                    <TableRow key={session.id}>
+                                      <TableCell className="text-xs py-2">
+                                        {format(parseISO(session.session_start), 'dd/MM/yy HH:mm')}
+                                      </TableCell>
+                                      <TableCell className="py-2">
+                                        <div className="flex items-center gap-1.5 text-xs">
+                                          {getDeviceIcon(session.device_type)}
+                                          <span>{session.device_vendor || 'Unknown'}</span>
+                                        </div>
+                                      </TableCell>
+                                      <TableCell className="text-xs py-2">
+                                        {session.browser_name || 'Unknown'}
+                                      </TableCell>
+                                      <TableCell className="py-2">
+                                        <div className="flex items-center gap-1 text-xs">
+                                          <MapPin className="h-3 w-3 text-muted-foreground" />
+                                          {session.city || session.country || '-'}
+                                        </div>
+                                      </TableCell>
+                                      <TableCell className="text-[10px] font-mono text-muted-foreground py-2">
+                                        {session.ip_address || '-'}
+                                      </TableCell>
+                                    </TableRow>
+                                  ))}
+                                </TableBody>
+                              </Table>
+                            </div>
                           </div>
                         </CollapsibleContent>
                       </Collapsible>
