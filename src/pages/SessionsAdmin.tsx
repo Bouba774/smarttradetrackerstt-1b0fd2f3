@@ -2,6 +2,7 @@ import React, { useState, useMemo, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useAdminRole } from '@/hooks/useAdminRole';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -9,11 +10,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { 
   Monitor, Smartphone, Tablet, Globe, Users, Clock, 
-  MapPin, Wifi, Filter, RefreshCw, ChevronDown, ChevronRight, Download, FileText, User
+  MapPin, Wifi, Filter, RefreshCw, ChevronDown, ChevronRight, Download, FileText, User,
+  ShieldAlert, AlertTriangle, Timer
 } from 'lucide-react';
-import { format, subDays, isAfter, parseISO } from 'date-fns';
+import { format, subDays, isAfter, parseISO, differenceInMinutes, differenceInSeconds } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -60,8 +63,23 @@ interface UserSession {
 
 const COLORS = ['hsl(var(--primary))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))', 'hsl(var(--chart-5))'];
 
+// Helper to format duration
+const formatDuration = (minutes: number): string => {
+  if (minutes < 1) return '< 1 min';
+  if (minutes < 60) return `${Math.round(minutes)} min`;
+  const hours = Math.floor(minutes / 60);
+  const mins = Math.round(minutes % 60);
+  return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
+};
+
+// Helper to get hour from date
+const getHour = (dateStr: string): number => {
+  return parseISO(dateStr).getHours();
+};
+
 const SessionsAdmin: React.FC = () => {
   const { language } = useLanguage();
+  const { isAdmin, isLoading: isLoadingAdmin } = useAdminRole();
   const [dateFilter, setDateFilter] = useState('7');
   const [deviceFilter, setDeviceFilter] = useState('all');
   const [countryFilter, setCountryFilter] = useState('all');
@@ -143,7 +161,7 @@ const SessionsAdmin: React.FC = () => {
     return map;
   }, [trades]);
 
-  const isLoading = isLoadingSessions || isLoadingProfiles || isLoadingTrades;
+  const isLoading = isLoadingSessions || isLoadingProfiles || isLoadingTrades || isLoadingAdmin;
 
   const filteredSessions = useMemo(() => {
     if (!sessions) return [];
@@ -203,14 +221,103 @@ const SessionsAdmin: React.FC = () => {
     const uniqueBrowsers = new Set(filteredSessions.map(s => s.browser_name).filter(Boolean));
     const mobileCount = filteredSessions.filter(s => s.is_mobile).length;
     
+    // Calculate average session duration
+    const sessionsWithDuration = filteredSessions.filter(s => s.session_end);
+    const totalDuration = sessionsWithDuration.reduce((sum, s) => {
+      return sum + differenceInMinutes(parseISO(s.session_end!), parseISO(s.session_start));
+    }, 0);
+    const avgDuration = sessionsWithDuration.length > 0 ? totalDuration / sessionsWithDuration.length : 0;
+    
+    // Active sessions (no session_end)
+    const activeSessions = filteredSessions.filter(s => !s.session_end).length;
+    
     return {
       totalSessions: filteredSessions.length,
       uniqueUsers: uniqueUsers.size,
       uniqueCountries: uniqueCountries.size,
       uniqueBrowsers: uniqueBrowsers.size,
       mobilePercentage: Math.round((mobileCount / filteredSessions.length) * 100),
+      avgDuration,
+      activeSessions,
     };
   }, [filteredSessions]);
+
+  // Hourly distribution chart data
+  const hourlyData = useMemo(() => {
+    const hourCounts: Record<number, number> = {};
+    for (let i = 0; i < 24; i++) hourCounts[i] = 0;
+    
+    filteredSessions.forEach(s => {
+      const hour = getHour(s.session_start);
+      hourCounts[hour]++;
+    });
+    
+    return Object.entries(hourCounts).map(([hour, count]) => ({
+      hour: `${hour}h`,
+      count,
+    }));
+  }, [filteredSessions]);
+
+  // Security alerts - detect suspicious connections
+  const securityAlerts = useMemo(() => {
+    const alerts: Array<{ userId: string; type: 'new_country' | 'new_device' | 'multiple_ips'; message: string; session: UserSession }> = [];
+    
+    if (!sessions || !profiles) return alerts;
+    
+    // Group sessions by user
+    const userSessionsMap = new Map<string, UserSession[]>();
+    sessions.forEach(s => {
+      if (!userSessionsMap.has(s.user_id)) {
+        userSessionsMap.set(s.user_id, []);
+      }
+      userSessionsMap.get(s.user_id)!.push(s);
+    });
+    
+    // Check for suspicious patterns
+    userSessionsMap.forEach((userSessions, userId) => {
+      const sortedSessions = [...userSessions].sort((a, b) => 
+        parseISO(b.session_start).getTime() - parseISO(a.session_start).getTime()
+      );
+      
+      if (sortedSessions.length < 2) return;
+      
+      const latestSession = sortedSessions[0];
+      const previousSessions = sortedSessions.slice(1);
+      
+      // Check for new country
+      const previousCountries = new Set(previousSessions.map(s => s.country).filter(Boolean));
+      if (latestSession.country && previousCountries.size > 0 && !previousCountries.has(latestSession.country)) {
+        const profile = profileMap.get(userId);
+        alerts.push({
+          userId,
+          type: 'new_country',
+          message: language === 'fr' 
+            ? `${profile?.nickname || 'Utilisateur'} s'est connecté depuis un nouveau pays: ${latestSession.country}`
+            : `${profile?.nickname || 'User'} connected from a new country: ${latestSession.country}`,
+          session: latestSession,
+        });
+      }
+      
+      // Check for new device
+      const previousDevices = new Set(previousSessions.map(s => `${s.device_vendor}-${s.device_model}`));
+      const latestDevice = `${latestSession.device_vendor}-${latestSession.device_model}`;
+      if (previousDevices.size > 0 && !previousDevices.has(latestDevice)) {
+        const profile = profileMap.get(userId);
+        alerts.push({
+          userId,
+          type: 'new_device',
+          message: language === 'fr'
+            ? `${profile?.nickname || 'Utilisateur'} s'est connecté depuis un nouvel appareil: ${latestSession.device_vendor} ${latestSession.device_model}`
+            : `${profile?.nickname || 'User'} connected from a new device: ${latestSession.device_vendor} ${latestSession.device_model}`,
+          session: latestSession,
+        });
+      }
+    });
+    
+    // Only return alerts from last 7 days
+    const sevenDaysAgo = subDays(new Date(), 7);
+    return alerts.filter(a => isAfter(parseISO(a.session.session_start), sevenDaysAgo)).slice(0, 10);
+  }, [sessions, profiles, profileMap, language]);
 
   // Chart data - Countries
   const countryData = useMemo(() => {
@@ -470,15 +577,57 @@ const SessionsAdmin: React.FC = () => {
     );
   }
 
+  // Admin access check
+  if (!isAdmin) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px] p-4">
+        <Alert variant="destructive" className="max-w-md">
+          <ShieldAlert className="h-4 w-4" />
+          <AlertTitle>{language === 'fr' ? 'Accès refusé' : 'Access Denied'}</AlertTitle>
+          <AlertDescription>
+            {language === 'fr' 
+              ? 'Vous n\'avez pas les permissions nécessaires pour accéder à cette page. Seuls les administrateurs peuvent voir les sessions des utilisateurs.'
+              : 'You do not have the required permissions to access this page. Only administrators can view user sessions.'}
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4 md:space-y-6 p-2 sm:p-4 md:p-6 max-w-full overflow-x-hidden">
+      {/* Security Alerts */}
+      {securityAlerts.length > 0 && (
+        <Alert variant="destructive" className="border-orange-500/50 bg-orange-500/10">
+          <AlertTriangle className="h-4 w-4 text-orange-500" />
+          <AlertTitle className="text-orange-600">{language === 'fr' ? 'Alertes de sécurité' : 'Security Alerts'}</AlertTitle>
+          <AlertDescription>
+            <ul className="mt-2 space-y-1 text-sm">
+              {securityAlerts.slice(0, 5).map((alert, i) => (
+                <li key={i} className="flex items-start gap-2">
+                  <span className="text-orange-500">•</span>
+                  <span>{alert.message}</span>
+                  <Badge variant="outline" className="text-[10px] ml-auto">
+                    {format(parseISO(alert.session.session_start), 'dd/MM HH:mm')}
+                  </Badge>
+                </li>
+              ))}
+            </ul>
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Header */}
       <div className="flex flex-col gap-3">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold">{t.title}</h1>
-          <p className="text-muted-foreground text-xs sm:text-sm">
-            {filteredSessions.length} {language === 'fr' ? 'sessions' : 'sessions'}
-          </p>
+        <div className="flex items-center gap-2">
+          <ShieldAlert className="h-5 w-5 text-primary" />
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold">{t.title}</h1>
+            <p className="text-muted-foreground text-xs sm:text-sm">
+              {filteredSessions.length} {language === 'fr' ? 'sessions' : 'sessions'}
+              {stats?.activeSessions ? ` • ${stats.activeSessions} ${language === 'fr' ? 'actives' : 'active'}` : ''}
+            </p>
+          </div>
         </div>
         <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
           <Button
@@ -560,7 +709,7 @@ const SessionsAdmin: React.FC = () => {
 
       {/* Stats Cards */}
       {stats && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-2 sm:gap-4">
           <Card>
             <CardContent className="p-2 sm:pt-4 sm:p-4">
               <div className="flex items-center gap-2 sm:gap-3">
@@ -583,6 +732,32 @@ const SessionsAdmin: React.FC = () => {
                 <div>
                   <p className="text-lg sm:text-2xl font-bold">{stats.totalSessions}</p>
                   <p className="text-[10px] sm:text-xs text-muted-foreground">{t.totalSessions}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-2 sm:pt-4 sm:p-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="p-1.5 sm:p-2 rounded-lg bg-green-500/10">
+                  <Clock className="h-4 w-4 sm:h-5 sm:w-5 text-green-500" />
+                </div>
+                <div>
+                  <p className="text-lg sm:text-2xl font-bold">{stats.activeSessions}</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">{language === 'fr' ? 'Actives' : 'Active'}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-2 sm:pt-4 sm:p-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="p-1.5 sm:p-2 rounded-lg bg-purple-500/10">
+                  <Timer className="h-4 w-4 sm:h-5 sm:w-5 text-purple-500" />
+                </div>
+                <div>
+                  <p className="text-lg sm:text-2xl font-bold">{formatDuration(stats.avgDuration)}</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">{language === 'fr' ? 'Durée moy.' : 'Avg. Duration'}</p>
                 </div>
               </div>
             </CardContent>
@@ -613,7 +788,7 @@ const SessionsAdmin: React.FC = () => {
               </div>
             </CardContent>
           </Card>
-          <Card className="col-span-2 sm:col-span-1">
+          <Card>
             <CardContent className="p-2 sm:pt-4 sm:p-4">
               <div className="flex items-center gap-2 sm:gap-3">
                 <div className="p-1.5 sm:p-2 rounded-lg bg-chart-4/10">
@@ -631,6 +806,37 @@ const SessionsAdmin: React.FC = () => {
 
       {/* Charts */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
+        {/* Hourly Distribution Chart */}
+        <Card className="sm:col-span-2 lg:col-span-3">
+          <CardHeader className="pb-2 sm:pb-4">
+            <CardTitle className="text-sm sm:text-base flex items-center gap-2">
+              <Clock className="h-3 w-3 sm:h-4 sm:w-4" />
+              {language === 'fr' ? 'Heures de connexion' : 'Connection Hours'}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-2 sm:p-4">
+            <div className="h-[150px] sm:h-[180px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={hourlyData}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                  <XAxis dataKey="hour" className="text-[10px] sm:text-xs" tick={{ fontSize: 10 }} interval={2} />
+                  <YAxis className="text-[10px] sm:text-xs" tick={{ fontSize: 10 }} />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'hsl(var(--card))', 
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px',
+                      fontSize: '12px'
+                    }}
+                    formatter={(value: number) => [value, language === 'fr' ? 'Sessions' : 'Sessions']}
+                  />
+                  <Bar dataKey="count" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Countries Chart */}
         <Card>
           <CardHeader className="pb-2 sm:pb-4">
