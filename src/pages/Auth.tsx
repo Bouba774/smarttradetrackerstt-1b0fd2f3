@@ -16,7 +16,17 @@ import TurnstileWidget from '@/components/TurnstileWidget';
 
 // Cloudflare Turnstile Site Key (public key, safe to expose in client code)
 const TURNSTILE_SITE_KEY = '0x4AAAAAACG-_s2EZYR5V8_J';
-const HAS_TURNSTILE = true;
+
+// Disable Turnstile in preview/development environments (Cloudflare requires whitelisted domains)
+const isPreviewOrDev = () => {
+  const hostname = window.location.hostname;
+  return hostname === 'localhost' || 
+         hostname.includes('lovableproject.com') || 
+         hostname.includes('preview') ||
+         hostname.includes('127.0.0.1');
+};
+
+const HAS_TURNSTILE = !isPreviewOrDev();
 
 const Auth: React.FC = () => {
   const { signIn, signUp, user, loading } = useAuth();
