@@ -124,12 +124,21 @@ const AppSidebar: React.FC = () => {
           <SidebarGroup>
             <SidebarGroupContent>
               <SidebarMenu>
-                {navItems.map((item) => {
+                {navItems.map((item, index) => {
                   const Icon = item.icon;
                   const isActive = location.pathname === item.path;
 
                   return (
-                    <SidebarMenuItem key={item.path}>
+                    <SidebarMenuItem 
+                      key={item.path}
+                      className={cn(
+                        "opacity-0 translate-x-[-20px]",
+                        isOpen && "animate-[slideInLeft_0.3s_ease-out_forwards]"
+                      )}
+                      style={{ 
+                        animationDelay: isOpen ? `${index * 30}ms` : '0ms'
+                      }}
+                    >
                       <SidebarMenuButton
                         asChild
                         isActive={isActive}
@@ -139,10 +148,10 @@ const AppSidebar: React.FC = () => {
                           to={item.path}
                           onClick={handleNavClick}
                           className={cn(
-                            "flex items-center gap-3 px-3 py-3 rounded-lg transition-colors duration-75 group relative touch-target",
+                            "flex items-center gap-3 px-3 py-3 rounded-lg transition-all duration-200 group relative touch-target",
                             isActive
                               ? "bg-primary/20 text-primary shadow-neon border-l-2 border-primary"
-                              : "text-muted-foreground hover:text-primary hover:bg-primary/10 active:bg-primary/20"
+                              : "text-muted-foreground hover:text-primary hover:bg-primary/10 hover:translate-x-1 active:bg-primary/20"
                           )}
                         >
                           <Icon className={cn(
