@@ -32,6 +32,7 @@ import {
   X,
   Activity,
   ShieldCheck,
+  Crown,
 } from 'lucide-react';
 import { APP_VERSION } from '@/lib/version';
 
@@ -54,6 +55,7 @@ const AppSidebar: React.FC = () => {
     { path: '/currency-conversion', icon: ArrowRightLeft, label: t('currencyConversion'), adminOnly: false },
     { path: '/challenges', icon: Trophy, label: t('challenges'), adminOnly: false },
     { path: '/sessions', icon: ShieldCheck, label: language === 'fr' ? 'Admin Sessions' : 'Admin Sessions', adminOnly: true },
+    { path: '/admin-roles', icon: Crown, label: language === 'fr' ? 'Gestion Rôles' : 'Role Management', adminOnly: true },
     { path: '/profile', icon: User, label: t('profile'), adminOnly: false },
     { path: '/settings', icon: Settings, label: t('settings'), adminOnly: false },
     { path: '/about', icon: Info, label: t('about'), adminOnly: false },

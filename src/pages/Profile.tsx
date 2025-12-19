@@ -5,9 +5,11 @@ import { useTrades } from '@/hooks/useTrades';
 import { useJournalEntries } from '@/hooks/useJournalEntries';
 import { useCurrency } from '@/hooks/useCurrency';
 import { usePDFExport } from '@/hooks/usePDFExport';
+import { useAdminRole } from '@/hooks/useAdminRole';
 import { PDFExportDialog } from '@/components/PDFExportDialog';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { supabase } from '@/integrations/supabase/client';
 import { useFeedback } from '@/hooks/useFeedback';
@@ -31,6 +33,8 @@ import {
   Check,
   X,
   Calendar,
+  Crown,
+  Shield,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -53,6 +57,7 @@ const Profile: React.FC = () => {
   const { currency, formatAmount, convertFromBase } = useCurrency();
   const { exportToPDF } = usePDFExport();
   const { triggerFeedback } = useFeedback();
+  const { isAdmin, isModerator } = useAdminRole();
   const [isDeletingData, setIsDeletingData] = useState(false);
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
@@ -335,22 +340,37 @@ const Profile: React.FC = () => {
                 </Button>
               </div>
             ) : (
-              <div className="flex items-center justify-center gap-2">
-                <h2 className="font-display text-2xl font-bold text-foreground">
-                  {profile?.nickname || 'Trader'}
-                </h2>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className="h-8 w-8 text-muted-foreground hover:text-primary"
-                  onClick={() => {
-                    setNewNickname(profile?.nickname || '');
-                    setIsEditingNickname(true);
-                    triggerFeedback('click');
-                  }}
-                >
-                  <Edit3 className="w-4 h-4" />
-                </Button>
+              <div className="flex flex-col items-center gap-2">
+                <div className="flex items-center justify-center gap-2">
+                  <h2 className="font-display text-2xl font-bold text-foreground">
+                    {profile?.nickname || 'Trader'}
+                  </h2>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-8 w-8 text-muted-foreground hover:text-primary"
+                    onClick={() => {
+                      setNewNickname(profile?.nickname || '');
+                      setIsEditingNickname(true);
+                      triggerFeedback('click');
+                    }}
+                  >
+                    <Edit3 className="w-4 h-4" />
+                  </Button>
+                </div>
+                {/* Role Badge */}
+                {isAdmin && (
+                  <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0 shadow-lg flex items-center gap-1">
+                    <Crown className="w-3 h-3" />
+                    Admin
+                  </Badge>
+                )}
+                {isModerator && !isAdmin && (
+                  <Badge className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white border-0 shadow-lg flex items-center gap-1">
+                    <Shield className="w-3 h-3" />
+                    Moderator
+                  </Badge>
+                )}
               </div>
             )}
             <div className="flex items-center justify-center gap-2 text-muted-foreground">
