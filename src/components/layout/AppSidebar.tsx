@@ -29,11 +29,12 @@ import {
   Settings,
   Info,
   X,
+  Activity,
 } from 'lucide-react';
 import { APP_VERSION } from '@/lib/version';
 
 const AppSidebar: React.FC = () => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const location = useLocation();
   const { state, openMobile, setOpenMobile, isMobile } = useSidebar();
   const isOpen = isMobile ? openMobile : state === 'expanded';
@@ -50,6 +51,7 @@ const AppSidebar: React.FC = () => {
     { path: '/calculator', icon: Calculator, label: t('calculator') },
     { path: '/currency-conversion', icon: ArrowRightLeft, label: t('currencyConversion') },
     { path: '/challenges', icon: Trophy, label: t('challenges') },
+    { path: '/sessions', icon: Activity, label: language === 'fr' ? 'Sessions' : 'Sessions' },
     { path: '/profile', icon: User, label: t('profile') },
     { path: '/settings', icon: Settings, label: t('settings') },
     { path: '/about', icon: Info, label: t('about') },
