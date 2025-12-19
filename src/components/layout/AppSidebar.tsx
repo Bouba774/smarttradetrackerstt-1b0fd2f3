@@ -57,8 +57,14 @@ const AppSidebar: React.FC = () => {
   ];
 
   const handleNavClick = () => {
-    if (isMobile && isOpen) {
-      toggleSidebar();
+    // Always close sidebar on mobile after navigation
+    if (isMobile) {
+      // Use setTimeout to ensure navigation happens before closing
+      setTimeout(() => {
+        if (state === 'expanded') {
+          toggleSidebar();
+        }
+      }, 50);
     }
   };
 
