@@ -53,6 +53,54 @@ export type Database = {
         }
         Relationships: []
       }
+      mt_accounts: {
+        Row: {
+          account_name: string
+          created_at: string
+          currency: string
+          id: string
+          initial_balance: number
+          is_connected: boolean
+          last_sync_at: string | null
+          login: string
+          metaapi_account_id: string | null
+          platform: string
+          server: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          account_name: string
+          created_at?: string
+          currency?: string
+          id?: string
+          initial_balance?: number
+          is_connected?: boolean
+          last_sync_at?: string | null
+          login: string
+          metaapi_account_id?: string | null
+          platform: string
+          server: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          account_name?: string
+          created_at?: string
+          currency?: string
+          id?: string
+          initial_balance?: number
+          is_connected?: boolean
+          last_sync_at?: string | null
+          login?: string
+          metaapi_account_id?: string | null
+          platform?: string
+          server?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null

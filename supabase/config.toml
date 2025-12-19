@@ -23,3 +23,6 @@ verify_jwt = false
 
 [functions.scrape-forex-news]
 verify_jwt = false
+
+[functions.metatrader-connect]
+verify_jwt = true

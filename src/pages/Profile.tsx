@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { supabase } from '@/integrations/supabase/client';
 import { useFeedback } from '@/hooks/useFeedback';
 import { ProfilePhotoUploader } from '@/components/ProfilePhotoUploader';
+import MetaTraderConnection from '@/components/MetaTraderConnection';
 import { format } from 'date-fns';
 import { fr, enUS } from 'date-fns/locale';
 import {
@@ -425,6 +426,11 @@ const Profile: React.FC = () => {
           onExport={handleExportPDF}
           isExporting={isExporting}
         />
+      </div>
+
+      {/* MetaTrader Connection Card */}
+      <div className="glass-card p-6 animate-fade-in" style={{ animationDelay: '75ms' }}>
+        <MetaTraderConnection />
       </div>
 
       {/* Actions Card */}
