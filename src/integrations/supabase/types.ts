@@ -267,6 +267,7 @@ export type Database = {
           pin_enabled: boolean | null
           pin_hash: string | null
           pin_length: number | null
+          pin_salt: string | null
           sounds: boolean | null
           updated_at: string
           user_id: string
@@ -288,6 +289,7 @@ export type Database = {
           pin_enabled?: boolean | null
           pin_hash?: string | null
           pin_length?: number | null
+          pin_salt?: string | null
           sounds?: boolean | null
           updated_at?: string
           user_id: string
@@ -309,6 +311,7 @@ export type Database = {
           pin_enabled?: boolean | null
           pin_hash?: string | null
           pin_length?: number | null
+          pin_salt?: string | null
           sounds?: boolean | null
           updated_at?: string
           user_id?: string

@@ -44,10 +44,10 @@ export const LockScreen: React.FC = () => {
     return null;
   }
 
-  const handleUnlock = (pin: string) => {
+  const handleUnlock = async (pin: string) => {
     if (isBlocked) return;
     
-    const success = unlock(pin);
+    const success = await unlock(pin);
     if (!success) {
       setError(true);
       setTimeout(() => setError(false), 500);
