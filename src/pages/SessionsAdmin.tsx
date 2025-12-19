@@ -471,7 +471,7 @@ const SessionsAdmin: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6 p-4 md:p-6">
+    <div className="space-y-6 p-4 md:p-6 max-w-full overflow-x-hidden">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
@@ -480,7 +480,7 @@ const SessionsAdmin: React.FC = () => {
             {filteredSessions.length} {language === 'fr' ? 'sessions' : 'sessions'}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <Button
             variant="outline"
             size="sm"
@@ -488,20 +488,20 @@ const SessionsAdmin: React.FC = () => {
             className="gap-2"
           >
             <Filter className="h-4 w-4" />
-            {t.filters}
+            <span className="hidden sm:inline">{t.filters}</span>
             <ChevronDown className={`h-4 w-4 transition-transform ${showFilters ? 'rotate-180' : ''}`} />
           </Button>
           <Button variant="outline" size="sm" onClick={() => refetch()} className="gap-2">
             <RefreshCw className="h-4 w-4" />
-            {t.refresh}
+            <span className="hidden sm:inline">{t.refresh}</span>
           </Button>
           <Button variant="outline" size="sm" onClick={exportToCSV} className="gap-2">
             <Download className="h-4 w-4" />
-            {t.exportCSV}
+            <span className="hidden sm:inline">{t.exportCSV}</span>
           </Button>
           <Button variant="outline" size="sm" onClick={exportToPDF} className="gap-2">
             <FileText className="h-4 w-4" />
-            {t.exportPDF}
+            <span className="hidden sm:inline">{t.exportPDF}</span>
           </Button>
         </div>
       </div>
@@ -826,30 +826,30 @@ const SessionsAdmin: React.FC = () => {
                     return (
                       <Collapsible key={userId} open={isExpanded} onOpenChange={() => toggleUser(userId)}>
                         <CollapsibleTrigger asChild>
-                          <div className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-accent/50 cursor-pointer transition-colors">
-                            <div className="flex items-center gap-3">
-                              {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                          <div className="flex flex-col md:flex-row md:items-center justify-between p-3 rounded-lg border bg-card hover:bg-accent/50 cursor-pointer transition-colors gap-3">
+                            <div className="flex items-center gap-3 min-w-0">
+                              {isExpanded ? <ChevronDown className="h-4 w-4 flex-shrink-0" /> : <ChevronRight className="h-4 w-4 flex-shrink-0" />}
                               {profile?.avatar_url ? (
                                 <img 
                                   src={profile.avatar_url} 
                                   alt={profile.nickname} 
-                                  className="w-8 h-8 rounded-full object-cover"
+                                  className="w-8 h-8 rounded-full object-cover flex-shrink-0"
                                 />
                               ) : (
-                                <div className="p-2 rounded-full bg-primary/10">
+                                <div className="p-2 rounded-full bg-primary/10 flex-shrink-0">
                                   <User className="h-4 w-4 text-primary" />
                                 </div>
                               )}
-                              <div>
-                                <p className="font-medium text-sm">
+                              <div className="min-w-0">
+                                <p className="font-medium text-sm truncate">
                                   {profile?.nickname || userId.slice(0, 8) + '...'}
                                 </p>
-                                <p className="text-xs text-muted-foreground">
+                                <p className="text-xs text-muted-foreground truncate">
                                   {t.lastActivity}: {format(parseISO(lastSession.session_start), 'dd MMM yyyy HH:mm', { locale: language === 'fr' ? fr : undefined })}
                                 </p>
                               </div>
                             </div>
-                            <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-2 flex-wrap">
                               {profile?.trading_style && (
                                 <Badge variant="secondary" className="text-xs">{profile.trading_style}</Badge>
                               )}
@@ -872,7 +872,7 @@ const SessionsAdmin: React.FC = () => {
                         </CollapsibleTrigger>
                         <CollapsibleContent>
                           {/* Profile & Trading Stats Details */}
-                          <div className="ml-8 mt-2 mb-2 space-y-2">
+                          <div className="ml-4 md:ml-8 mt-2 mb-2 space-y-2 overflow-x-auto">
                             {/* Trading Stats */}
                             {(() => {
                               const tradingStats = tradingStatsMap.get(userId);
@@ -929,7 +929,7 @@ const SessionsAdmin: React.FC = () => {
                               </div>
                             )}
                           </div>
-                          <div className="ml-8 border-l-2 border-border pl-4">
+                          <div className="ml-4 md:ml-8 border-l-2 border-border pl-2 md:pl-4 overflow-x-auto">
                             <Table>
                               <TableHeader>
                                 <TableRow>
