@@ -77,44 +77,115 @@ const parseUserAgent = (ua: string): Partial<DeviceInfo> => {
   result.isMobile = isMobile;
   result.deviceType = isTablet ? 'tablet' : isMobile ? 'mobile' : 'desktop';
 
-  // Detect device vendor and model
+  // Enhanced device vendor and model detection
   if (ua.includes('iPhone')) {
     result.deviceVendor = 'Apple';
-    result.deviceModel = 'iPhone';
+    // Try to detect iPhone model
+    const iphoneMatch = ua.match(/iPhone(\d+),(\d+)/);
+    if (iphoneMatch) {
+      result.deviceModel = `iPhone ${iphoneMatch[1]}`;
+    } else {
+      result.deviceModel = 'iPhone';
+    }
   } else if (ua.includes('iPad')) {
     result.deviceVendor = 'Apple';
     result.deviceModel = 'iPad';
   } else if (ua.includes('Macintosh')) {
     result.deviceVendor = 'Apple';
-    result.deviceModel = 'Mac';
-  } else if (ua.includes('Samsung')) {
+    if (ua.includes('Mac OS X')) {
+      result.deviceModel = 'Mac';
+    } else {
+      result.deviceModel = 'Macintosh';
+    }
+  } else if (ua.includes('Samsung') || ua.includes('SAMSUNG')) {
     result.deviceVendor = 'Samsung';
-    const model = ua.match(/Samsung[;\s]*(SM-[A-Z0-9]+|Galaxy[^;)]+)/i);
-    result.deviceModel = model?.[1] || 'Samsung Device';
+    const model = ua.match(/(?:Samsung|SAMSUNG)[;\s]*(SM-[A-Z0-9]+|Galaxy[^;)]+)/i);
+    result.deviceModel = model?.[1]?.trim() || 'Galaxy';
   } else if (ua.includes('Huawei') || ua.includes('HUAWEI')) {
     result.deviceVendor = 'Huawei';
-    result.deviceModel = ua.match(/(?:Huawei|HUAWEI)[;\s]*([^;)]+)/i)?.[1] || 'Huawei Device';
-  } else if (ua.includes('Xiaomi') || ua.includes('Redmi')) {
+    const model = ua.match(/(?:Huawei|HUAWEI)[;\s]*([^;)\s]+)/i);
+    result.deviceModel = model?.[1]?.trim() || 'Huawei';
+  } else if (ua.includes('Xiaomi') || ua.includes('XIAOMI') || ua.includes('Mi ') || ua.includes('Redmi') || ua.includes('POCO')) {
     result.deviceVendor = 'Xiaomi';
-    result.deviceModel = ua.match(/(?:Xiaomi|Redmi)[;\s]*([^;)]+)/i)?.[1] || 'Xiaomi Device';
-  } else if (ua.includes('OPPO')) {
+    const model = ua.match(/(?:Xiaomi|XIAOMI|Mi|Redmi|POCO)[;\s]*([^;)\s]+)/i);
+    result.deviceModel = model?.[1]?.trim() || 'Xiaomi';
+  } else if (ua.includes('OPPO') || ua.includes('Oppo')) {
     result.deviceVendor = 'OPPO';
-    result.deviceModel = ua.match(/OPPO[;\s]*([^;)]+)/i)?.[1] || 'OPPO Device';
+    const model = ua.match(/(?:OPPO|Oppo)[;\s]*([^;)\s]+)/i);
+    result.deviceModel = model?.[1]?.trim() || 'OPPO';
   } else if (ua.includes('Vivo') || ua.includes('vivo')) {
     result.deviceVendor = 'Vivo';
-    result.deviceModel = ua.match(/(?:Vivo|vivo)[;\s]*([^;)]+)/i)?.[1] || 'Vivo Device';
-  } else if (ua.includes('OnePlus')) {
+    const model = ua.match(/(?:Vivo|vivo)[;\s]*([^;)\s]+)/i);
+    result.deviceModel = model?.[1]?.trim() || 'Vivo';
+  } else if (ua.includes('OnePlus') || ua.includes('ONEPLUS')) {
     result.deviceVendor = 'OnePlus';
-    result.deviceModel = ua.match(/OnePlus[;\s]*([^;)]+)/i)?.[1] || 'OnePlus Device';
+    const model = ua.match(/(?:OnePlus|ONEPLUS)[;\s]*([^;)\s]+)/i);
+    result.deviceModel = model?.[1]?.trim() || 'OnePlus';
   } else if (ua.includes('Pixel')) {
     result.deviceVendor = 'Google';
-    result.deviceModel = ua.match(/Pixel[^;)]*/i)?.[0] || 'Pixel';
+    const model = ua.match(/Pixel[^;)]*/i);
+    result.deviceModel = model?.[0]?.trim() || 'Pixel';
+  } else if (ua.includes('Realme') || ua.includes('realme')) {
+    result.deviceVendor = 'Realme';
+    const model = ua.match(/(?:Realme|realme)[;\s]*([^;)\s]+)/i);
+    result.deviceModel = model?.[1]?.trim() || 'Realme';
+  } else if (ua.includes('Motorola') || ua.includes('moto')) {
+    result.deviceVendor = 'Motorola';
+    const model = ua.match(/(?:Motorola|moto)[;\s]*([^;)\s]+)/i);
+    result.deviceModel = model?.[1]?.trim() || 'Motorola';
+  } else if (ua.includes('Nokia')) {
+    result.deviceVendor = 'Nokia';
+    const model = ua.match(/Nokia[;\s]*([^;)\s]+)/i);
+    result.deviceModel = model?.[1]?.trim() || 'Nokia';
+  } else if (ua.includes('LG')) {
+    result.deviceVendor = 'LG';
+    const model = ua.match(/LG[-;\s]*([^;)\s]+)/i);
+    result.deviceModel = model?.[1]?.trim() || 'LG';
+  } else if (ua.includes('Sony') || ua.includes('Xperia')) {
+    result.deviceVendor = 'Sony';
+    const model = ua.match(/(?:Sony|Xperia)[;\s]*([^;)\s]+)/i);
+    result.deviceModel = model?.[1]?.trim() || 'Xperia';
+  } else if (ua.includes('ASUS') || ua.includes('Asus')) {
+    result.deviceVendor = 'ASUS';
+    const model = ua.match(/(?:ASUS|Asus)[;\s]*([^;)\s]+)/i);
+    result.deviceModel = model?.[1]?.trim() || 'ASUS';
+  } else if (ua.includes('ZTE')) {
+    result.deviceVendor = 'ZTE';
+    const model = ua.match(/ZTE[;\s]*([^;)\s]+)/i);
+    result.deviceModel = model?.[1]?.trim() || 'ZTE';
+  } else if (ua.includes('Tecno') || ua.includes('TECNO')) {
+    result.deviceVendor = 'Tecno';
+    const model = ua.match(/(?:Tecno|TECNO)[;\s]*([^;)\s]+)/i);
+    result.deviceModel = model?.[1]?.trim() || 'Tecno';
+  } else if (ua.includes('Infinix') || ua.includes('INFINIX')) {
+    result.deviceVendor = 'Infinix';
+    const model = ua.match(/(?:Infinix|INFINIX)[;\s]*([^;)\s]+)/i);
+    result.deviceModel = model?.[1]?.trim() || 'Infinix';
+  } else if (ua.includes('itel') || ua.includes('ITEL')) {
+    result.deviceVendor = 'Itel';
+    const model = ua.match(/(?:itel|ITEL)[;\s]*([^;)\s]+)/i);
+    result.deviceModel = model?.[1]?.trim() || 'Itel';
   } else if (result.deviceType === 'desktop') {
-    result.deviceVendor = 'PC';
-    result.deviceModel = result.osName === 'Windows' ? 'Windows PC' : result.osName === 'Linux' ? 'Linux PC' : 'Desktop';
+    if (result.osName === 'Windows') {
+      result.deviceVendor = 'PC';
+      result.deviceModel = 'Windows PC';
+    } else if (result.osName === 'Linux') {
+      result.deviceVendor = 'PC';
+      result.deviceModel = 'Linux PC';
+    } else {
+      result.deviceVendor = 'PC';
+      result.deviceModel = 'Desktop';
+    }
   } else {
-    result.deviceVendor = 'Unknown';
-    result.deviceModel = 'Unknown Device';
+    // Try to extract from Android build info
+    const buildMatch = ua.match(/Build\/([^;)\s]+)/i);
+    if (buildMatch) {
+      result.deviceVendor = 'Android';
+      result.deviceModel = buildMatch[1].trim();
+    } else {
+      result.deviceVendor = 'Unknown';
+      result.deviceModel = 'Unknown';
+    }
   }
 
   return result;

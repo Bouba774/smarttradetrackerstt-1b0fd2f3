@@ -157,6 +157,19 @@ const SessionsAdmin: React.FC = () => {
       .sort((a, b) => b.value - a.value);
   }, [filteredSessions]);
 
+  // Chart data - Device Vendor (Brand)
+  const vendorData = useMemo(() => {
+    const counts: Record<string, number> = {};
+    filteredSessions.forEach(s => {
+      const vendor = s.device_vendor || 'Unknown';
+      counts[vendor] = (counts[vendor] || 0) + 1;
+    });
+    return Object.entries(counts)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 8);
+  }, [filteredSessions]);
+
   // Available countries for filter
   const availableCountries = useMemo(() => {
     if (!sessions) return [];
@@ -319,12 +332,16 @@ const SessionsAdmin: React.FC = () => {
     byBrowser: language === 'fr' ? 'Par Navigateur' : 'By Browser',
     byDevice: language === 'fr' ? 'Par Appareil' : 'By Device',
     byOS: language === 'fr' ? 'Par Système' : 'By OS',
+    byVendor: language === 'fr' ? 'Par Marque' : 'By Brand',
     recentSessions: language === 'fr' ? 'Sessions Récentes' : 'Recent Sessions',
     date: language === 'fr' ? 'Date' : 'Date',
     device: language === 'fr' ? 'Appareil' : 'Device',
     browser: language === 'fr' ? 'Navigateur' : 'Browser',
     location: language === 'fr' ? 'Localisation' : 'Location',
     isp: language === 'fr' ? 'FAI' : 'ISP',
+    screen: language === 'fr' ? 'Écran' : 'Screen',
+    ip: language === 'fr' ? 'Adresse IP' : 'IP Address',
+    lang: language === 'fr' ? 'Langue' : 'Language',
     filters: language === 'fr' ? 'Filtres' : 'Filters',
     period: language === 'fr' ? 'Période' : 'Period',
     last7Days: language === 'fr' ? '7 derniers jours' : 'Last 7 days',
@@ -632,6 +649,35 @@ const SessionsAdmin: React.FC = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Device Vendor/Brand Chart */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Smartphone className="h-4 w-4" />
+              {t.byVendor}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-[250px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={vendorData} layout="vertical">
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                  <XAxis type="number" className="text-xs" />
+                  <YAxis dataKey="name" type="category" width={80} className="text-xs" />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'hsl(var(--card))', 
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px'
+                    }} 
+                  />
+                  <Bar dataKey="value" fill="hsl(var(--chart-4))" radius={[0, 4, 4, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Sessions Table */}
@@ -650,19 +696,21 @@ const SessionsAdmin: React.FC = () => {
                   <TableHead>{t.date}</TableHead>
                   <TableHead>{t.device}</TableHead>
                   <TableHead>{t.browser}</TableHead>
+                  <TableHead>{t.screen}</TableHead>
                   <TableHead>{t.location}</TableHead>
+                  <TableHead>{t.ip}</TableHead>
                   <TableHead>{t.isp}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredSessions.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                       {t.noData}
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredSessions.slice(0, 50).map((session) => (
+                  filteredSessions.slice(0, 100).map((session) => (
                     <TableRow key={session.id}>
                       <TableCell>
                         <div className="flex flex-col">
@@ -678,34 +726,49 @@ const SessionsAdmin: React.FC = () => {
                         <div className="flex items-center gap-2">
                           {getDeviceIcon(session.device_type)}
                           <div className="flex flex-col">
-                            <span className="text-sm">{session.device_vendor || 'Unknown'}</span>
-                            <span className="text-xs text-muted-foreground">{session.device_model}</span>
+                            <span className="text-sm font-medium">{session.device_vendor || 'Unknown'}</span>
+                            <span className="text-xs text-muted-foreground">{session.device_model || '-'}</span>
                           </div>
                         </div>
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-col">
-                          <span className="text-sm">{session.browser_name || 'Unknown'}</span>
+                          <span className="text-sm">{session.browser_name || 'Unknown'} {session.browser_version || ''}</span>
                           <span className="text-xs text-muted-foreground">
-                            {session.os_name} {session.os_version}
+                            {session.os_name || '-'} {session.os_version || ''}
                           </span>
                         </div>
                       </TableCell>
                       <TableCell>
+                        <div className="flex flex-col">
+                          <span className="text-sm">
+                            {session.screen_width && session.screen_height 
+                              ? `${session.screen_width}x${session.screen_height}` 
+                              : '-'}
+                          </span>
+                          <span className="text-xs text-muted-foreground">{session.language || '-'}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
                         <div className="flex items-center gap-2">
-                          <MapPin className="h-4 w-4 text-muted-foreground" />
+                          <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                           <div className="flex flex-col">
                             <span className="text-sm">{session.city || 'Unknown'}</span>
                             <span className="text-xs text-muted-foreground">
-                              {session.region}, {session.country}
+                              {[session.region, session.country].filter(Boolean).join(', ') || '-'}
                             </span>
                           </div>
                         </div>
                       </TableCell>
                       <TableCell>
+                        <span className="text-xs font-mono text-muted-foreground">
+                          {session.ip_address || '-'}
+                        </span>
+                      </TableCell>
+                      <TableCell>
                         <div className="flex items-center gap-2">
-                          <Wifi className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-sm truncate max-w-[150px]">{session.isp || 'Unknown'}</span>
+                          <Wifi className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                          <span className="text-sm truncate max-w-[120px]">{session.isp || '-'}</span>
                         </div>
                       </TableCell>
                     </TableRow>
