@@ -179,6 +179,45 @@ export type Database = {
         }
         Relationships: []
       }
+      secure_credentials: {
+        Row: {
+          biometric_enabled: boolean | null
+          created_at: string
+          id: string
+          max_attempts: number | null
+          pin_hash: string | null
+          pin_length: number | null
+          pin_salt: string | null
+          updated_at: string
+          user_id: string
+          wipe_on_max_attempts: boolean | null
+        }
+        Insert: {
+          biometric_enabled?: boolean | null
+          created_at?: string
+          id?: string
+          max_attempts?: number | null
+          pin_hash?: string | null
+          pin_length?: number | null
+          pin_salt?: string | null
+          updated_at?: string
+          user_id: string
+          wipe_on_max_attempts?: boolean | null
+        }
+        Update: {
+          biometric_enabled?: boolean | null
+          created_at?: string
+          id?: string
+          max_attempts?: number | null
+          pin_hash?: string | null
+          pin_length?: number | null
+          pin_salt?: string | null
+          updated_at?: string
+          user_id?: string
+          wipe_on_max_attempts?: boolean | null
+        }
+        Relationships: []
+      }
       trades: {
         Row: {
           asset: string
@@ -383,6 +422,7 @@ export type Database = {
         }
         Returns: Json
       }
+      get_user_pin_status: { Args: { p_user_id: string }; Returns: Json }
       reset_rate_limit: {
         Args: { p_attempt_type?: string; p_identifier: string }
         Returns: undefined

@@ -228,65 +228,73 @@ export const SecurityProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       }
 
       try {
-        const { data, error } = await supabase
+        // Load general settings from user_settings
+        const { data: userSettingsData, error: userSettingsError } = await supabase
           .from('user_settings')
-          .select('pin_enabled, pin_hash, pin_salt, pin_length, auto_lock_timeout, confidential_mode, max_attempts, wipe_on_max_attempts, biometric_enabled, known_devices')
+          .select('pin_enabled, auto_lock_timeout, confidential_mode, known_devices')
           .eq('user_id', user.id)
           .single();
 
-        if (error && error.code !== 'PGRST116') {
-          console.error('Error loading security settings:', error);
+        if (userSettingsError && userSettingsError.code !== 'PGRST116') {
+          console.error('Error loading user settings:', userSettingsError);
         }
 
-        if (data) {
-          const dbSettings: SecuritySettings = {
-            pinEnabled: data.pin_enabled ?? false,
-            pinHash: data.pin_hash ?? null,
-            pinSalt: (data as { pin_salt?: string }).pin_salt ?? null,
-            pinLength: (data.pin_length as 4 | 6) ?? 4,
-            autoLockTimeout: data.auto_lock_timeout ?? 0,
-            confidentialMode: data.confidential_mode ?? false,
-            maxAttempts: data.max_attempts ?? 5,
-            wipeOnMaxAttempts: data.wipe_on_max_attempts ?? false,
-            biometricEnabled: data.biometric_enabled ?? false,
-          };
-          setSettings(dbSettings);
+        // Load secure credentials from separate table
+        const { data: credentialsData, error: credentialsError } = await supabase
+          .from('secure_credentials')
+          .select('pin_hash, pin_salt, pin_length, max_attempts, wipe_on_max_attempts, biometric_enabled')
+          .eq('user_id', user.id)
+          .single();
 
-          // Check if should lock
-          if (dbSettings.pinEnabled) {
-            const lockState = sessionStorage.getItem(`${LOCK_STATE_KEY}-${user.id}`);
-            if (lockState !== 'unlocked') {
-              setIsLocked(true);
-            }
-          }
+        if (credentialsError && credentialsError.code !== 'PGRST116') {
+          console.error('Error loading secure credentials:', credentialsError);
+        }
 
-          // Check for new device
-          const knownDevices: string[] = (data.known_devices as string[]) || [];
-          const fingerprint = generateFingerprint();
-          if (dbSettings.pinEnabled && !knownDevices.includes(fingerprint)) {
-            // New device detected, send email
-            sendSecurityEmail('new_device');
-            // Save device to known list
-            const updatedDevices = [...knownDevices, fingerprint].slice(-10);
-            await supabase
-              .from('user_settings')
-              .update({ known_devices: updatedDevices })
-              .eq('user_id', user.id);
+        const pinEnabled = userSettingsData?.pin_enabled ?? false;
+        const dbSettings: SecuritySettings = {
+          pinEnabled,
+          pinHash: credentialsData?.pin_hash ?? null,
+          pinSalt: credentialsData?.pin_salt ?? null,
+          pinLength: (credentialsData?.pin_length as 4 | 6) ?? 4,
+          autoLockTimeout: userSettingsData?.auto_lock_timeout ?? 0,
+          confidentialMode: userSettingsData?.confidential_mode ?? false,
+          maxAttempts: credentialsData?.max_attempts ?? 5,
+          wipeOnMaxAttempts: credentialsData?.wipe_on_max_attempts ?? false,
+          biometricEnabled: credentialsData?.biometric_enabled ?? false,
+        };
+        setSettings(dbSettings);
+
+        // Check if should lock
+        if (dbSettings.pinEnabled) {
+          const lockState = sessionStorage.getItem(`${LOCK_STATE_KEY}-${user.id}`);
+          if (lockState !== 'unlocked') {
+            setIsLocked(true);
           }
-        } else {
-          // Create default settings
+        }
+
+        // Check for new device
+        const knownDevices: string[] = (userSettingsData?.known_devices as string[]) || [];
+        const fingerprint = generateFingerprint();
+        if (dbSettings.pinEnabled && !knownDevices.includes(fingerprint)) {
+          // New device detected, send email
+          sendSecurityEmail('new_device');
+          // Save device to known list
+          const updatedDevices = [...knownDevices, fingerprint].slice(-10);
+          await supabase
+            .from('user_settings')
+            .update({ known_devices: updatedDevices })
+            .eq('user_id', user.id);
+        }
+
+        // Ensure default records exist
+        if (!userSettingsData) {
           await supabase
             .from('user_settings')
             .upsert({
               user_id: user.id,
               pin_enabled: false,
-              pin_hash: null,
-              pin_length: 4,
               auto_lock_timeout: 0,
               confidential_mode: false,
-              max_attempts: 5,
-              wipe_on_max_attempts: false,
-              biometric_enabled: false,
               known_devices: [],
             }, { onConflict: 'user_id' });
         }
@@ -334,29 +342,41 @@ export const SecurityProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     loadSettings();
   }, [user]);
 
-  // Save settings to database
+  // Save settings to database (split between user_settings and secure_credentials)
   const saveSettingsToDb = useCallback(async (newSettings: SecuritySettings) => {
     if (!user || isSavingRef.current) return;
     
     isSavingRef.current = true;
     try {
-      const { error } = await supabase
+      // Save general settings to user_settings
+      const { error: settingsError } = await supabase
         .from('user_settings')
         .upsert({
           user_id: user.id,
           pin_enabled: newSettings.pinEnabled,
+          auto_lock_timeout: newSettings.autoLockTimeout,
+          confidential_mode: newSettings.confidentialMode,
+        }, { onConflict: 'user_id' });
+
+      if (settingsError) {
+        console.error('Error saving user settings:', settingsError);
+      }
+
+      // Save sensitive credentials to secure_credentials table
+      const { error: credentialsError } = await supabase
+        .from('secure_credentials')
+        .upsert({
+          user_id: user.id,
           pin_hash: newSettings.pinHash,
           pin_salt: newSettings.pinSalt,
           pin_length: newSettings.pinLength,
-          auto_lock_timeout: newSettings.autoLockTimeout,
-          confidential_mode: newSettings.confidentialMode,
           max_attempts: newSettings.maxAttempts,
           wipe_on_max_attempts: newSettings.wipeOnMaxAttempts,
           biometric_enabled: newSettings.biometricEnabled,
         }, { onConflict: 'user_id' });
 
-      if (error) {
-        console.error('Error saving security settings:', error);
+      if (credentialsError) {
+        console.error('Error saving secure credentials:', credentialsError);
       }
     } catch (e) {
       console.error('Error saving settings:', e);
