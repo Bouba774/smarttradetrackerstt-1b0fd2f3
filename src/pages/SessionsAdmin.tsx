@@ -94,6 +94,19 @@ const SessionsAdmin: React.FC = () => {
     }
   });
 
+  // Fetch all trades for statistics
+  const { data: trades, isLoading: isLoadingTrades } = useQuery({
+    queryKey: ['user-trades-for-sessions'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('trades')
+        .select('user_id, result, profit_loss');
+      
+      if (error) throw error;
+      return data as { user_id: string; result: string | null; profit_loss: number | null }[];
+    }
+  });
+
   // Create a map for quick profile lookup
   const profileMap = useMemo(() => {
     const map = new Map<string, UserProfile>();
@@ -103,7 +116,34 @@ const SessionsAdmin: React.FC = () => {
     return map;
   }, [profiles]);
 
-  const isLoading = isLoadingSessions || isLoadingProfiles;
+  // Create a map for user trading stats
+  const tradingStatsMap = useMemo(() => {
+    const map = new Map<string, { totalTrades: number; wins: number; winRate: number; totalProfit: number }>();
+    if (!trades) return map;
+    
+    // Group trades by user_id
+    const groupedTrades: Record<string, { user_id: string; result: string | null; profit_loss: number | null }[]> = {};
+    trades.forEach(trade => {
+      if (!groupedTrades[trade.user_id]) {
+        groupedTrades[trade.user_id] = [];
+      }
+      groupedTrades[trade.user_id].push(trade);
+    });
+
+    // Calculate stats for each user
+    Object.entries(groupedTrades).forEach(([userId, userTrades]) => {
+      const totalTrades = userTrades.length;
+      const wins = userTrades.filter(t => t.result === 'win').length;
+      const winRate = totalTrades > 0 ? Math.round((wins / totalTrades) * 100) : 0;
+      const totalProfit = userTrades.reduce((sum, t) => sum + (t.profit_loss || 0), 0);
+      
+      map.set(userId, { totalTrades, wins, winRate, totalProfit });
+    });
+
+    return map;
+  }, [trades]);
+
+  const isLoading = isLoadingSessions || isLoadingProfiles || isLoadingTrades;
 
   const filteredSessions = useMemo(() => {
     if (!sessions) return [];
@@ -831,29 +871,64 @@ const SessionsAdmin: React.FC = () => {
                           </div>
                         </CollapsibleTrigger>
                         <CollapsibleContent>
-                          {/* Profile Details */}
-                          {profile && (
-                            <div className="ml-8 mt-2 mb-2 p-3 rounded-lg bg-muted/50 border">
-                              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                                <div>
-                                  <p className="text-muted-foreground text-xs">{language === 'fr' ? 'Style de trading' : 'Trading Style'}</p>
-                                  <p className="font-medium">{profile.trading_style || '-'}</p>
+                          {/* Profile & Trading Stats Details */}
+                          <div className="ml-8 mt-2 mb-2 space-y-2">
+                            {/* Trading Stats */}
+                            {(() => {
+                              const tradingStats = tradingStatsMap.get(userId);
+                              return tradingStats && tradingStats.totalTrades > 0 ? (
+                                <div className="p-3 rounded-lg bg-primary/5 border border-primary/20">
+                                  <p className="text-xs font-medium text-primary mb-2">{language === 'fr' ? 'Performance Trading' : 'Trading Performance'}</p>
+                                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                                    <div>
+                                      <p className="text-muted-foreground text-xs">{language === 'fr' ? 'Total Trades' : 'Total Trades'}</p>
+                                      <p className="font-bold text-lg">{tradingStats.totalTrades}</p>
+                                    </div>
+                                    <div>
+                                      <p className="text-muted-foreground text-xs">Win Rate</p>
+                                      <p className={`font-bold text-lg ${tradingStats.winRate >= 50 ? 'text-green-500' : 'text-red-500'}`}>
+                                        {tradingStats.winRate}%
+                                      </p>
+                                    </div>
+                                    <div>
+                                      <p className="text-muted-foreground text-xs">{language === 'fr' ? 'Victoires' : 'Wins'}</p>
+                                      <p className="font-bold text-lg text-green-500">{tradingStats.wins}</p>
+                                    </div>
+                                    <div>
+                                      <p className="text-muted-foreground text-xs">{language === 'fr' ? 'Profit Total' : 'Total Profit'}</p>
+                                      <p className={`font-bold text-lg ${tradingStats.totalProfit >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                                        {tradingStats.totalProfit >= 0 ? '+' : ''}{tradingStats.totalProfit.toFixed(2)}
+                                      </p>
+                                    </div>
+                                  </div>
                                 </div>
-                                <div>
-                                  <p className="text-muted-foreground text-xs">{language === 'fr' ? 'Niveau' : 'Level'}</p>
-                                  <p className="font-medium">{profile.level || 1}</p>
-                                </div>
-                                <div>
-                                  <p className="text-muted-foreground text-xs">{language === 'fr' ? 'Points totaux' : 'Total Points'}</p>
-                                  <p className="font-medium">{profile.total_points?.toLocaleString() || 0}</p>
-                                </div>
-                                <div>
-                                  <p className="text-muted-foreground text-xs">Bio</p>
-                                  <p className="font-medium truncate">{profile.bio || '-'}</p>
+                              ) : null;
+                            })()}
+                            
+                            {/* Profile Info */}
+                            {profile && (
+                              <div className="p-3 rounded-lg bg-muted/50 border">
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                                  <div>
+                                    <p className="text-muted-foreground text-xs">{language === 'fr' ? 'Style de trading' : 'Trading Style'}</p>
+                                    <p className="font-medium">{profile.trading_style || '-'}</p>
+                                  </div>
+                                  <div>
+                                    <p className="text-muted-foreground text-xs">{language === 'fr' ? 'Niveau' : 'Level'}</p>
+                                    <p className="font-medium">{profile.level || 1}</p>
+                                  </div>
+                                  <div>
+                                    <p className="text-muted-foreground text-xs">{language === 'fr' ? 'Points totaux' : 'Total Points'}</p>
+                                    <p className="font-medium">{profile.total_points?.toLocaleString() || 0}</p>
+                                  </div>
+                                  <div>
+                                    <p className="text-muted-foreground text-xs">Bio</p>
+                                    <p className="font-medium truncate">{profile.bio || '-'}</p>
+                                  </div>
                                 </div>
                               </div>
-                            </div>
-                          )}
+                            )}
+                          </div>
                           <div className="ml-8 border-l-2 border-border pl-4">
                             <Table>
                               <TableHeader>
