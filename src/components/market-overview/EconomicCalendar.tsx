@@ -111,6 +111,7 @@ const EconomicCalendar: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [isFromCache, setIsFromCache] = useState(false);
+  const [dataSource, setDataSource] = useState<string>('');
 
   const parseEventsData = useCallback((data: any[], date: Date): EconomicEvent[] => {
     return data.map((event: any, index: number) => {
@@ -154,6 +155,7 @@ const EconomicCalendar: React.FC = () => {
         setEvents(parsedEvents.sort((a, b) => a.time.getTime() - b.time.getTime()));
         setLastUpdate(new Date(cached.timestamp));
         setIsFromCache(true);
+        setDataSource('cache');
         setIsLoading(false);
         return;
       }
@@ -182,10 +184,17 @@ const EconomicCalendar: React.FC = () => {
         const parsedEvents = parseEventsData(data.events, date);
         setEvents(parsedEvents.sort((a, b) => a.time.getTime() - b.time.getTime()));
         setLastUpdate(new Date());
-        toast.success('Calendrier économique mis à jour');
+        setDataSource(data.source || 'api');
+        
+        if (data.warning) {
+          toast.warning(data.warning);
+        } else {
+          toast.success('Calendrier économique mis à jour');
+        }
       } else {
         setEvents([]);
         setLastUpdate(new Date());
+        setDataSource('none');
       }
     } catch (error) {
       console.error('Error fetching ForexFactory:', error);
@@ -298,10 +307,14 @@ const EconomicCalendar: React.FC = () => {
                 <RefreshCw className="h-4 w-4" />
               )}
             </Button>
-            {isFromCache && (
+            {isFromCache ? (
               <Badge variant="outline" className="text-xs gap-1">
                 <Database className="h-3 w-3" />
                 Cache
+              </Badge>
+            ) : dataSource && dataSource !== 'none' && (
+              <Badge variant="outline" className="text-xs gap-1 capitalize">
+                {dataSource === 'firecrawl' ? '🔴 Live' : dataSource === 'fcs-api' ? '📊 API' : '📋 Static'}
               </Badge>
             )}
             <div className="flex items-center gap-2">
