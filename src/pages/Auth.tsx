@@ -51,7 +51,7 @@ const Auth: React.FC = () => {
 
   useEffect(() => {
     if (user && !loading) {
-      navigate('/market-overview');
+      navigate('/dashboard');
     }
   }, [user, loading, navigate]);
 
