@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useAdminRole } from '@/hooks/useAdminRole';
 import { cn } from '@/lib/utils';
 import {
   Sidebar,
@@ -30,32 +31,36 @@ import {
   Info,
   X,
   Activity,
+  ShieldCheck,
 } from 'lucide-react';
 import { APP_VERSION } from '@/lib/version';
 
 const AppSidebar: React.FC = () => {
   const { t, language } = useLanguage();
   const location = useLocation();
+  const { isAdmin } = useAdminRole();
   const { state, openMobile, setOpenMobile, isMobile } = useSidebar();
   const isOpen = isMobile ? openMobile : state === 'expanded';
 
   const navItems = [
-    { path: '/dashboard', icon: LayoutDashboard, label: t('dashboard') },
-    { path: '/add-trade', icon: PlusCircle, label: t('addTrade') },
-    { path: '/history', icon: History, label: t('history') },
-    { path: '/reports', icon: FileText, label: t('reports') },
-    { path: '/comparison', icon: GitCompare, label: t('periodComparison') },
-    { path: '/psychology', icon: Brain, label: t('psychology') },
-    
-    { path: '/journal', icon: BookOpen, label: t('journal') },
-    { path: '/calculator', icon: Calculator, label: t('calculator') },
-    { path: '/currency-conversion', icon: ArrowRightLeft, label: t('currencyConversion') },
-    { path: '/challenges', icon: Trophy, label: t('challenges') },
-    { path: '/sessions', icon: Activity, label: language === 'fr' ? 'Sessions' : 'Sessions' },
-    { path: '/profile', icon: User, label: t('profile') },
-    { path: '/settings', icon: Settings, label: t('settings') },
-    { path: '/about', icon: Info, label: t('about') },
+    { path: '/dashboard', icon: LayoutDashboard, label: t('dashboard'), adminOnly: false },
+    { path: '/add-trade', icon: PlusCircle, label: t('addTrade'), adminOnly: false },
+    { path: '/history', icon: History, label: t('history'), adminOnly: false },
+    { path: '/reports', icon: FileText, label: t('reports'), adminOnly: false },
+    { path: '/comparison', icon: GitCompare, label: t('periodComparison'), adminOnly: false },
+    { path: '/psychology', icon: Brain, label: t('psychology'), adminOnly: false },
+    { path: '/journal', icon: BookOpen, label: t('journal'), adminOnly: false },
+    { path: '/calculator', icon: Calculator, label: t('calculator'), adminOnly: false },
+    { path: '/currency-conversion', icon: ArrowRightLeft, label: t('currencyConversion'), adminOnly: false },
+    { path: '/challenges', icon: Trophy, label: t('challenges'), adminOnly: false },
+    { path: '/sessions', icon: ShieldCheck, label: language === 'fr' ? 'Admin Sessions' : 'Admin Sessions', adminOnly: true },
+    { path: '/profile', icon: User, label: t('profile'), adminOnly: false },
+    { path: '/settings', icon: Settings, label: t('settings'), adminOnly: false },
+    { path: '/about', icon: Info, label: t('about'), adminOnly: false },
   ];
+
+  // Filter nav items based on admin status
+  const visibleNavItems = navItems.filter(item => !item.adminOnly || isAdmin);
 
   const handleNavClick = () => {
     // Close sidebar on mobile after navigation
@@ -125,7 +130,7 @@ const AppSidebar: React.FC = () => {
           <SidebarGroup>
             <SidebarGroupContent>
               <SidebarMenu>
-                {navItems.map((item, index) => {
+                {visibleNavItems.map((item, index) => {
                   const Icon = item.icon;
                   const isActive = location.pathname === item.path;
 
