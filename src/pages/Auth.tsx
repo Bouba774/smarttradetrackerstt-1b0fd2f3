@@ -33,8 +33,7 @@ const Auth: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string; nickname?: string }>({});
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
-  const [remainingAttempts, setRemainingAttempts] = useState<number | null>(null);
-  const [blockedUntil, setBlockedUntil] = useState<Date | null>(null);
+  const [isBlocked, setIsBlocked] = useState(false);
 
   const emailSchema = z.string().email(t('invalidEmail'));
   const passwordSchema = createPasswordSchema(language);
@@ -94,11 +93,10 @@ const Auth: React.FC = () => {
     if (!validateForm()) return;
 
     // Check if currently blocked
-    if (blockedUntil && blockedUntil > new Date()) {
-      const minutesLeft = Math.ceil((blockedUntil.getTime() - Date.now()) / 60000);
+    if (isBlocked) {
       toast.error(language === 'fr' 
-        ? `Trop de tentatives. Réessayez dans ${minutesLeft} minute(s).`
-        : `Too many attempts. Try again in ${minutesLeft} minute(s).`);
+        ? 'Trop de tentatives. Veuillez réessayer plus tard.'
+        : 'Too many attempts. Please try again later.');
       return;
     }
 
@@ -122,25 +120,21 @@ const Auth: React.FC = () => {
         });
 
         if (rateLimitError) {
-          console.error('Rate limit check error:', rateLimitError);
+          // Silent fail - don't expose rate limit errors
         } else if (rateLimitResult) {
-          const result = rateLimitResult as { allowed: boolean; blocked: boolean; blocked_until?: string; remaining_attempts: number };
+          const result = rateLimitResult as { allowed: boolean; blocked: boolean; message: string };
           
-          if (!result.allowed) {
-            const blockedTime = result.blocked_until ? new Date(result.blocked_until) : null;
-            setBlockedUntil(blockedTime);
-            const minutesLeft = blockedTime ? Math.ceil((blockedTime.getTime() - Date.now()) / 60000) : 30;
+          if (!result.allowed || result.blocked) {
+            setIsBlocked(true);
             toast.error(language === 'fr' 
-              ? `Trop de tentatives. Réessayez dans ${minutesLeft} minute(s).`
-              : `Too many attempts. Try again in ${minutesLeft} minute(s).`);
+              ? 'Trop de tentatives. Veuillez réessayer plus tard.'
+              : 'Too many attempts. Please try again later.');
             setIsSubmitting(false);
             return;
           }
-          
-          setRemainingAttempts(result.remaining_attempts);
         }
       } catch (err) {
-        console.error('Rate limit error:', err);
+        // Silent fail - don't expose errors
       }
     }
 
@@ -187,13 +181,6 @@ const Auth: React.FC = () => {
       } else if (isLogin) {
         const { error } = await signIn(email, password);
         if (error) {
-          // Show remaining attempts warning
-          if (remainingAttempts !== null && remainingAttempts <= 2) {
-            toast.warning(language === 'fr' 
-              ? `Attention: ${remainingAttempts} tentative(s) restante(s)`
-              : `Warning: ${remainingAttempts} attempt(s) remaining`);
-          }
-          
           if (error.message.includes('Invalid login credentials')) {
             toast.error(t('invalidCredentials'));
           } else {
@@ -201,12 +188,15 @@ const Auth: React.FC = () => {
           }
         } else {
           // Reset rate limit on successful login
-          await supabase.rpc('reset_rate_limit', {
-            p_identifier: email.toLowerCase(),
-            p_attempt_type: 'login'
-          });
-          setBlockedUntil(null);
-          setRemainingAttempts(null);
+          try {
+            await supabase.rpc('reset_rate_limit', {
+              p_identifier: email.toLowerCase(),
+              p_attempt_type: 'login'
+            });
+          } catch {
+            // Silent fail
+          }
+          setIsBlocked(false);
           toast.success(t('loginSuccess'));
           navigate('/dashboard');
         }
