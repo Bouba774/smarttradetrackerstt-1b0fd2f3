@@ -27,6 +27,10 @@ interface UserProfile {
   user_id: string;
   nickname: string;
   avatar_url: string | null;
+  trading_style: string | null;
+  level: number | null;
+  total_points: number | null;
+  bio: string | null;
 }
 
 interface UserSession {
@@ -83,7 +87,7 @@ const SessionsAdmin: React.FC = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('profiles')
-        .select('user_id, nickname, avatar_url');
+        .select('user_id, nickname, avatar_url, trading_style, level, total_points, bio');
       
       if (error) throw error;
       return data as UserProfile[];
@@ -806,6 +810,14 @@ const SessionsAdmin: React.FC = () => {
                               </div>
                             </div>
                             <div className="flex items-center gap-4">
+                              {profile?.trading_style && (
+                                <Badge variant="secondary" className="text-xs">{profile.trading_style}</Badge>
+                              )}
+                              {profile?.level && (
+                                <Badge className="text-xs bg-chart-4/20 text-chart-4 hover:bg-chart-4/30">
+                                  Lv. {profile.level}
+                                </Badge>
+                              )}
                               <Badge variant="outline">{userSessions.length} {t.sessions}</Badge>
                               <div className="flex items-center gap-1 text-muted-foreground">
                                 {getDeviceIcon(lastSession.device_type)}
@@ -819,7 +831,30 @@ const SessionsAdmin: React.FC = () => {
                           </div>
                         </CollapsibleTrigger>
                         <CollapsibleContent>
-                          <div className="ml-8 mt-2 border-l-2 border-border pl-4">
+                          {/* Profile Details */}
+                          {profile && (
+                            <div className="ml-8 mt-2 mb-2 p-3 rounded-lg bg-muted/50 border">
+                              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                                <div>
+                                  <p className="text-muted-foreground text-xs">{language === 'fr' ? 'Style de trading' : 'Trading Style'}</p>
+                                  <p className="font-medium">{profile.trading_style || '-'}</p>
+                                </div>
+                                <div>
+                                  <p className="text-muted-foreground text-xs">{language === 'fr' ? 'Niveau' : 'Level'}</p>
+                                  <p className="font-medium">{profile.level || 1}</p>
+                                </div>
+                                <div>
+                                  <p className="text-muted-foreground text-xs">{language === 'fr' ? 'Points totaux' : 'Total Points'}</p>
+                                  <p className="font-medium">{profile.total_points?.toLocaleString() || 0}</p>
+                                </div>
+                                <div>
+                                  <p className="text-muted-foreground text-xs">Bio</p>
+                                  <p className="font-medium truncate">{profile.bio || '-'}</p>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                          <div className="ml-8 border-l-2 border-border pl-4">
                             <Table>
                               <TableHeader>
                                 <TableRow>
