@@ -80,7 +80,6 @@ const parseUserAgent = (ua: string): Partial<DeviceInfo> => {
   // Enhanced device vendor and model detection
   if (ua.includes('iPhone')) {
     result.deviceVendor = 'Apple';
-    // Try to detect iPhone model
     const iphoneMatch = ua.match(/iPhone(\d+),(\d+)/);
     if (iphoneMatch) {
       result.deviceModel = `iPhone ${iphoneMatch[1]}`;
@@ -92,76 +91,72 @@ const parseUserAgent = (ua: string): Partial<DeviceInfo> => {
     result.deviceModel = 'iPad';
   } else if (ua.includes('Macintosh')) {
     result.deviceVendor = 'Apple';
-    if (ua.includes('Mac OS X')) {
-      result.deviceModel = 'Mac';
-    } else {
-      result.deviceModel = 'Macintosh';
-    }
-  } else if (ua.includes('Samsung') || ua.includes('SAMSUNG')) {
+    result.deviceModel = ua.includes('Mac OS X') ? 'Mac' : 'Macintosh';
+  } else if (/Samsung|SAMSUNG|SM-[A-Z]/i.test(ua)) {
     result.deviceVendor = 'Samsung';
-    const model = ua.match(/(?:Samsung|SAMSUNG)[;\s]*(SM-[A-Z0-9]+|Galaxy[^;)]+)/i);
-    result.deviceModel = model?.[1]?.trim() || 'Galaxy';
-  } else if (ua.includes('Huawei') || ua.includes('HUAWEI')) {
+    const model = ua.match(/SM-[A-Z0-9]+/i) || ua.match(/Galaxy[^;)\s]*/i);
+    result.deviceModel = model?.[0]?.trim() || 'Galaxy';
+  } else if (/Huawei|HUAWEI/i.test(ua)) {
     result.deviceVendor = 'Huawei';
     const model = ua.match(/(?:Huawei|HUAWEI)[;\s]*([^;)\s]+)/i);
     result.deviceModel = model?.[1]?.trim() || 'Huawei';
-  } else if (ua.includes('Xiaomi') || ua.includes('XIAOMI') || ua.includes('Mi ') || ua.includes('Redmi') || ua.includes('POCO')) {
+  } else if (/Xiaomi|XIAOMI|Mi\s|Redmi|POCO/i.test(ua)) {
     result.deviceVendor = 'Xiaomi';
-    const model = ua.match(/(?:Xiaomi|XIAOMI|Mi|Redmi|POCO)[;\s]*([^;)\s]+)/i);
+    const model = ua.match(/(?:Xiaomi|Mi|Redmi|POCO)[;\s]*([^;)\s]+)/i);
     result.deviceModel = model?.[1]?.trim() || 'Xiaomi';
-  } else if (ua.includes('OPPO') || ua.includes('Oppo')) {
+  } else if (/OPPO|Oppo/i.test(ua)) {
     result.deviceVendor = 'OPPO';
     const model = ua.match(/(?:OPPO|Oppo)[;\s]*([^;)\s]+)/i);
     result.deviceModel = model?.[1]?.trim() || 'OPPO';
-  } else if (ua.includes('Vivo') || ua.includes('vivo')) {
+  } else if (/Vivo|vivo/i.test(ua)) {
     result.deviceVendor = 'Vivo';
     const model = ua.match(/(?:Vivo|vivo)[;\s]*([^;)\s]+)/i);
     result.deviceModel = model?.[1]?.trim() || 'Vivo';
-  } else if (ua.includes('OnePlus') || ua.includes('ONEPLUS')) {
+  } else if (/OnePlus|ONEPLUS/i.test(ua)) {
     result.deviceVendor = 'OnePlus';
     const model = ua.match(/(?:OnePlus|ONEPLUS)[;\s]*([^;)\s]+)/i);
     result.deviceModel = model?.[1]?.trim() || 'OnePlus';
-  } else if (ua.includes('Pixel')) {
+  } else if (/Pixel/i.test(ua)) {
     result.deviceVendor = 'Google';
     const model = ua.match(/Pixel[^;)]*/i);
     result.deviceModel = model?.[0]?.trim() || 'Pixel';
-  } else if (ua.includes('Realme') || ua.includes('realme')) {
+  } else if (/Realme|realme/i.test(ua)) {
     result.deviceVendor = 'Realme';
     const model = ua.match(/(?:Realme|realme)[;\s]*([^;)\s]+)/i);
     result.deviceModel = model?.[1]?.trim() || 'Realme';
-  } else if (ua.includes('Motorola') || ua.includes('moto')) {
+  } else if (/Motorola|moto\s/i.test(ua)) {
     result.deviceVendor = 'Motorola';
     const model = ua.match(/(?:Motorola|moto)[;\s]*([^;)\s]+)/i);
     result.deviceModel = model?.[1]?.trim() || 'Motorola';
-  } else if (ua.includes('Nokia')) {
+  } else if (/Nokia/i.test(ua)) {
     result.deviceVendor = 'Nokia';
     const model = ua.match(/Nokia[;\s]*([^;)\s]+)/i);
     result.deviceModel = model?.[1]?.trim() || 'Nokia';
-  } else if (ua.includes('LG')) {
+  } else if (/LG[-\s]/i.test(ua)) {
     result.deviceVendor = 'LG';
     const model = ua.match(/LG[-;\s]*([^;)\s]+)/i);
     result.deviceModel = model?.[1]?.trim() || 'LG';
-  } else if (ua.includes('Sony') || ua.includes('Xperia')) {
+  } else if (/Sony|Xperia/i.test(ua)) {
     result.deviceVendor = 'Sony';
     const model = ua.match(/(?:Sony|Xperia)[;\s]*([^;)\s]+)/i);
     result.deviceModel = model?.[1]?.trim() || 'Xperia';
-  } else if (ua.includes('ASUS') || ua.includes('Asus')) {
+  } else if (/ASUS|Asus/i.test(ua)) {
     result.deviceVendor = 'ASUS';
     const model = ua.match(/(?:ASUS|Asus)[;\s]*([^;)\s]+)/i);
     result.deviceModel = model?.[1]?.trim() || 'ASUS';
-  } else if (ua.includes('ZTE')) {
+  } else if (/ZTE/i.test(ua)) {
     result.deviceVendor = 'ZTE';
     const model = ua.match(/ZTE[;\s]*([^;)\s]+)/i);
     result.deviceModel = model?.[1]?.trim() || 'ZTE';
-  } else if (ua.includes('Tecno') || ua.includes('TECNO')) {
+  } else if (/Tecno|TECNO/i.test(ua)) {
     result.deviceVendor = 'Tecno';
     const model = ua.match(/(?:Tecno|TECNO)[;\s]*([^;)\s]+)/i);
     result.deviceModel = model?.[1]?.trim() || 'Tecno';
-  } else if (ua.includes('Infinix') || ua.includes('INFINIX')) {
+  } else if (/Infinix|INFINIX/i.test(ua)) {
     result.deviceVendor = 'Infinix';
     const model = ua.match(/(?:Infinix|INFINIX)[;\s]*([^;)\s]+)/i);
     result.deviceModel = model?.[1]?.trim() || 'Infinix';
-  } else if (ua.includes('itel') || ua.includes('ITEL')) {
+  } else if (/itel|ITEL/i.test(ua)) {
     result.deviceVendor = 'Itel';
     const model = ua.match(/(?:itel|ITEL)[;\s]*([^;)\s]+)/i);
     result.deviceModel = model?.[1]?.trim() || 'Itel';
@@ -176,16 +171,27 @@ const parseUserAgent = (ua: string): Partial<DeviceInfo> => {
       result.deviceVendor = 'PC';
       result.deviceModel = 'Desktop';
     }
-  } else {
-    // Try to extract from Android build info
-    const buildMatch = ua.match(/Build\/([^;)\s]+)/i);
-    if (buildMatch) {
-      result.deviceVendor = 'Android';
-      result.deviceModel = buildMatch[1].trim();
+  } else if (ua.includes('Android')) {
+    // Generic Android device - try to extract model from user agent
+    // Format: "Android X; MODEL Build/..." or "Android X; K"
+    const androidModel = ua.match(/Android\s[\d.]+;\s*([^;)]+)/i);
+    if (androidModel && androidModel[1]) {
+      const modelName = androidModel[1].trim();
+      // Check if it's a generic "K" placeholder used by Chrome
+      if (modelName === 'K' || modelName.length <= 2) {
+        result.deviceVendor = 'Android';
+        result.deviceModel = 'Android Device';
+      } else {
+        result.deviceVendor = 'Android';
+        result.deviceModel = modelName;
+      }
     } else {
-      result.deviceVendor = 'Unknown';
-      result.deviceModel = 'Unknown';
+      result.deviceVendor = 'Android';
+      result.deviceModel = 'Android Device';
     }
+  } else {
+    result.deviceVendor = 'Unknown';
+    result.deviceModel = 'Unknown';
   }
 
   return result;
