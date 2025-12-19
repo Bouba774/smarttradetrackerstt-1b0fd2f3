@@ -17,3 +17,6 @@ verify_jwt = true
 
 [functions.market-analysis]
 verify_jwt = false
+
+[functions.scrape-forex-factory]
+verify_jwt = false
