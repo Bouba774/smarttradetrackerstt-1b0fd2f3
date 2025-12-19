@@ -74,7 +74,7 @@ const MarketOverviewHeader: React.FC<MarketOverviewHeaderProps> = ({ tradingStyl
             </div>
             <div>
               <h1 className="text-lg sm:text-xl font-bold text-foreground flex items-center gap-2">
-                Aperçu Global des Marchés
+                Market Overview
                 {isOnline ? (
                   <Wifi className="h-4 w-4 text-profit" />
                 ) : (

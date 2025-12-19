@@ -15,7 +15,6 @@ import MarketSentiment from '@/components/market-overview/MarketSentiment';
 import AIEconomicPrediction from '@/components/market-overview/AIEconomicPrediction';
 import MarketHeatmap from '@/components/market-overview/MarketHeatmap';
 import TradingDayPlan from '@/components/market-overview/TradingDayPlan';
-import DirectionalBias from '@/components/market-overview/DirectionalBias';
 import SmartAlerts from '@/components/market-overview/SmartAlerts';
 import RiskOnOffIndicator from '@/components/market-overview/RiskOnOffIndicator';
 import MarketOverviewHeader from '@/components/market-overview/MarketOverviewHeader';
@@ -28,7 +27,6 @@ interface SectionPreferences {
   aiPrediction: boolean;
   heatmap: boolean;
   dayPlan: boolean;
-  directionalBias: boolean;
   alerts: boolean;
   riskOnOff: boolean;
 }
@@ -48,7 +46,6 @@ const MarketOverview: React.FC = () => {
       aiPrediction: true,
       heatmap: true,
       dayPlan: true,
-      directionalBias: true,
       alerts: true,
       riskOnOff: true,
     };
@@ -145,7 +142,6 @@ const MarketOverview: React.FC = () => {
                         { key: 'aiPrediction', label: "Prédictions IA (Premium)", icon: AlertTriangle },
                         { key: 'heatmap', label: 'Heatmap globale', icon: Settings2 },
                         { key: 'dayPlan', label: 'Plan du jour', icon: Clock },
-                        { key: 'directionalBias', label: 'Biais directionnel', icon: Gauge },
                         { key: 'alerts', label: 'Alertes intelligentes', icon: Bell },
                         { key: 'riskOnOff', label: 'Risk-On/Risk-Off', icon: AlertTriangle },
                       ].map(({ key, label, icon: Icon }) => (
@@ -179,10 +175,6 @@ const MarketOverview: React.FC = () => {
             
             {sectionPrefs.sentiment && (
               <MarketSentiment favoriteAssets={favoriteAssets} />
-            )}
-            
-            {sectionPrefs.directionalBias && (
-              <DirectionalBias favoriteAssets={favoriteAssets} />
             )}
           </div>
 
