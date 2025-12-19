@@ -41,7 +41,7 @@ const AppSidebar: React.FC = () => {
   const isOpen = state === 'expanded';
 
   const navItems = [
-    { path: '/market-overview', icon: Globe, label: t('marketOverview') || 'Aperçu Marchés' },
+    { path: '/market-overview', icon: Globe, label: t('marketOverview') || 'Market Overview' },
     { path: '/dashboard', icon: LayoutDashboard, label: t('dashboard') },
     { path: '/add-trade', icon: PlusCircle, label: t('addTrade') },
     { path: '/history', icon: History, label: t('history') },
