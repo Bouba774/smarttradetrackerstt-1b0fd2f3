@@ -26,3 +26,9 @@ verify_jwt = false
 
 [functions.metatrader-connect]
 verify_jwt = true
+
+[functions.get-users-info]
+verify_jwt = true
+
+[functions.get-user-by-email]
+verify_jwt = true

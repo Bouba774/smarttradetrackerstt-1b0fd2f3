@@ -445,7 +445,7 @@ const SessionsAdmin: React.FC = () => {
     }
   };
 
-  // Export to CSV
+  // Export to CSV - Sessions
   const exportToCSV = useCallback(() => {
     if (!filteredSessions.length) {
       toast.error(language === 'fr' ? 'Aucune donnée à exporter' : 'No data to export');
@@ -453,31 +453,37 @@ const SessionsAdmin: React.FC = () => {
     }
 
     const headers = [
-      'Date', 'User ID', 'Browser', 'Browser Version', 'OS', 'OS Version',
+      'Date', 'Email', 'Nickname', 'User ID', 'Browser', 'Browser Version', 'OS', 'OS Version',
       'Device Type', 'Device Vendor', 'Device Model', 'Screen', 'Language',
       'IP Address', 'Country', 'Region', 'City', 'Timezone', 'ISP', 'Is Mobile'
     ];
 
-    const rows = filteredSessions.map(s => [
-      format(parseISO(s.session_start), 'yyyy-MM-dd HH:mm:ss'),
-      s.user_id,
-      s.browser_name || '',
-      s.browser_version || '',
-      s.os_name || '',
-      s.os_version || '',
-      s.device_type || '',
-      s.device_vendor || '',
-      s.device_model || '',
-      s.screen_width && s.screen_height ? `${s.screen_width}x${s.screen_height}` : '',
-      s.language || '',
-      s.ip_address || '',
-      s.country || '',
-      s.region || '',
-      s.city || '',
-      s.timezone || '',
-      s.isp || '',
-      s.is_mobile ? 'Yes' : 'No'
-    ]);
+    const rows = filteredSessions.map(s => {
+      const authUser = authUserMap.get(s.user_id);
+      const profile = profileMap.get(s.user_id);
+      return [
+        format(parseISO(s.session_start), 'yyyy-MM-dd HH:mm:ss'),
+        authUser?.email || '',
+        profile?.nickname || '',
+        s.user_id,
+        s.browser_name || '',
+        s.browser_version || '',
+        s.os_name || '',
+        s.os_version || '',
+        s.device_type || '',
+        s.device_vendor || '',
+        s.device_model || '',
+        s.screen_width && s.screen_height ? `${s.screen_width}x${s.screen_height}` : '',
+        s.language || '',
+        s.ip_address || '',
+        s.country || '',
+        s.region || '',
+        s.city || '',
+        s.timezone || '',
+        s.isp || '',
+        s.is_mobile ? 'Yes' : 'No'
+      ];
+    });
 
     const csvContent = [
       headers.join(','),
@@ -495,7 +501,64 @@ const SessionsAdmin: React.FC = () => {
     URL.revokeObjectURL(url);
 
     toast.success(language === 'fr' ? 'Export CSV réussi' : 'CSV export successful');
-  }, [filteredSessions, language]);
+  }, [filteredSessions, language, authUserMap, profileMap]);
+
+  // Export Users Complete Info to CSV
+  const exportUsersToCSV = useCallback(() => {
+    if (!authUsers?.length) {
+      toast.error(language === 'fr' ? 'Aucune donnée à exporter' : 'No data to export');
+      return;
+    }
+
+    const headers = [
+      'Email', 'User ID', 'Nickname', 'Email Verified', 'Created At', 'Last Sign In',
+      'Level', 'Points', 'Trading Style', 'Total Trades', 'Wins', 'Win Rate %', 'Total Profit',
+      'Total Sessions', 'Last Session Country', 'Last Session Date'
+    ];
+
+    const rows = authUsers.map(user => {
+      const profile = profileMap.get(user.id);
+      const tradingStats = tradingStatsMap.get(user.id);
+      const userSessions = sessionsByUser[user.id] || [];
+      const lastSession = userSessions[0];
+      
+      return [
+        user.email || '',
+        user.id,
+        profile?.nickname || '',
+        user.email_confirmed_at ? 'Yes' : 'No',
+        format(parseISO(user.created_at), 'yyyy-MM-dd HH:mm:ss'),
+        user.last_sign_in_at ? format(parseISO(user.last_sign_in_at), 'yyyy-MM-dd HH:mm:ss') : '',
+        profile?.level || 1,
+        profile?.total_points || 0,
+        profile?.trading_style || '',
+        tradingStats?.totalTrades || 0,
+        tradingStats?.wins || 0,
+        tradingStats?.winRate || 0,
+        tradingStats?.totalProfit?.toFixed(2) || '0',
+        userSessions.length,
+        lastSession?.country || '',
+        lastSession ? format(parseISO(lastSession.session_start), 'yyyy-MM-dd HH:mm:ss') : ''
+      ];
+    });
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+    ].join('\n');
+
+    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `users_complete_export_${format(new Date(), 'yyyy-MM-dd')}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    toast.success(language === 'fr' ? 'Export utilisateurs CSV réussi' : 'Users CSV export successful');
+  }, [authUsers, profileMap, tradingStatsMap, sessionsByUser, language]);
 
   // Export to PDF
   const exportToPDF = useCallback(() => {
@@ -525,33 +588,36 @@ const SessionsAdmin: React.FC = () => {
       if (stats) {
         doc.setFontSize(10);
         doc.text(`${language === 'fr' ? 'Total Sessions' : 'Total Sessions'}: ${stats.totalSessions}`, 14, yPos);
-        doc.text(`${language === 'fr' ? 'Pays' : 'Countries'}: ${stats.uniqueCountries}`, 80, yPos);
-        doc.text(`${language === 'fr' ? 'Navigateurs' : 'Browsers'}: ${stats.uniqueBrowsers}`, 140, yPos);
+        doc.text(`${language === 'fr' ? 'Utilisateurs' : 'Users'}: ${stats.uniqueUsers}`, 80, yPos);
+        doc.text(`${language === 'fr' ? 'Pays' : 'Countries'}: ${stats.uniqueCountries}`, 140, yPos);
         doc.text(`${language === 'fr' ? 'Mobile' : 'Mobile'}: ${stats.mobilePercentage}%`, 200, yPos);
         yPos += 10;
       }
 
       // Table
-      const tableData = filteredSessions.slice(0, 100).map(s => [
-        format(parseISO(s.session_start), 'dd/MM/yy HH:mm'),
-        s.browser_name || '-',
-        s.os_name || '-',
-        s.device_type || '-',
-        s.country || '-',
-        s.city || '-',
-        s.isp || '-'
-      ]);
+      const tableData = filteredSessions.slice(0, 100).map(s => {
+        const authUser = authUserMap.get(s.user_id);
+        return [
+          format(parseISO(s.session_start), 'dd/MM/yy HH:mm'),
+          authUser?.email?.slice(0, 20) || '-',
+          s.browser_name || '-',
+          s.os_name || '-',
+          s.device_type || '-',
+          s.country || '-',
+          s.city || '-'
+        ];
+      });
 
       autoTable(doc, {
         startY: yPos,
         head: [[
           language === 'fr' ? 'Date' : 'Date',
+          'Email',
           language === 'fr' ? 'Navigateur' : 'Browser',
-          language === 'fr' ? 'OS' : 'OS',
+          'OS',
           language === 'fr' ? 'Appareil' : 'Device',
           language === 'fr' ? 'Pays' : 'Country',
-          language === 'fr' ? 'Ville' : 'City',
-          language === 'fr' ? 'FAI' : 'ISP'
+          language === 'fr' ? 'Ville' : 'City'
         ]],
         body: tableData,
         styles: { fontSize: 8, cellPadding: 2 },
@@ -580,7 +646,91 @@ const SessionsAdmin: React.FC = () => {
       console.error('PDF export error:', error);
       toast.error(language === 'fr' ? 'Erreur lors de l\'export PDF' : 'PDF export failed');
     }
-  }, [filteredSessions, stats, language]);
+  }, [filteredSessions, stats, language, authUserMap]);
+
+  // Export Users Complete Info to PDF
+  const exportUsersToPDF = useCallback(() => {
+    if (!authUsers?.length) {
+      toast.error(language === 'fr' ? 'Aucune donnée à exporter' : 'No data to export');
+      return;
+    }
+
+    try {
+      const doc = new jsPDF('landscape', 'mm', 'a4');
+      const pageWidth = doc.internal.pageSize.getWidth();
+
+      // Header
+      doc.setFillColor(34, 34, 34);
+      doc.rect(0, 0, pageWidth, 25, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(18);
+      doc.text(language === 'fr' ? 'Rapport Complet Utilisateurs' : 'Complete Users Report', 14, 16);
+      doc.setFontSize(10);
+      doc.text(format(new Date(), 'dd/MM/yyyy HH:mm'), pageWidth - 14, 16, { align: 'right' });
+
+      doc.setTextColor(0, 0, 0);
+      let yPos = 35;
+      
+      doc.setFontSize(10);
+      doc.text(`${language === 'fr' ? 'Total Utilisateurs' : 'Total Users'}: ${authUsers.length}`, 14, yPos);
+      yPos += 10;
+
+      const tableData = authUsers.map(user => {
+        const profile = profileMap.get(user.id);
+        const tradingStats = tradingStatsMap.get(user.id);
+        const userSessions = sessionsByUser[user.id] || [];
+        
+        return [
+          user.email?.slice(0, 25) || '-',
+          profile?.nickname?.slice(0, 15) || '-',
+          user.email_confirmed_at ? 'Oui' : 'Non',
+          format(parseISO(user.created_at), 'dd/MM/yy'),
+          tradingStats?.totalTrades || 0,
+          `${tradingStats?.winRate || 0}%`,
+          tradingStats?.totalProfit?.toFixed(0) || '0',
+          userSessions.length
+        ];
+      });
+
+      autoTable(doc, {
+        startY: yPos,
+        head: [[
+          'Email',
+          'Nickname',
+          language === 'fr' ? 'Vérifié' : 'Verified',
+          language === 'fr' ? 'Inscrit' : 'Registered',
+          'Trades',
+          'Win Rate',
+          'Profit',
+          'Sessions'
+        ]],
+        body: tableData,
+        styles: { fontSize: 8, cellPadding: 2 },
+        headStyles: { fillColor: [59, 130, 246], textColor: 255 },
+        alternateRowStyles: { fillColor: [245, 245, 245] },
+        margin: { left: 14, right: 14 }
+      });
+
+      const pageCount = doc.getNumberOfPages();
+      for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setTextColor(128, 128, 128);
+        doc.text(
+          `Page ${i} / ${pageCount}`,
+          pageWidth / 2,
+          doc.internal.pageSize.getHeight() - 10,
+          { align: 'center' }
+        );
+      }
+
+      doc.save(`users_complete_report_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+      toast.success(language === 'fr' ? 'Export utilisateurs PDF réussi' : 'Users PDF export successful');
+    } catch (error) {
+      console.error('PDF export error:', error);
+      toast.error(language === 'fr' ? 'Erreur lors de l\'export PDF' : 'PDF export failed');
+    }
+  }, [authUsers, profileMap, tradingStatsMap, sessionsByUser, language]);
 
   const t = {
     title: language === 'fr' ? 'Sessions Utilisateurs' : 'User Sessions',
@@ -702,6 +852,14 @@ const SessionsAdmin: React.FC = () => {
           <Button variant="outline" size="sm" onClick={exportToPDF} className="gap-1 sm:gap-2 text-xs sm:text-sm h-8 sm:h-9">
             <FileText className="h-3 w-3 sm:h-4 sm:w-4" />
             <span className="hidden xs:inline">PDF</span>
+          </Button>
+          <Button variant="secondary" size="sm" onClick={exportUsersToCSV} className="gap-1 sm:gap-2 text-xs sm:text-sm h-8 sm:h-9">
+            <Users className="h-3 w-3 sm:h-4 sm:w-4" />
+            <span className="hidden sm:inline">{language === 'fr' ? 'Export Users CSV' : 'Export Users CSV'}</span>
+          </Button>
+          <Button variant="secondary" size="sm" onClick={exportUsersToPDF} className="gap-1 sm:gap-2 text-xs sm:text-sm h-8 sm:h-9">
+            <Users className="h-3 w-3 sm:h-4 sm:w-4" />
+            <span className="hidden sm:inline">{language === 'fr' ? 'Export Users PDF' : 'Export Users PDF'}</span>
           </Button>
         </div>
       </div>
