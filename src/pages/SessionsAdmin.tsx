@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAdminRole } from '@/hooks/useAdminRole';
+import { useUserBan } from '@/hooks/useUserBan';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -11,10 +12,23 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { 
   Monitor, Smartphone, Tablet, Globe, Users, Clock, 
   MapPin, Wifi, Filter, RefreshCw, ChevronDown, ChevronRight, Download, FileText, User,
-  ShieldAlert, AlertTriangle, Timer, Mail, Calendar, CheckCircle, XCircle, Phone, Shield
+  ShieldAlert, AlertTriangle, Timer, Mail, Calendar, CheckCircle, XCircle, Phone, Shield,
+  Ban, UserCheck
 } from 'lucide-react';
 import { format, subDays, isAfter, parseISO, differenceInMinutes, differenceInSeconds } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -94,11 +108,13 @@ const getHour = (dateStr: string): number => {
 const SessionsAdmin: React.FC = () => {
   const { language } = useLanguage();
   const { isAdmin, isLoading: isLoadingAdmin } = useAdminRole();
+  const { isUserBanned, banUser, unbanUser, isBanning, isUnbanning, getBanInfo } = useUserBan(language);
   const [dateFilter, setDateFilter] = useState('7');
   const [deviceFilter, setDeviceFilter] = useState('all');
   const [countryFilter, setCountryFilter] = useState('all');
   const [showFilters, setShowFilters] = useState(false);
   const [expandedUsers, setExpandedUsers] = useState<Set<string>>(new Set());
+  const [banReason, setBanReason] = useState('');
 
   const { data: sessions, isLoading: isLoadingSessions, refetch } = useQuery({
     queryKey: ['user-sessions'],
@@ -1446,6 +1462,95 @@ const SessionsAdmin: React.FC = () => {
                                     </div>
                                   </div>
                                 )}
+
+                                {/* Ban/Unban Actions */}
+                                <div className="mt-3 pt-3 border-t border-blue-500/20 flex items-center gap-2">
+                                  {isUserBanned(userId) ? (
+                                    <>
+                                      <Badge variant="destructive" className="flex items-center gap-1">
+                                        <Ban className="w-3 h-3" />
+                                        {language === 'fr' ? 'Utilisateur Banni' : 'User Banned'}
+                                      </Badge>
+                                      <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                          <Button size="sm" variant="outline" className="gap-1 text-profit border-profit/30 hover:bg-profit/10" disabled={isUnbanning}>
+                                            <UserCheck className="w-3 h-3" />
+                                            {language === 'fr' ? 'Débannir' : 'Unban'}
+                                          </Button>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                          <AlertDialogHeader>
+                                            <AlertDialogTitle>
+                                              {language === 'fr' ? 'Débannir l\'utilisateur' : 'Unban User'}
+                                            </AlertDialogTitle>
+                                            <AlertDialogDescription>
+                                              {language === 'fr'
+                                                ? `Voulez-vous débannir ${authUser.email || userId.slice(0, 8)}?`
+                                                : `Do you want to unban ${authUser.email || userId.slice(0, 8)}?`}
+                                            </AlertDialogDescription>
+                                          </AlertDialogHeader>
+                                          <AlertDialogFooter>
+                                            <AlertDialogCancel>
+                                              {language === 'fr' ? 'Annuler' : 'Cancel'}
+                                            </AlertDialogCancel>
+                                            <AlertDialogAction
+                                              onClick={() => unbanUser(userId)}
+                                              className="bg-profit hover:bg-profit/90"
+                                            >
+                                              {language === 'fr' ? 'Débannir' : 'Unban'}
+                                            </AlertDialogAction>
+                                          </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                      </AlertDialog>
+                                    </>
+                                  ) : (
+                                    <AlertDialog>
+                                      <AlertDialogTrigger asChild>
+                                        <Button size="sm" variant="outline" className="gap-1 text-orange-500 border-orange-500/30 hover:bg-orange-500/10" disabled={isBanning}>
+                                          <Ban className="w-3 h-3" />
+                                          {language === 'fr' ? 'Bannir' : 'Ban'}
+                                        </Button>
+                                      </AlertDialogTrigger>
+                                      <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                          <AlertDialogTitle>
+                                            {language === 'fr' ? 'Bannir l\'utilisateur' : 'Ban User'}
+                                          </AlertDialogTitle>
+                                          <AlertDialogDescription>
+                                            {language === 'fr'
+                                              ? `Voulez-vous bannir ${authUser.email || userId.slice(0, 8)}? L'utilisateur ne pourra plus se connecter.`
+                                              : `Do you want to ban ${authUser.email || userId.slice(0, 8)}? The user will no longer be able to log in.`}
+                                          </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <div className="py-2">
+                                          <label className="text-sm font-medium mb-2 block">
+                                            {language === 'fr' ? 'Raison (optionnel)' : 'Reason (optional)'}
+                                          </label>
+                                          <Textarea
+                                            placeholder={language === 'fr' ? 'Entrez la raison du bannissement...' : 'Enter ban reason...'}
+                                            value={banReason}
+                                            onChange={(e) => setBanReason(e.target.value)}
+                                            className="h-20"
+                                          />
+                                        </div>
+                                        <AlertDialogFooter>
+                                          <AlertDialogCancel onClick={() => setBanReason('')}>
+                                            {language === 'fr' ? 'Annuler' : 'Cancel'}
+                                          </AlertDialogCancel>
+                                          <AlertDialogAction
+                                            onClick={() => {
+                                              banUser({ userId, reason: banReason, isPermanent: true });
+                                              setBanReason('');
+                                            }}
+                                            className="bg-orange-500 hover:bg-orange-600"
+                                          >
+                                            {language === 'fr' ? 'Bannir' : 'Ban'}
+                                          </AlertDialogAction>
+                                        </AlertDialogFooter>
+                                      </AlertDialogContent>
+                                    </AlertDialog>
+                                  )}
+                                </div>
                               </div>
                             )}
                             

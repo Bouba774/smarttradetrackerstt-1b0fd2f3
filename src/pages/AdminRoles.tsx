@@ -1,11 +1,13 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAdminRole } from '@/hooks/useAdminRole';
+import { useUserBan } from '@/hooks/useUserBan';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
   SelectContent,
@@ -32,7 +34,10 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { ShieldCheck, UserPlus, Trash2, Crown, Shield, User, Loader2, AlertTriangle, Mail, CheckCircle, Search, Download, FileText } from 'lucide-react';
+import { 
+  ShieldCheck, UserPlus, Trash2, Crown, Shield, User, Loader2, AlertTriangle, 
+  Mail, CheckCircle, Search, Download, FileText, Ban, UserCheck
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { fr, enUS } from 'date-fns/locale';
@@ -63,12 +68,14 @@ interface UserRoleWithEmail extends UserRole {
 const AdminRoles: React.FC = () => {
   const { language, t } = useLanguage();
   const { isAdmin, isLoading: isCheckingAdmin } = useAdminRole();
+  const { isUserBanned, banUser, unbanUser, isBanning, isUnbanning } = useUserBan(language);
   const queryClient = useQueryClient();
   const [newEmail, setNewEmail] = useState('');
   const [newRole, setNewRole] = useState<AppRole>('moderator');
   const [isAdding, setIsAdding] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [foundUser, setFoundUser] = useState<AuthUserInfo | null>(null);
+  const [banReason, setBanReason] = useState('');
 
   // Fetch all user roles
   const { data: userRoles = [], isLoading: isLoadingRoles } = useQuery({
@@ -536,75 +543,184 @@ const AdminRoles: React.FC = () => {
                   <TableHead>Email</TableHead>
                   <TableHead>{language === 'fr' ? 'ID Utilisateur' : 'User ID'}</TableHead>
                   <TableHead>{language === 'fr' ? 'Rôle' : 'Role'}</TableHead>
+                  <TableHead>{language === 'fr' ? 'Statut' : 'Status'}</TableHead>
                   <TableHead>{language === 'fr' ? 'Date d\'ajout' : 'Added Date'}</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {userRolesWithEmail.map((userRole) => (
-                  <TableRow key={userRole.id}>
-                    <TableCell className="text-sm">
-                      {userRole.email ? (
-                        <div className="flex items-center gap-1">
-                          <Mail className="w-3 h-3 text-muted-foreground" />
-                          <span className="truncate max-w-[200px]">{userRole.email}</span>
+                {userRolesWithEmail.map((userRole) => {
+                  const isBanned = isUserBanned(userRole.user_id);
+                  return (
+                    <TableRow key={userRole.id} className={isBanned ? 'opacity-60 bg-loss/5' : ''}>
+                      <TableCell className="text-sm">
+                        {userRole.email ? (
+                          <div className="flex items-center gap-1">
+                            <Mail className="w-3 h-3 text-muted-foreground" />
+                            <span className="truncate max-w-[200px]">{userRole.email}</span>
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="font-mono text-xs">
+                        {userRole.user_id.substring(0, 8)}...
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={getRoleBadgeVariant(userRole.role)} className="flex items-center gap-1 w-fit">
+                          {getRoleIcon(userRole.role)}
+                          {userRole.role}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {isBanned ? (
+                          <Badge variant="destructive" className="flex items-center gap-1 w-fit">
+                            <Ban className="w-3 h-3" />
+                            {language === 'fr' ? 'Banni' : 'Banned'}
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="flex items-center gap-1 w-fit text-profit border-profit/30">
+                            <UserCheck className="w-3 h-3" />
+                            {language === 'fr' ? 'Actif' : 'Active'}
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground text-sm">
+                        {format(new Date(userRole.created_at), 'dd MMM yyyy HH:mm', {
+                          locale: language === 'fr' ? fr : enUS,
+                        })}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          {/* Ban/Unban Button */}
+                          {isBanned ? (
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="text-profit hover:text-profit hover:bg-profit/10"
+                                  disabled={isUnbanning}
+                                >
+                                  <UserCheck className="w-4 h-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>
+                                    {language === 'fr' ? 'Débannir l\'utilisateur' : 'Unban User'}
+                                  </AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    {language === 'fr'
+                                      ? `Voulez-vous débannir ${userRole.email || userRole.user_id.slice(0, 8)}?`
+                                      : `Do you want to unban ${userRole.email || userRole.user_id.slice(0, 8)}?`}
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>
+                                    {language === 'fr' ? 'Annuler' : 'Cancel'}
+                                  </AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => unbanUser(userRole.user_id)}
+                                    className="bg-profit hover:bg-profit/90"
+                                  >
+                                    {language === 'fr' ? 'Débannir' : 'Unban'}
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          ) : (
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="text-orange-500 hover:text-orange-500 hover:bg-orange-500/10"
+                                  disabled={isBanning}
+                                >
+                                  <Ban className="w-4 h-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>
+                                    {language === 'fr' ? 'Bannir l\'utilisateur' : 'Ban User'}
+                                  </AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    {language === 'fr'
+                                      ? `Voulez-vous bannir ${userRole.email || userRole.user_id.slice(0, 8)}? L'utilisateur ne pourra plus se connecter.`
+                                      : `Do you want to ban ${userRole.email || userRole.user_id.slice(0, 8)}? The user will no longer be able to log in.`}
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <div className="py-2">
+                                  <label className="text-sm font-medium mb-2 block">
+                                    {language === 'fr' ? 'Raison (optionnel)' : 'Reason (optional)'}
+                                  </label>
+                                  <Textarea
+                                    placeholder={language === 'fr' ? 'Entrez la raison du bannissement...' : 'Enter ban reason...'}
+                                    value={banReason}
+                                    onChange={(e) => setBanReason(e.target.value)}
+                                    className="h-20"
+                                  />
+                                </div>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel onClick={() => setBanReason('')}>
+                                    {language === 'fr' ? 'Annuler' : 'Cancel'}
+                                  </AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => {
+                                      banUser({ userId: userRole.user_id, reason: banReason, isPermanent: true });
+                                      setBanReason('');
+                                    }}
+                                    className="bg-orange-500 hover:bg-orange-600"
+                                  >
+                                    {language === 'fr' ? 'Bannir' : 'Ban'}
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          )}
+
+                          {/* Delete Role Button */}
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="text-loss hover:text-loss hover:bg-loss/10"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>
+                                  {language === 'fr' ? 'Confirmer la suppression' : 'Confirm Deletion'}
+                                </AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  {language === 'fr'
+                                    ? 'Êtes-vous sûr de vouloir supprimer ce rôle ? Cette action est irréversible.'
+                                    : 'Are you sure you want to delete this role? This action cannot be undone.'}
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>
+                                  {language === 'fr' ? 'Annuler' : 'Cancel'}
+                                </AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => deleteRoleMutation.mutate(userRole.id)}
+                                  className="bg-loss hover:bg-loss/90"
+                                >
+                                  {language === 'fr' ? 'Supprimer' : 'Delete'}
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </div>
-                      ) : (
-                        <span className="text-muted-foreground">-</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="font-mono text-xs">
-                      {userRole.user_id.substring(0, 8)}...
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={getRoleBadgeVariant(userRole.role)} className="flex items-center gap-1 w-fit">
-                        {getRoleIcon(userRole.role)}
-                        {userRole.role}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground text-sm">
-                      {format(new Date(userRole.created_at), 'dd MMM yyyy HH:mm', {
-                        locale: language === 'fr' ? fr : enUS,
-                      })}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-loss hover:text-loss hover:bg-loss/10"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>
-                              {language === 'fr' ? 'Confirmer la suppression' : 'Confirm Deletion'}
-                            </AlertDialogTitle>
-                            <AlertDialogDescription>
-                              {language === 'fr'
-                                ? 'Êtes-vous sûr de vouloir supprimer ce rôle ? Cette action est irréversible.'
-                                : 'Are you sure you want to delete this role? This action cannot be undone.'}
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>
-                              {language === 'fr' ? 'Annuler' : 'Cancel'}
-                            </AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={() => deleteRoleMutation.mutate(userRole.id)}
-                              className="bg-loss hover:bg-loss/90"
-                            >
-                              {language === 'fr' ? 'Supprimer' : 'Delete'}
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           </div>
