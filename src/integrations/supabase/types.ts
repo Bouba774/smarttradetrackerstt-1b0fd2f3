@@ -14,6 +14,93 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_audit_logs: {
+        Row: {
+          action: string
+          admin_id: string
+          created_at: string
+          details: Json | null
+          id: string
+          ip_address: string | null
+          target_user_id: string | null
+        }
+        Insert: {
+          action: string
+          admin_id: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          ip_address?: string | null
+          target_user_id?: string | null
+        }
+        Update: {
+          action?: string
+          admin_id?: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          ip_address?: string | null
+          target_user_id?: string | null
+        }
+        Relationships: []
+      }
+      admin_login_attempts: {
+        Row: {
+          admin_id: string
+          attempt_at: string
+          blocked_until: string | null
+          created_at: string
+          id: string
+          ip_address: string | null
+          success: boolean
+          user_agent: string | null
+        }
+        Insert: {
+          admin_id: string
+          attempt_at?: string
+          blocked_until?: string | null
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          success?: boolean
+          user_agent?: string | null
+        }
+        Update: {
+          admin_id?: string
+          attempt_at?: string
+          blocked_until?: string | null
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          success?: boolean
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
+      admin_secrets: {
+        Row: {
+          admin_id: string
+          created_at: string
+          id: string
+          secret_hash: string
+          updated_at: string
+        }
+        Insert: {
+          admin_id: string
+          created_at?: string
+          id?: string
+          secret_hash: string
+          updated_at?: string
+        }
+        Update: {
+          admin_id?: string
+          created_at?: string
+          id?: string
+          secret_hash?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       banned_users: {
         Row: {
           banned_at: string
@@ -572,6 +659,7 @@ export type Database = {
         }
         Returns: Json
       }
+      count_admin_failures: { Args: { p_admin_id: string }; Returns: number }
       get_user_pin_status: { Args: { p_user_id: string }; Returns: Json }
       has_role: {
         Args: {
@@ -581,6 +669,7 @@ export type Database = {
         Returns: boolean
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_admin_blocked: { Args: { p_admin_id: string }; Returns: boolean }
       is_user_banned: { Args: { _user_id: string }; Returns: boolean }
       reset_rate_limit: {
         Args: { p_attempt_type?: string; p_identifier: string }

@@ -8,6 +8,7 @@ import { LanguageProvider } from "@/contexts/LanguageContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { SecurityProvider } from "@/contexts/SecurityContext";
+import { AdminProvider } from "@/contexts/AdminContext";
 import Layout from "@/components/layout/Layout";
 import { CookieConsent } from "@/components/CookieConsent";
 import LockScreen from "@/components/LockScreen";
@@ -18,15 +19,13 @@ import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
-// Lazy load non-critical pages to reduce initial bundle
-
+// Lazy load non-critical pages
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const AddTrade = lazy(() => import("./pages/AddTrade"));
 const History = lazy(() => import("./pages/History"));
 const Reports = lazy(() => import("./pages/Reports"));
 const PeriodComparison = lazy(() => import("./pages/PeriodComparison"));
 const PsychologicalAnalysis = lazy(() => import("./pages/PsychologicalAnalysis"));
-
 const Journal = lazy(() => import("./pages/Journal"));
 const Calculator = lazy(() => import("./pages/Calculator"));
 const CurrencyConversion = lazy(() => import("./pages/CurrencyConversion"));
@@ -42,6 +41,27 @@ const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const ResetPin = lazy(() => import("./pages/ResetPin"));
 const AIChatBot = lazy(() => import("@/components/AIChatBot"));
 const ChangelogModal = lazy(() => import("@/components/ChangelogModal"));
+
+// Admin pages
+const AdminSecretValidation = lazy(() => import("./pages/AdminSecretValidation"));
+const AdminLayout = lazy(() => import("./components/layout/AdminLayout"));
+
+// Admin page wrappers
+const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
+const AdminAddTrade = lazy(() => import("./pages/admin/AdminAddTrade"));
+const AdminHistory = lazy(() => import("./pages/admin/AdminHistory"));
+const AdminReports = lazy(() => import("./pages/admin/AdminReports"));
+const AdminComparison = lazy(() => import("./pages/admin/AdminComparison"));
+const AdminPsychology = lazy(() => import("./pages/admin/AdminPsychology"));
+const AdminJournal = lazy(() => import("./pages/admin/AdminJournal"));
+const AdminCalculator = lazy(() => import("./pages/admin/AdminCalculator"));
+const AdminCurrencyConversion = lazy(() => import("./pages/admin/AdminCurrencyConversion"));
+const AdminChallenges = lazy(() => import("./pages/admin/AdminChallenges"));
+const AdminSessions = lazy(() => import("./pages/admin/AdminSessions"));
+const AdminRolesPage = lazy(() => import("./pages/admin/AdminRolesPage"));
+const AdminProfile = lazy(() => import("./pages/admin/AdminProfile"));
+const AdminSettings = lazy(() => import("./pages/admin/AdminSettings"));
+const AdminAbout = lazy(() => import("./pages/admin/AdminAbout"));
 
 // Loading fallback component
 const PageLoader = () => (
@@ -88,7 +108,7 @@ const AppContent = () => {
           {/* Public landing page */}
           <Route path="/" element={<Landing />} />
           
-          {/* Auth page renders without layout */}
+          {/* Auth pages */}
           <Route path="/auth" element={<Auth />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/reset-pin" element={<ResetPin />} />
@@ -98,15 +118,16 @@ const AppContent = () => {
           <Route path="/terms-of-use" element={<TermsOfUse />} />
           <Route path="/about" element={<About />} />
           
-          {/* All other routes with layout */}
+          {/* Admin verification page */}
+          <Route path="/admin-verify" element={<ProtectedRoute><AdminSecretValidation /></ProtectedRoute>} />
           
+          {/* ========== USER ROUTES ========== */}
           <Route path="/dashboard" element={<ProtectedRoute><Layout><Dashboard /></Layout></ProtectedRoute>} />
           <Route path="/add-trade" element={<ProtectedRoute><Layout><AddTrade /></Layout></ProtectedRoute>} />
           <Route path="/history" element={<ProtectedRoute><Layout><History /></Layout></ProtectedRoute>} />
           <Route path="/reports" element={<ProtectedRoute><Layout><Reports /></Layout></ProtectedRoute>} />
           <Route path="/comparison" element={<ProtectedRoute><Layout><PeriodComparison /></Layout></ProtectedRoute>} />
           <Route path="/psychology" element={<ProtectedRoute><Layout><PsychologicalAnalysis /></Layout></ProtectedRoute>} />
-          
           <Route path="/journal" element={<ProtectedRoute><Layout><Journal /></Layout></ProtectedRoute>} />
           <Route path="/calculator" element={<ProtectedRoute><Layout><Calculator /></Layout></ProtectedRoute>} />
           <Route path="/currency-conversion" element={<ProtectedRoute><Layout><CurrencyConversion /></Layout></ProtectedRoute>} />
@@ -115,6 +136,26 @@ const AppContent = () => {
           <Route path="/admin-roles" element={<ProtectedRoute><Layout><AdminRoles /></Layout></ProtectedRoute>} />
           <Route path="/profile" element={<ProtectedRoute><Layout><Profile /></Layout></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute><Layout><Settings /></Layout></ProtectedRoute>} />
+          
+          {/* ========== ADMIN ROUTES ========== */}
+          <Route path="/app/admin" element={<ProtectedRoute><AdminLayout /></ProtectedRoute>}>
+            <Route path="dashboard" element={<AdminDashboard />} />
+            <Route path="add-trade" element={<AdminAddTrade />} />
+            <Route path="history" element={<AdminHistory />} />
+            <Route path="reports" element={<AdminReports />} />
+            <Route path="comparison" element={<AdminComparison />} />
+            <Route path="psychology" element={<AdminPsychology />} />
+            <Route path="journal" element={<AdminJournal />} />
+            <Route path="calculator" element={<AdminCalculator />} />
+            <Route path="currency-conversion" element={<AdminCurrencyConversion />} />
+            <Route path="challenges" element={<AdminChallenges />} />
+            <Route path="sessions" element={<AdminSessions />} />
+            <Route path="roles" element={<AdminRolesPage />} />
+            <Route path="profile" element={<AdminProfile />} />
+            <Route path="settings" element={<AdminSettings />} />
+            <Route path="about" element={<AdminAbout />} />
+          </Route>
+          
           <Route path="*" element={<NotFound />} />
         </Routes>
       </Suspense>
@@ -134,14 +175,16 @@ const App = () => (
       <LanguageProvider>
         <AuthProvider>
           <SecurityProvider>
-            <TooltipProvider>
-              <Toaster />
-              <Sonner />
-              <BrowserRouter>
-                <AppContent />
-                <CookieConsent />
-              </BrowserRouter>
-            </TooltipProvider>
+            <AdminProvider>
+              <TooltipProvider>
+                <Toaster />
+                <Sonner />
+                <BrowserRouter>
+                  <AppContent />
+                  <CookieConsent />
+                </BrowserRouter>
+              </TooltipProvider>
+            </AdminProvider>
           </SecurityProvider>
         </AuthProvider>
       </LanguageProvider>
