@@ -14,7 +14,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { 
   Monitor, Smartphone, Tablet, Globe, Users, Clock, 
   MapPin, Wifi, Filter, RefreshCw, ChevronDown, ChevronRight, Download, FileText, User,
-  ShieldAlert, AlertTriangle, Timer
+  ShieldAlert, AlertTriangle, Timer, Mail, Calendar, CheckCircle, XCircle, Phone, Shield
 } from 'lucide-react';
 import { format, subDays, isAfter, parseISO, differenceInMinutes, differenceInSeconds } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -34,6 +34,20 @@ interface UserProfile {
   level: number | null;
   total_points: number | null;
   bio: string | null;
+}
+
+interface AuthUserInfo {
+  id: string;
+  email: string | null;
+  email_confirmed_at: string | null;
+  phone: string | null;
+  created_at: string;
+  updated_at: string;
+  last_sign_in_at: string | null;
+  app_metadata: Record<string, unknown>;
+  user_metadata: Record<string, unknown>;
+  is_anonymous: boolean;
+  confirmed_at: string | null;
 }
 
 interface UserSession {
@@ -125,6 +139,34 @@ const SessionsAdmin: React.FC = () => {
     }
   });
 
+  // Fetch auth user info (email, created_at, etc.) from edge function
+  const { data: authUsers, isLoading: isLoadingAuthUsers } = useQuery({
+    queryKey: ['auth-users-info'],
+    queryFn: async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) return [];
+      
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-users-info`,
+        {
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+      
+      if (!response.ok) {
+        console.error('Failed to fetch auth users info');
+        return [];
+      }
+      
+      const result = await response.json();
+      return result.users as AuthUserInfo[];
+    },
+    enabled: isAdmin,
+  });
+
   // Create a map for quick profile lookup
   const profileMap = useMemo(() => {
     const map = new Map<string, UserProfile>();
@@ -161,7 +203,16 @@ const SessionsAdmin: React.FC = () => {
     return map;
   }, [trades]);
 
-  const isLoading = isLoadingSessions || isLoadingProfiles || isLoadingTrades || isLoadingAdmin;
+  // Create a map for auth user info lookup
+  const authUserMap = useMemo(() => {
+    const map = new Map<string, AuthUserInfo>();
+    authUsers?.forEach(user => {
+      map.set(user.id, user);
+    });
+    return map;
+  }, [authUsers]);
+
+  const isLoading = isLoadingSessions || isLoadingProfiles || isLoadingTrades || isLoadingAdmin || isLoadingAuthUsers;
 
   const filteredSessions = useMemo(() => {
     if (!sessions) return [];
@@ -1033,6 +1084,7 @@ const SessionsAdmin: React.FC = () => {
                     const uniqueDevices = new Set(userSessions.map(s => s.device_type)).size;
                     const uniqueCountries = new Set(userSessions.map(s => s.country).filter(Boolean)).size;
                     const profile = profileMap.get(userId);
+                    const authUser = authUserMap.get(userId);
                     
                     return (
                       <Collapsible key={userId} open={isExpanded} onOpenChange={() => toggleUser(userId)}>
@@ -1052,9 +1104,26 @@ const SessionsAdmin: React.FC = () => {
                                 </div>
                               )}
                               <div className="min-w-0 flex-1">
-                                <p className="font-medium text-xs sm:text-sm truncate">
-                                  {profile?.nickname || userId.slice(0, 8) + '...'}
-                                </p>
+                                <div className="flex items-center gap-2">
+                                  <p className="font-medium text-xs sm:text-sm truncate">
+                                    {profile?.nickname || userId.slice(0, 8) + '...'}
+                                  </p>
+                                  {authUser?.email_confirmed_at ? (
+                                    <span title={language === 'fr' ? 'Email vérifié' : 'Email verified'}>
+                                      <CheckCircle className="h-3 w-3 text-green-500 flex-shrink-0" />
+                                    </span>
+                                  ) : (
+                                    <span title={language === 'fr' ? 'Email non vérifié' : 'Email not verified'}>
+                                      <XCircle className="h-3 w-3 text-orange-500 flex-shrink-0" />
+                                    </span>
+                                  )}
+                                </div>
+                                {authUser?.email && (
+                                  <p className="text-[10px] sm:text-xs text-muted-foreground truncate flex items-center gap-1">
+                                    <Mail className="h-2.5 w-2.5" />
+                                    {authUser.email}
+                                  </p>
+                                )}
                                 <p className="text-[10px] sm:text-xs text-muted-foreground truncate">
                                   {format(parseISO(lastSession.session_start), 'dd MMM HH:mm', { locale: language === 'fr' ? fr : undefined })}
                                 </p>
@@ -1075,6 +1144,12 @@ const SessionsAdmin: React.FC = () => {
                                 <Globe className="h-3 w-3" />
                                 <span className="text-[10px] sm:text-xs">{uniqueCountries}</span>
                               </div>
+                              {authUser?.created_at && (
+                                <Badge variant="secondary" className="text-[10px] sm:text-xs h-5 hidden sm:flex items-center gap-0.5">
+                                  <Calendar className="h-2.5 w-2.5" />
+                                  {format(parseISO(authUser.created_at), 'dd/MM/yy')}
+                                </Badge>
+                              )}
                             </div>
                           </div>
                         </CollapsibleTrigger>
@@ -1135,6 +1210,84 @@ const SessionsAdmin: React.FC = () => {
                                     <p className="font-medium text-xs sm:text-sm truncate">{profile.bio || '-'}</p>
                                   </div>
                                 </div>
+                              </div>
+                            )}
+
+                            {/* Account Info */}
+                            {authUser && (
+                              <div className="p-2 sm:p-3 rounded-lg bg-blue-500/5 border border-blue-500/20">
+                                <p className="text-[10px] sm:text-xs font-medium text-blue-500 mb-2 flex items-center gap-1">
+                                  <Shield className="h-3 w-3" />
+                                  {language === 'fr' ? 'Informations du Compte' : 'Account Information'}
+                                </p>
+                                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-4 text-xs sm:text-sm">
+                                  <div className="col-span-2 sm:col-span-1">
+                                    <p className="text-muted-foreground text-[10px] sm:text-xs flex items-center gap-0.5">
+                                      <Mail className="h-2.5 w-2.5" />
+                                      Email
+                                    </p>
+                                    <p className="font-medium text-xs sm:text-sm truncate">{authUser.email || '-'}</p>
+                                  </div>
+                                  <div>
+                                    <p className="text-muted-foreground text-[10px] sm:text-xs flex items-center gap-0.5">
+                                      <CheckCircle className="h-2.5 w-2.5" />
+                                      {language === 'fr' ? 'Vérifié' : 'Verified'}
+                                    </p>
+                                    <p className={`font-medium text-xs sm:text-sm ${authUser.email_confirmed_at ? 'text-green-500' : 'text-orange-500'}`}>
+                                      {authUser.email_confirmed_at 
+                                        ? format(parseISO(authUser.email_confirmed_at), 'dd/MM/yy HH:mm')
+                                        : (language === 'fr' ? 'Non vérifié' : 'Not verified')}
+                                    </p>
+                                  </div>
+                                  {authUser.phone && (
+                                    <div>
+                                      <p className="text-muted-foreground text-[10px] sm:text-xs flex items-center gap-0.5">
+                                        <Phone className="h-2.5 w-2.5" />
+                                        {language === 'fr' ? 'Téléphone' : 'Phone'}
+                                      </p>
+                                      <p className="font-medium text-xs sm:text-sm">{authUser.phone}</p>
+                                    </div>
+                                  )}
+                                  <div>
+                                    <p className="text-muted-foreground text-[10px] sm:text-xs flex items-center gap-0.5">
+                                      <Calendar className="h-2.5 w-2.5" />
+                                      {language === 'fr' ? 'Créé le' : 'Created'}
+                                    </p>
+                                    <p className="font-medium text-xs sm:text-sm">
+                                      {format(parseISO(authUser.created_at), 'dd/MM/yyyy HH:mm')}
+                                    </p>
+                                  </div>
+                                  <div>
+                                    <p className="text-muted-foreground text-[10px] sm:text-xs flex items-center gap-0.5">
+                                      <Clock className="h-2.5 w-2.5" />
+                                      {language === 'fr' ? 'Dernière connexion' : 'Last sign in'}
+                                    </p>
+                                    <p className="font-medium text-xs sm:text-sm">
+                                      {authUser.last_sign_in_at 
+                                        ? format(parseISO(authUser.last_sign_in_at), 'dd/MM/yyyy HH:mm')
+                                        : '-'}
+                                    </p>
+                                  </div>
+                                  <div>
+                                    <p className="text-muted-foreground text-[10px] sm:text-xs">User ID</p>
+                                    <p className="font-mono text-[10px] sm:text-xs truncate text-muted-foreground">
+                                      {userId.slice(0, 8)}...{userId.slice(-4)}
+                                    </p>
+                                  </div>
+                                </div>
+                                {/* User Metadata if exists */}
+                                {authUser.user_metadata && Object.keys(authUser.user_metadata).length > 0 && (
+                                  <div className="mt-2 pt-2 border-t border-blue-500/20">
+                                    <p className="text-[10px] sm:text-xs text-muted-foreground mb-1">Metadata:</p>
+                                    <div className="flex flex-wrap gap-1">
+                                      {Object.entries(authUser.user_metadata).slice(0, 6).map(([key, value]) => (
+                                        <Badge key={key} variant="outline" className="text-[9px] sm:text-[10px] h-5 font-mono">
+                                          {key}: {typeof value === 'string' ? value.slice(0, 20) : JSON.stringify(value).slice(0, 20)}
+                                        </Badge>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
                               </div>
                             )}
                             
