@@ -157,7 +157,10 @@ const AdminSecretValidation: React.FC = () => {
                 )}
               </Button>
 
-              <div className="text-center">
+              <div className="text-center space-y-3">
+                <p className="text-xs text-muted-foreground font-mono">
+                  Nm cmp d dv lap
+                </p>
                 <button
                   type="button"
                   onClick={() => navigate('/dashboard')}
