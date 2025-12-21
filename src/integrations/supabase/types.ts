@@ -386,6 +386,45 @@ export type Database = {
         }
         Relationships: []
       }
+      help_articles: {
+        Row: {
+          category_icon: string
+          category_key: string
+          category_order: number
+          created_at: string
+          id: string
+          is_active: boolean
+          question_key: string
+          question_order: number
+          translations: Json
+          updated_at: string
+        }
+        Insert: {
+          category_icon?: string
+          category_key: string
+          category_order?: number
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          question_key: string
+          question_order?: number
+          translations?: Json
+          updated_at?: string
+        }
+        Update: {
+          category_icon?: string
+          category_key?: string
+          category_order?: number
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          question_key?: string
+          question_order?: number
+          translations?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
       journal_entries: {
         Row: {
           checklist: Json | null
