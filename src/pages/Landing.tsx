@@ -204,6 +204,9 @@ const Landing = () => {
     t('landingFocusMode'),
     t('landingPeriodComparison'),
     t('landingEmailAlerts'),
+    t('landingMT5Connection'),
+    t('landingMediaTrade'),
+    t('landingImportExport'),
   ];
 
   const commitments = [
