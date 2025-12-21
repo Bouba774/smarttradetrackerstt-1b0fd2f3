@@ -45,7 +45,7 @@ import {
 } from "@/components/ui/accordion";
 
 const Landing = () => {
-  const { language, setLanguage, languages, t } = useLanguage();
+  const { language, setLanguage, languages, t, isRTL } = useLanguage();
   const { theme, setTheme, resolvedTheme } = useTheme();
   const [activeTraders, setActiveTraders] = useState(0);
   const [averageRating, setAverageRating] = useState(0);
@@ -257,13 +257,13 @@ const Landing = () => {
             
             <nav className="hidden md:flex items-center gap-8">
               <button onClick={() => scrollToSection('features')} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                {language === 'fr' ? 'Fonctionnalités' : 'Features'}
+                {t('landingNavFeatures')}
               </button>
               <button onClick={() => scrollToSection('benefits')} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                {language === 'fr' ? 'Avantages' : 'Benefits'}
+                {t('landingNavBenefits')}
               </button>
               <button onClick={() => scrollToSection('trust')} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                {language === 'fr' ? 'Confiance' : 'Trust'}
+                {t('landingNavTrust')}
               </button>
             </nav>
             
@@ -338,14 +338,15 @@ const Landing = () => {
                 <span className="text-foreground">{t('landingTradeWith')} </span>
                 <br className="sm:hidden" />
                 <span 
-                  className="text-gradient-primary inline-block text-left"
+                  className={`text-gradient-primary inline-block ${isRTL ? 'text-right' : 'text-left'}`}
                   style={{ 
                     width: '11ch',
                     minHeight: '1.2em',
+                    direction: isRTL ? 'rtl' : 'ltr',
                   }}
                 >
                   {typedText}
-                  <span className="inline-block w-[3px] h-[0.9em] bg-primary ml-1 align-middle animate-[blink_0.7s_infinite]" />
+                  <span className={`inline-block w-[3px] h-[0.9em] bg-primary ${isRTL ? 'mr-1' : 'ml-1'} align-middle animate-[blink_0.7s_infinite]`} />
                 </span>
               </h1>
             </ScrollReveal>
@@ -361,7 +362,7 @@ const Landing = () => {
                 <Link to="/auth">
                   <Button size="lg" className="bg-gradient-primary hover:opacity-90 text-primary-foreground px-8 h-12 text-base group">
                     {t('landingGetStartedFree')}
-                    <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+                    <ArrowRight className={`w-4 h-4 ${isRTL ? 'mr-2 group-hover:-translate-x-1 rotate-180' : 'ml-2 group-hover:translate-x-1'} transition-transform`} />
                   </Button>
                 </Link>
                 <button 

@@ -799,4 +799,9 @@ export const tr = {
   animatedStatsProfitFactor: 'Kar Faktörü',
   animatedStatsTradesMonth: 'Bu ayki işlemler',
   animatedStatsTotalProfit: 'Toplam Kar',
+  
+  // Landing Navigation
+  landingNavFeatures: 'Özellikler',
+  landingNavBenefits: 'Avantajlar',
+  landingNavTrust: 'Güven',
 };

@@ -799,4 +799,9 @@ export const ar = {
   animatedStatsProfitFactor: 'عامل الربح',
   animatedStatsTradesMonth: 'صفقات هذا الشهر',
   animatedStatsTotalProfit: 'إجمالي الربح',
+  
+  // Landing Navigation
+  landingNavFeatures: 'المميزات',
+  landingNavBenefits: 'الفوائد',
+  landingNavTrust: 'الثقة',
 };

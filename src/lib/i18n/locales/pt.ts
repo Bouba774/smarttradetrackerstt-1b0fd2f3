@@ -799,4 +799,9 @@ export const pt = {
   animatedStatsProfitFactor: 'Fator de Lucro',
   animatedStatsTradesMonth: 'Operações este mês',
   animatedStatsTotalProfit: 'Lucro Total',
+  
+  // Landing Navigation
+  landingNavFeatures: 'Funcionalidades',
+  landingNavBenefits: 'Benefícios',
+  landingNavTrust: 'Confiança',
 };

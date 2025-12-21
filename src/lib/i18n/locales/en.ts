@@ -799,4 +799,9 @@ export const en = {
   animatedStatsProfitFactor: 'Profit Factor',
   animatedStatsTradesMonth: 'Trades this month',
   animatedStatsTotalProfit: 'Total Profit',
+  
+  // Landing Navigation
+  landingNavFeatures: 'Features',
+  landingNavBenefits: 'Benefits',
+  landingNavTrust: 'Trust',
 };
