@@ -7,7 +7,7 @@ import {
   TrendingUp, 
   BarChart3, 
   Brain, 
-  Video, 
+  Image, 
   Calculator,
   Trophy,
   Shield,
@@ -30,7 +30,9 @@ import {
   Minus,
   HelpCircle,
   Sun,
-  Moon
+  Moon,
+  Coins,
+  BookOpen
 } from 'lucide-react';
 import ScrollReveal from '@/components/landing/ScrollReveal';
 import ParticleBackground from '@/components/landing/ParticleBackground';
@@ -182,10 +184,13 @@ const Landing = () => {
     { icon: TrendingUp, title: t('landingFeatureHistory'), desc: t('landingFeatureHistoryDesc') },
     { icon: Brain, title: t('landingFeaturePsychology'), desc: t('landingFeaturePsychologyDesc') },
     { icon: Heart, title: t('landingFeatureEmotional'), desc: t('landingFeatureEmotionalDesc') },
-    { icon: Video, title: t('landingFeatureVideo'), desc: t('landingFeatureVideoDesc') },
+    { icon: Image, title: t('landingFeatureMedia'), desc: t('landingFeatureMediaDesc') },
+    { icon: Coins, title: t('landingFeatureCurrency'), desc: t('landingFeatureCurrencyDesc') },
     { icon: Calculator, title: t('landingFeatureCalculator'), desc: t('landingFeatureCalculatorDesc') },
+    { icon: BookOpen, title: t('landingFeatureJournal'), desc: t('landingFeatureJournalDesc') },
     { icon: Trophy, title: t('landingFeatureChallenges'), desc: t('landingFeatureChallengesDesc') },
     { icon: Bot, title: t('landingFeatureAI'), desc: t('landingFeatureAIDesc') },
+    { icon: FileText, title: t('landingFeatureReports'), desc: t('landingFeatureReportsDesc') },
     { icon: Lock, title: t('landingFeaturePIN'), desc: t('landingFeaturePINDesc') },
     { icon: Shield, title: t('landingFeatureConfidential'), desc: t('landingFeatureConfidentialDesc') },
   ];
