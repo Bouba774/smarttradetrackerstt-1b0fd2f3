@@ -635,6 +635,29 @@ const Settings: React.FC = () => {
           </h2>
         </div>
         <SecuritySettings />
+        
+        {/* Link to Privacy Center */}
+        <div className="glass-card p-6 mt-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-display font-semibold text-foreground">
+                {language === 'fr' ? 'Centre de confidentialité' : 'Privacy Center'}
+              </h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                {language === 'fr' 
+                  ? 'Gérez vos données, consentements et appareils de confiance' 
+                  : 'Manage your data, consents and trusted devices'}
+              </p>
+            </div>
+            <a
+              href="/privacy-center"
+              className="flex items-center gap-2 px-4 py-2 bg-primary/10 hover:bg-primary/20 text-primary rounded-lg transition-colors"
+            >
+              <Shield className="w-4 h-4" />
+              {language === 'fr' ? 'Accéder' : 'Access'}
+            </a>
+          </div>
+        </div>
       </div>
 
       {/* Reset Button */}

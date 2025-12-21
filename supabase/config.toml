@@ -44,3 +44,9 @@ verify_jwt = true
 
 [functions.track-session]
 verify_jwt = true
+
+[functions.security-check]
+verify_jwt = true
+
+[functions.gdpr-management]
+verify_jwt = true

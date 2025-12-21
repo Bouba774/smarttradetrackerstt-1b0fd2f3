@@ -37,6 +37,7 @@ const AdminRoles = lazy(() => import("./pages/AdminRoles"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const TermsOfUse = lazy(() => import("./pages/TermsOfUse"));
 const About = lazy(() => import("./pages/About"));
+const PrivacyCenter = lazy(() => import("./pages/PrivacyCenter"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const ResetPin = lazy(() => import("./pages/ResetPin"));
 const AIChatBot = lazy(() => import("@/components/AIChatBot"));
@@ -137,6 +138,7 @@ const AppContent = () => {
           <Route path="/admin-roles" element={<ProtectedRoute><Layout><AdminRoles /></Layout></ProtectedRoute>} />
           <Route path="/profile" element={<ProtectedRoute><Layout><Profile /></Layout></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute><Layout><Settings /></Layout></ProtectedRoute>} />
+          <Route path="/privacy-center" element={<ProtectedRoute><Layout><PrivacyCenter /></Layout></ProtectedRoute>} />
           
           {/* ========== ADMIN ROUTES ========== */}
           <Route path="/app/admin" element={<ProtectedRoute><AdminLayout /></ProtectedRoute>}>
