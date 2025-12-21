@@ -25,6 +25,17 @@ const getCorsHeaders = (req: Request) => {
   };
 };
 
+// Authorized languages only - security validation
+const AUTHORIZED_LANGUAGES = ['en', 'fr', 'es', 'pt', 'ar', 'de', 'tr', 'it'];
+
+function validateLanguage(lang: string): string {
+  if (AUTHORIZED_LANGUAGES.includes(lang)) {
+    return lang;
+  }
+  console.warn(`Unauthorized language attempted: ${lang}, falling back to English`);
+  return 'en';
+}
+
 serve(async (req) => {
   const corsHeaders = getCorsHeaders(req);
   
@@ -33,14 +44,18 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, userData, language = 'fr' } = await req.json();
+    const { messages, userData, language = 'en' } = await req.json();
+    
+    // Validate language - reject unauthorized languages
+    const validatedLanguage = validateLanguage(language);
+    
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    const isFrench = language === 'fr';
+    const isFrench = validatedLanguage === 'fr';
 
     const systemPrompt = isFrench 
       ? `Tu es un assistant IA de trading intelligent et expert, intégré dans l'application Smart Trade Tracker.
