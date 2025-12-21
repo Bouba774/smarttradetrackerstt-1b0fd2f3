@@ -176,26 +176,31 @@ const Auth: React.FC = () => {
 
     try {
       if (isForgotPassword) {
-        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        // SECURITY: Always show success message to prevent email enumeration
+        // Even if the email doesn't exist, we show the same message
+        await supabase.auth.resetPasswordForEmail(email, {
           redirectTo: `${window.location.origin}/reset-password`,
         });
-
-        if (error) {
-          toast.error(error.message);
-        } else {
-          toast.success(language === 'fr' 
-            ? 'Email envoyé ! Vérifiez votre boîte mail.' 
-            : 'Email sent! Check your inbox.');
-          setIsForgotPassword(false);
-        }
+        
+        // Always show success - don't reveal if email exists
+        toast.success(language === 'fr' 
+          ? 'Si un compte existe avec cet email, vous recevrez un lien de réinitialisation.' 
+          : 'If an account exists with this email, you will receive a reset link.');
+        setIsForgotPassword(false);
       } else if (isLogin) {
+        // Add artificial delay to prevent timing attacks
+        const startTime = Date.now();
         const { error } = await signIn(email, password);
+        const elapsed = Date.now() - startTime;
+        const minDelay = 500; // Minimum 500ms response time
+        
+        if (elapsed < minDelay) {
+          await new Promise(resolve => setTimeout(resolve, minDelay - elapsed));
+        }
+        
         if (error) {
-          if (error.message.includes('Invalid login credentials')) {
-            toast.error(t('invalidCredentials'));
-          } else {
-            toast.error(error.message);
-          }
+          // SECURITY: Generic error message - don't reveal if email exists
+          toast.error(t('authError'));
         } else {
           // Reset rate limit on successful login
           try {
@@ -211,12 +216,30 @@ const Auth: React.FC = () => {
           navigate('/dashboard');
         }
       } else {
+        // Add artificial delay to prevent timing attacks
+        const startTime = Date.now();
         const { error } = await signUp(email, password, nickname);
+        const elapsed = Date.now() - startTime;
+        const minDelay = 500;
+        
+        if (elapsed < minDelay) {
+          await new Promise(resolve => setTimeout(resolve, minDelay - elapsed));
+        }
+        
         if (error) {
-          if (error.message.includes('User already registered')) {
-            toast.error(t('emailAlreadyUsed'));
+          // SECURITY: Generic error message for signup
+          // Don't reveal if email already exists
+          if (error.message.includes('User already registered') || 
+              error.message.includes('already been registered')) {
+            // Show generic success message to prevent enumeration
+            toast.success(language === 'fr'
+              ? 'Si cet email n\'est pas déjà enregistré, vous recevrez un email de confirmation.'
+              : 'If this email is not already registered, you will receive a confirmation email.');
+          } else if (error.message.includes('Password')) {
+            // Password-related errors are safe to show
+            toast.error(t('authError'));
           } else {
-            toast.error(error.message);
+            toast.error(t('authError'));
           }
         } else {
           toast.success(t('accountCreated'));
@@ -224,7 +247,7 @@ const Auth: React.FC = () => {
         }
       }
     } catch (error) {
-      toast.error(t('error'));
+      toast.error(t('authError'));
     } finally {
       setIsSubmitting(false);
     }
