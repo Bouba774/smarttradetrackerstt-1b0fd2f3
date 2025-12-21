@@ -137,6 +137,84 @@ export type Database = {
         }
         Relationships: []
       }
+      data_processing_registry: {
+        Row: {
+          created_at: string
+          data_categories: string[]
+          id: string
+          is_active: boolean | null
+          legal_basis: string
+          processing_name: string
+          purpose: string
+          recipients: string[] | null
+          retention_period: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          data_categories: string[]
+          id?: string
+          is_active?: boolean | null
+          legal_basis: string
+          processing_name: string
+          purpose: string
+          recipients?: string[] | null
+          retention_period: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          data_categories?: string[]
+          id?: string
+          is_active?: boolean | null
+          legal_basis?: string
+          processing_name?: string
+          purpose?: string
+          recipients?: string[] | null
+          retention_period?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      gdpr_requests: {
+        Row: {
+          created_at: string
+          data_export_url: string | null
+          id: string
+          processed_at: string | null
+          processed_by: string | null
+          reason: string | null
+          request_type: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          data_export_url?: string | null
+          id?: string
+          processed_at?: string | null
+          processed_by?: string | null
+          reason?: string | null
+          request_type: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          data_export_url?: string | null
+          id?: string
+          processed_at?: string | null
+          processed_by?: string | null
+          reason?: string | null
+          request_type?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       journal_entries: {
         Row: {
           checklist: Json | null
@@ -302,6 +380,33 @@ export type Database = {
         }
         Relationships: []
       }
+      request_nonces: {
+        Row: {
+          endpoint: string
+          expires_at: string
+          id: string
+          nonce: string
+          used_at: string
+          user_id: string | null
+        }
+        Insert: {
+          endpoint: string
+          expires_at?: string
+          id?: string
+          nonce: string
+          used_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          endpoint?: string
+          expires_at?: string
+          id?: string
+          nonce?: string
+          used_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       secure_credentials: {
         Row: {
           biometric_enabled: boolean | null
@@ -340,6 +445,60 @@ export type Database = {
           wipe_on_max_attempts?: boolean | null
         }
         Relationships: []
+      }
+      session_anomalies: {
+        Row: {
+          anomaly_type: string
+          created_at: string
+          details: Json | null
+          id: string
+          resolved: boolean | null
+          resolved_at: string | null
+          resolved_by: string | null
+          session_id: string | null
+          severity: string
+          user_id: string
+        }
+        Insert: {
+          anomaly_type: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          resolved?: boolean | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          session_id?: string | null
+          severity?: string
+          user_id: string
+        }
+        Update: {
+          anomaly_type?: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          resolved?: boolean | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          session_id?: string | null
+          severity?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "session_anomalies_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "user_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "session_anomalies_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "user_sessions_masked"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       trades: {
         Row: {
@@ -425,6 +584,48 @@ export type Database = {
         }
         Relationships: []
       }
+      trusted_devices: {
+        Row: {
+          browser_name: string | null
+          country: string | null
+          created_at: string
+          device_fingerprint: string
+          device_name: string | null
+          id: string
+          ip_address: string | null
+          is_trusted: boolean | null
+          last_used_at: string
+          os_name: string | null
+          user_id: string
+        }
+        Insert: {
+          browser_name?: string | null
+          country?: string | null
+          created_at?: string
+          device_fingerprint: string
+          device_name?: string | null
+          id?: string
+          ip_address?: string | null
+          is_trusted?: boolean | null
+          last_used_at?: string
+          os_name?: string | null
+          user_id: string
+        }
+        Update: {
+          browser_name?: string | null
+          country?: string | null
+          created_at?: string
+          device_fingerprint?: string
+          device_name?: string | null
+          id?: string
+          ip_address?: string | null
+          is_trusted?: boolean | null
+          last_used_at?: string
+          os_name?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_challenges: {
         Row: {
           challenge_id: string
@@ -463,6 +664,39 @@ export type Database = {
           progress?: number | null
           target?: number
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_consents: {
+        Row: {
+          consent_type: string
+          created_at: string
+          granted: boolean
+          id: string
+          ip_address: string | null
+          updated_at: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          consent_type: string
+          created_at?: string
+          granted?: boolean
+          id?: string
+          ip_address?: string | null
+          updated_at?: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          consent_type?: string
+          created_at?: string
+          granted?: boolean
+          id?: string
+          ip_address?: string | null
+          updated_at?: string
+          user_agent?: string | null
           user_id?: string
         }
         Relationships: []
@@ -732,6 +966,18 @@ export type Database = {
       }
       count_admin_failures: { Args: { p_admin_id: string }; Returns: number }
       delete_admin_secret: { Args: { p_admin_id: string }; Returns: boolean }
+      detect_session_anomaly: {
+        Args: {
+          p_country: string
+          p_device_fingerprint: string
+          p_ip_address: string
+          p_session_id: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
+      export_user_data: { Args: { p_user_id: string }; Returns: Json }
+      get_user_anomalies_count: { Args: { p_user_id: string }; Returns: number }
       get_user_pin_status: { Args: { p_user_id: string }; Returns: Json }
       has_role: {
         Args: {
@@ -753,12 +999,17 @@ export type Database = {
         }
         Returns: undefined
       }
+      request_account_deletion: { Args: { p_reason?: string }; Returns: Json }
       reset_rate_limit: {
         Args: { p_attempt_type?: string; p_identifier: string }
         Returns: undefined
       }
       set_admin_secret: {
         Args: { p_admin_id: string; p_secret: string }
+        Returns: boolean
+      }
+      validate_request_nonce: {
+        Args: { p_endpoint: string; p_nonce: string; p_user_id?: string }
         Returns: boolean
       }
       verify_admin_secret: {
