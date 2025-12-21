@@ -13,15 +13,17 @@ import { supabase } from '@/integrations/supabase/client';
 import { createPasswordSchema, validatePassword } from '@/lib/passwordValidation';
 import PasswordStrengthIndicator from '@/components/PasswordStrengthIndicator';
 import TurnstileWidget from '@/components/TurnstileWidget';
+import { useConnectionSecurity } from '@/hooks/useConnectionSecurity';
 
 // Cloudflare Turnstile Site Key (public key, safe to expose in client code)
 const TURNSTILE_SITE_KEY = '0x4AAAAAACG-_s2EZYR5V8_J';
 
 const Auth: React.FC = () => {
-  const { signIn, signUp, user, loading } = useAuth();
+const { signIn, signUp, user, loading } = useAuth();
   const { language, t } = useLanguage();
   const { theme } = useTheme();
   const navigate = useNavigate();
+  const { checkConnection } = useConnectionSecurity();
   
   const [isLogin, setIsLogin] = useState(true);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
@@ -198,7 +200,7 @@ const Auth: React.FC = () => {
           await new Promise(resolve => setTimeout(resolve, minDelay - elapsed));
         }
         
-        if (error) {
+if (error) {
           // SECURITY: Generic error message - don't reveal if email exists
           toast.error(t('authError'));
         } else {
@@ -211,6 +213,14 @@ const Auth: React.FC = () => {
           } catch {
             // Silent fail
           }
+          
+          // Perform VPN/connection security check after successful login
+          try {
+            await checkConnection({ isAdminAccess: false });
+          } catch {
+            // Silent fail - don't block login for security check errors
+          }
+          
           setIsBlocked(false);
           toast.success(t('loginSuccess'));
           navigate('/dashboard');

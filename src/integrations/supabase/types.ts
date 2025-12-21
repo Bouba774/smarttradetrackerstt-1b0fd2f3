@@ -137,6 +137,126 @@ export type Database = {
         }
         Relationships: []
       }
+      connection_logs: {
+        Row: {
+          action_taken: string | null
+          asn: string | null
+          city: string | null
+          client_language: string | null
+          client_platform: string | null
+          client_screen_resolution: string | null
+          client_timezone: string | null
+          connection_masked: boolean | null
+          country: string | null
+          country_code: string | null
+          created_at: string
+          detection_source: string | null
+          hosting_detected: boolean | null
+          id: string
+          ip_address: string | null
+          is_admin_access: boolean | null
+          isp: string | null
+          language_mismatch: boolean | null
+          organization: string | null
+          proxy_detected: boolean | null
+          raw_detection_data: Json | null
+          region: string | null
+          risk_factors: Json | null
+          risk_level: string | null
+          risk_score: number | null
+          session_id: string | null
+          timezone_mismatch: boolean | null
+          tor_detected: boolean | null
+          user_agent: string | null
+          user_id: string
+          user_role: string | null
+          vpn_detected: boolean | null
+        }
+        Insert: {
+          action_taken?: string | null
+          asn?: string | null
+          city?: string | null
+          client_language?: string | null
+          client_platform?: string | null
+          client_screen_resolution?: string | null
+          client_timezone?: string | null
+          connection_masked?: boolean | null
+          country?: string | null
+          country_code?: string | null
+          created_at?: string
+          detection_source?: string | null
+          hosting_detected?: boolean | null
+          id?: string
+          ip_address?: string | null
+          is_admin_access?: boolean | null
+          isp?: string | null
+          language_mismatch?: boolean | null
+          organization?: string | null
+          proxy_detected?: boolean | null
+          raw_detection_data?: Json | null
+          region?: string | null
+          risk_factors?: Json | null
+          risk_level?: string | null
+          risk_score?: number | null
+          session_id?: string | null
+          timezone_mismatch?: boolean | null
+          tor_detected?: boolean | null
+          user_agent?: string | null
+          user_id: string
+          user_role?: string | null
+          vpn_detected?: boolean | null
+        }
+        Update: {
+          action_taken?: string | null
+          asn?: string | null
+          city?: string | null
+          client_language?: string | null
+          client_platform?: string | null
+          client_screen_resolution?: string | null
+          client_timezone?: string | null
+          connection_masked?: boolean | null
+          country?: string | null
+          country_code?: string | null
+          created_at?: string
+          detection_source?: string | null
+          hosting_detected?: boolean | null
+          id?: string
+          ip_address?: string | null
+          is_admin_access?: boolean | null
+          isp?: string | null
+          language_mismatch?: boolean | null
+          organization?: string | null
+          proxy_detected?: boolean | null
+          raw_detection_data?: Json | null
+          region?: string | null
+          risk_factors?: Json | null
+          risk_level?: string | null
+          risk_score?: number | null
+          session_id?: string | null
+          timezone_mismatch?: boolean | null
+          tor_detected?: boolean | null
+          user_agent?: string | null
+          user_id?: string
+          user_role?: string | null
+          vpn_detected?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "connection_logs_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "user_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "connection_logs_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "user_sessions_masked"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       data_processing_registry: {
         Row: {
           created_at: string
@@ -701,6 +821,36 @@ export type Database = {
         }
         Relationships: []
       }
+      user_ip_history: {
+        Row: {
+          country_code: string | null
+          first_seen_at: string
+          id: string
+          ip_address: string
+          last_seen_at: string
+          times_seen: number | null
+          user_id: string
+        }
+        Insert: {
+          country_code?: string | null
+          first_seen_at?: string
+          id?: string
+          ip_address: string
+          last_seen_at?: string
+          times_seen?: number | null
+          user_id: string
+        }
+        Update: {
+          country_code?: string | null
+          first_seen_at?: string
+          id?: string
+          ip_address?: string
+          last_seen_at?: string
+          times_seen?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -965,6 +1115,10 @@ export type Database = {
         Returns: Json
       }
       count_admin_failures: { Args: { p_admin_id: string }; Returns: number }
+      count_recent_ips: {
+        Args: { p_minutes?: number; p_user_id: string }
+        Returns: number
+      }
       delete_admin_secret: { Args: { p_admin_id: string }; Returns: boolean }
       detect_session_anomaly: {
         Args: {
@@ -979,6 +1133,10 @@ export type Database = {
       export_user_data: { Args: { p_user_id: string }; Returns: Json }
       get_user_anomalies_count: { Args: { p_user_id: string }; Returns: number }
       get_user_pin_status: { Args: { p_user_id: string }; Returns: Json }
+      get_user_role_for_security: {
+        Args: { p_user_id: string }
+        Returns: string
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
