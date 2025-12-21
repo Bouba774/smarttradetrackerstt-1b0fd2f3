@@ -118,7 +118,7 @@ serve(async (req) => {
               if (geoJson.status === 'success') {
                 geoData = {
                   country: geoJson.country,
-                  countryCode: geoJson.countryCode,
+                  country_code: geoJson.countryCode,
                   region: geoJson.regionName || geoJson.region,
                   city: geoJson.city,
                   timezone: geoJson.timezone,
