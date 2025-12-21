@@ -15,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { cn } from '@/lib/utils';
+import { cn, formatPrice } from '@/lib/utils';
 import { format, isWithinInterval, parseISO, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear } from 'date-fns';
 import { fr, enUS } from 'date-fns/locale';
 import {
@@ -479,19 +479,19 @@ const History: React.FC = () => {
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div>
                       <p className="text-xs text-muted-foreground">{t('entryPrice')}</p>
-                      <p className="font-medium text-foreground">{trade.entry_price}</p>
+                      <p className="font-medium text-foreground">{formatPrice(trade.entry_price)}</p>
                     </div>
                     <div>
                       <p className="text-xs text-muted-foreground">{t('exitPrice')}</p>
-                      <p className="font-medium text-foreground">{trade.exit_price || '-'}</p>
+                      <p className="font-medium text-foreground">{trade.exit_price ? formatPrice(trade.exit_price) : '-'}</p>
                     </div>
                     <div>
                       <p className="text-xs text-muted-foreground">{t('stopLoss')}</p>
-                      <p className="font-medium text-loss">{trade.stop_loss || '-'}</p>
+                      <p className="font-medium text-loss">{trade.stop_loss ? formatPrice(trade.stop_loss) : '-'}</p>
                     </div>
                     <div>
                       <p className="text-xs text-muted-foreground">{t('takeProfit')}</p>
-                      <p className="font-medium text-profit">{trade.take_profit || '-'}</p>
+                      <p className="font-medium text-profit">{trade.take_profit ? formatPrice(trade.take_profit) : '-'}</p>
                     </div>
                   </div>
 

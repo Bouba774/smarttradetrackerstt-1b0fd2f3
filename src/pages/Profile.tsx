@@ -17,6 +17,7 @@ import { ProfilePhotoUploader } from '@/components/ProfilePhotoUploader';
 import MetaTraderConnection from '@/components/MetaTraderConnection';
 import { format } from 'date-fns';
 import { fr, enUS } from 'date-fns/locale';
+import { formatPrice, formatPriceForExport } from '@/lib/utils';
 import {
   User,
   Mail,
@@ -91,9 +92,13 @@ const Profile: React.FC = () => {
     triggerFeedback('click');
 
     try {
-      // Convert trade amounts to selected currency
+      // Convert trade amounts to selected currency and preserve price precision
       const convertedTrades = trades.map(trade => ({
         ...trade,
+        entry_price: formatPriceForExport(trade.entry_price),
+        exit_price: formatPriceForExport(trade.exit_price),
+        stop_loss: formatPriceForExport(trade.stop_loss),
+        take_profit: formatPriceForExport(trade.take_profit),
         profit_loss: trade.profit_loss ? convertFromBase(trade.profit_loss) : null,
         currency: currency,
       }));
@@ -142,16 +147,16 @@ const Profile: React.FC = () => {
     triggerFeedback('click');
 
     try {
-      // Create CSV for trades with currency conversion
+      // Create CSV for trades with currency conversion and proper price formatting
       const headers = ['Date', 'Asset', 'Direction', 'Entry Price', 'Exit Price', 'Stop Loss', 'Take Profit', 'Lot Size', `PnL (${currency})`, 'Result', 'Setup', 'Emotions', 'Notes'];
       const rows = trades.map(trade => [
         trade.trade_date,
         trade.asset,
         trade.direction,
-        trade.entry_price,
-        trade.exit_price || '',
-        trade.stop_loss || '',
-        trade.take_profit || '',
+        formatPrice(trade.entry_price),
+        trade.exit_price ? formatPrice(trade.exit_price) : '',
+        trade.stop_loss ? formatPrice(trade.stop_loss) : '',
+        trade.take_profit ? formatPrice(trade.take_profit) : '',
         trade.lot_size,
         trade.profit_loss ? convertFromBase(trade.profit_loss).toFixed(2) : '',
         trade.result || '',

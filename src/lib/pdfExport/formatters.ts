@@ -18,6 +18,35 @@ export const formatNumberForPDF = (value: number, decimals: number = 2): string 
   return value < 0 ? `-${formatted}` : formatted;
 };
 
+/**
+ * Format price for PDF export with appropriate decimal precision
+ * For trading prices (forex, crypto, etc.)
+ */
+export const formatPriceForPDF = (price: number | null | undefined): string => {
+  if (price === null || price === undefined || isNaN(price)) return '-';
+  
+  const absPrice = Math.abs(price);
+  let decimals = 2;
+  
+  if (absPrice < 0.0001) {
+    decimals = 8;
+  } else if (absPrice < 0.01) {
+    decimals = 6;
+  } else if (absPrice < 1) {
+    decimals = 5;
+  } else if (absPrice < 10) {
+    decimals = 5;
+  } else if (absPrice < 1000) {
+    decimals = 4;
+  } else if (absPrice < 10000) {
+    decimals = 3;
+  } else {
+    decimals = 2;
+  }
+  
+  return price.toFixed(decimals);
+};
+
 export const createAmountFormatter = (
   convertFromBase: (amount: number) => number,
   getCurrencySymbol: () => string,
