@@ -1,8 +1,9 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Search, Copy, Check, HelpCircle } from 'lucide-react';
+import { ArrowLeft, Search, Copy, Check, HelpCircle, Send, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Accordion,
   AccordionContent,
@@ -11,14 +12,19 @@ import {
 } from '@/components/ui/accordion';
 import { useHelpArticles } from '@/hooks/useHelpArticles';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
 const Help = () => {
   const navigate = useNavigate();
   const { t } = useLanguage();
+  const { user } = useAuth();
   const { categories, isLoading } = useHelpArticles();
   const [searchQuery, setSearchQuery] = useState('');
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [feedbackMessage, setFeedbackMessage] = useState('');
+  const [isSending, setIsSending] = useState(false);
+  const [showFeedback, setShowFeedback] = useState(false);
 
   // Filter articles based on search query
   const filteredCategories = useMemo(() => {
@@ -46,6 +52,26 @@ const Help = () => {
       setTimeout(() => setCopiedId(null), 2000);
     } catch {
       toast.error(t('copyFailed') || 'Échec de la copie');
+    }
+  };
+
+  const handleSendFeedback = async () => {
+    if (!feedbackMessage.trim()) {
+      toast.error(t('feedbackEmpty') || 'Veuillez entrer votre message');
+      return;
+    }
+    
+    setIsSending(true);
+    try {
+      // Simulate sending - in production this would call an edge function
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      toast.success(t('feedbackSent') || 'Message envoyé avec succès');
+      setFeedbackMessage('');
+      setShowFeedback(false);
+    } catch {
+      toast.error(t('feedbackError') || 'Erreur lors de l\'envoi');
+    } finally {
+      setIsSending(false);
     }
   };
 
