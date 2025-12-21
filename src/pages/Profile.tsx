@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTrades } from '@/hooks/useTrades';
@@ -9,7 +10,6 @@ import { useAdminRole } from '@/hooks/useAdminRole';
 import { PDFExportDialog } from '@/components/PDFExportDialog';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { supabase } from '@/integrations/supabase/client';
 import { useFeedback } from '@/hooks/useFeedback';
@@ -33,8 +33,6 @@ import {
   Check,
   X,
   Calendar,
-  Crown,
-  Shield,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -50,6 +48,7 @@ import {
 } from "@/components/ui/alert-dialog";
 
 const Profile: React.FC = () => {
+  const navigate = useNavigate();
   const { language, t } = useLanguage();
   const { user, profile, signOut, refreshProfile, updateProfile } = useAuth();
   const { trades } = useTrades();
@@ -57,7 +56,7 @@ const Profile: React.FC = () => {
   const { currency, formatAmount, convertFromBase } = useCurrency();
   const { exportToPDF } = usePDFExport();
   const { triggerFeedback } = useFeedback();
-  const { isAdmin, isModerator } = useAdminRole();
+  const { isAdmin } = useAdminRole();
   const [isDeletingData, setIsDeletingData] = useState(false);
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
@@ -358,19 +357,7 @@ const Profile: React.FC = () => {
                     <Edit3 className="w-4 h-4" />
                   </Button>
                 </div>
-                {/* Role Badge */}
-                {isAdmin && (
-                  <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0 shadow-lg flex items-center gap-1">
-                    <Crown className="w-3 h-3" />
-                    Admin
-                  </Badge>
-                )}
-                {isModerator && !isAdmin && (
-                  <Badge className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white border-0 shadow-lg flex items-center gap-1">
-                    <Shield className="w-3 h-3" />
-                    Moderator
-                  </Badge>
-                )}
+                {/* No role badges visible to users - admin mode is secret */}
               </div>
             )}
             <div className="flex items-center justify-center gap-2 text-muted-foreground">
@@ -402,7 +389,18 @@ const Profile: React.FC = () => {
               </div>
             </div>
             <div className="mt-3 flex items-center justify-center gap-2">
-              <Star className="w-4 h-4 text-yellow-500" />
+              {/* Star icon - secret admin access trigger for admins only */}
+              <button
+                onClick={() => {
+                  if (isAdmin) {
+                    triggerFeedback('click');
+                    navigate('/admin-verify');
+                  }
+                }}
+                className={isAdmin ? "cursor-pointer hover:scale-110 transition-transform" : "cursor-default"}
+              >
+                <Star className="w-4 h-4 text-yellow-500" />
+              </button>
               <span className="text-sm text-muted-foreground">
                 {totalPoints} {t('points')}
               </span>

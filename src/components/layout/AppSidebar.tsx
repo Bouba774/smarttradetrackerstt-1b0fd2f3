@@ -48,38 +48,24 @@ const AppSidebar: React.FC = () => {
   const { state, openMobile, setOpenMobile, isMobile } = useSidebar();
   const isOpen = isMobile ? openMobile : state === 'expanded';
 
+  // Remove all admin-only items from regular sidebar - admin mode is accessed secretly via profile page
   const navItems = [
-    { path: '/dashboard', icon: LayoutDashboard, label: t('dashboard'), adminOnly: false },
-    { path: '/add-trade', icon: PlusCircle, label: t('addTrade'), adminOnly: false },
-    { path: '/history', icon: History, label: t('history'), adminOnly: false },
-    { path: '/reports', icon: FileText, label: t('reports'), adminOnly: false },
-    { path: '/comparison', icon: GitCompare, label: t('periodComparison'), adminOnly: false },
-    { path: '/psychology', icon: Brain, label: t('psychology'), adminOnly: false },
-    { path: '/journal', icon: BookOpen, label: t('journal'), adminOnly: false },
-    { path: '/calculator', icon: Calculator, label: t('calculator'), adminOnly: false },
-    { path: '/currency-conversion', icon: ArrowRightLeft, label: t('currencyConversion'), adminOnly: false },
-    { path: '/challenges', icon: Trophy, label: t('challenges'), adminOnly: false },
-    { path: '/sessions', icon: ShieldCheck, label: language === 'fr' ? 'Admin Sessions' : 'Admin Sessions', adminOnly: true },
-    { path: '/admin-roles', icon: Crown, label: language === 'fr' ? 'Gestion Rôles' : 'Role Management', adminOnly: true },
-    { path: '/profile', icon: User, label: t('profile'), adminOnly: false },
-    { path: '/settings', icon: Settings, label: t('settings'), adminOnly: false },
-    { path: '/about', icon: Info, label: t('about'), adminOnly: false },
+    { path: '/dashboard', icon: LayoutDashboard, label: t('dashboard') },
+    { path: '/add-trade', icon: PlusCircle, label: t('addTrade') },
+    { path: '/history', icon: History, label: t('history') },
+    { path: '/reports', icon: FileText, label: t('reports') },
+    { path: '/comparison', icon: GitCompare, label: t('periodComparison') },
+    { path: '/psychology', icon: Brain, label: t('psychology') },
+    { path: '/journal', icon: BookOpen, label: t('journal') },
+    { path: '/calculator', icon: Calculator, label: t('calculator') },
+    { path: '/currency-conversion', icon: ArrowRightLeft, label: t('currencyConversion') },
+    { path: '/challenges', icon: Trophy, label: t('challenges') },
+    { path: '/profile', icon: User, label: t('profile') },
+    { path: '/settings', icon: Settings, label: t('settings') },
+    { path: '/about', icon: Info, label: t('about') },
   ];
 
-  const handleEnterAdminMode = () => {
-    if (isMobile) {
-      setOpenMobile(false);
-    }
-    // Si déjà vérifié, aller directement à l'admin dashboard, sinon aller à la vérification
-    if (isAdminVerified) {
-      navigate('/app/admin/dashboard');
-    } else {
-      navigate('/admin-verify');
-    }
-  };
-
-  // Filter nav items based on admin status
-  const visibleNavItems = navItems.filter(item => !item.adminOnly || isAdmin);
+  // No admin mode button in sidebar - it's accessed via profile page star icon
 
   const handleNavClick = () => {
     // Close sidebar on mobile after navigation
@@ -149,7 +135,7 @@ const AppSidebar: React.FC = () => {
           <SidebarGroup>
             <SidebarGroupContent>
               <SidebarMenu>
-                {visibleNavItems.map((item, index) => {
+                {navItems.map((item, index) => {
                   const Icon = item.icon;
                   const isActive = location.pathname === item.path;
 
@@ -200,20 +186,6 @@ const AppSidebar: React.FC = () => {
         </SidebarContent>
 
         <SidebarFooter className="p-3 sm:p-4 border-t border-primary/20 space-y-3">
-          {/* Bouton Mode Admin - visible uniquement pour les admins */}
-          {isAdmin && (
-            <Button
-              onClick={handleEnterAdminMode}
-              variant="outline"
-              className={cn(
-                "w-full gap-2 border-destructive/50 text-destructive hover:bg-destructive/10 hover:text-destructive",
-                isInAdminMode && "bg-destructive/20 border-destructive"
-              )}
-            >
-              <Shield className="w-4 h-4" />
-              {language === 'fr' ? 'Mode Admin' : 'Admin Mode'}
-            </Button>
-          )}
           
           <div className="text-center">
             <p className="text-[10px] text-muted-foreground">
