@@ -1,8 +1,9 @@
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAdminRole } from '@/hooks/useAdminRole';
 import { Json } from '@/integrations/supabase/types';
+import { toast } from 'sonner';
 
 interface SelectedUser {
   id: string;
@@ -34,7 +35,15 @@ interface AdminContextType {
   
   // Audit logging
   logAdminAction: (action: string, targetUserId?: string, details?: Record<string, unknown>) => Promise<void>;
+  
+  // Session management
+  sessionExpiresAt: Date | null;
+  resetSessionTimer: () => void;
 }
+
+// Session timeout: 30 minutes
+const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
+const WARNING_BEFORE_EXPIRY_MS = 5 * 60 * 1000;
 
 const AdminContext = createContext<AdminContextType | undefined>(undefined);
 
@@ -48,15 +57,113 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [allUsers, setAllUsers] = useState<SelectedUser[]>([]);
   const [isLoadingUsers, setIsLoadingUsers] = useState(false);
   const [isInAdminMode, setIsInAdminMode] = useState(false);
+  const [sessionExpiresAt, setSessionExpiresAt] = useState<Date | null>(null);
+  
+  // Timer refs
+  const sessionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const warningTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const hasWarnedRef = useRef(false);
+
+  // Clear all timers
+  const clearTimers = useCallback(() => {
+    if (sessionTimeoutRef.current) {
+      clearTimeout(sessionTimeoutRef.current);
+      sessionTimeoutRef.current = null;
+    }
+    if (warningTimeoutRef.current) {
+      clearTimeout(warningTimeoutRef.current);
+      warningTimeoutRef.current = null;
+    }
+    hasWarnedRef.current = false;
+  }, []);
+
+  // Handle session expiry
+  const handleSessionExpiry = useCallback(() => {
+    clearTimers();
+    setIsAdminVerified(false);
+    setIsInAdminMode(false);
+    setSelectedUser(null);
+    setSessionExpiresAt(null);
+    toast.error('Session admin expirée. Veuillez vous reconnecter.', {
+      duration: 5000,
+    });
+  }, [clearTimers]);
+
+  // Start session timer
+  const startSessionTimer = useCallback(() => {
+    clearTimers();
+    
+    const expiryTime = new Date(Date.now() + SESSION_TIMEOUT_MS);
+    setSessionExpiresAt(expiryTime);
+    
+    // Warning timeout (5 min before expiry)
+    warningTimeoutRef.current = setTimeout(() => {
+      if (!hasWarnedRef.current) {
+        hasWarnedRef.current = true;
+        toast.warning('Votre session admin expire dans 5 minutes. Continuez à utiliser l\'interface pour la maintenir.', {
+          duration: 10000,
+        });
+      }
+    }, SESSION_TIMEOUT_MS - WARNING_BEFORE_EXPIRY_MS);
+    
+    // Session expiry timeout
+    sessionTimeoutRef.current = setTimeout(() => {
+      handleSessionExpiry();
+    }, SESSION_TIMEOUT_MS);
+  }, [clearTimers, handleSessionExpiry]);
+
+  // Reset session timer on activity
+  const resetSessionTimer = useCallback(() => {
+    if (isAdminVerified && isInAdminMode) {
+      hasWarnedRef.current = false;
+      startSessionTimer();
+    }
+  }, [isAdminVerified, isInAdminMode, startSessionTimer]);
+
+  // Track user activity to reset timer
+  useEffect(() => {
+    if (!isAdminVerified || !isInAdminMode) return;
+
+    const activityEvents = ['mousedown', 'keydown', 'touchstart', 'scroll'];
+    let lastActivity = Date.now();
+    const throttleMs = 60000; // Only reset every minute max
+
+    const handleActivity = () => {
+      const now = Date.now();
+      if (now - lastActivity > throttleMs) {
+        lastActivity = now;
+        resetSessionTimer();
+      }
+    };
+
+    activityEvents.forEach(event => {
+      window.addEventListener(event, handleActivity, { passive: true });
+    });
+
+    return () => {
+      activityEvents.forEach(event => {
+        window.removeEventListener(event, handleActivity);
+      });
+    };
+  }, [isAdminVerified, isInAdminMode, resetSessionTimer]);
 
   // Réinitialiser l'état quand l'utilisateur change
   useEffect(() => {
     if (!user || !isAdmin) {
+      clearTimers();
       setIsAdminVerified(false);
       setSelectedUser(null);
       setIsInAdminMode(false);
+      setSessionExpiresAt(null);
     }
-  }, [user, isAdmin]);
+  }, [user, isAdmin, clearTimers]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      clearTimers();
+    };
+  }, [clearTimers]);
 
   const verifyAdminSecret = useCallback(async (secret: string) => {
     if (!user || !isAdmin) {
@@ -76,6 +183,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       if (data.success) {
         setIsAdminVerified(true);
         setIsInAdminMode(true);
+        startSessionTimer();
         return { success: true };
       }
 
@@ -91,7 +199,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     } finally {
       setIsVerifying(false);
     }
-  }, [user, isAdmin]);
+  }, [user, isAdmin, startSessionTimer]);
 
   const refreshUsers = useCallback(async () => {
     if (!isAdminVerified) return;
@@ -135,13 +243,16 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const enterAdminMode = useCallback(() => {
     if (isAdminVerified) {
       setIsInAdminMode(true);
+      startSessionTimer();
     }
-  }, [isAdminVerified]);
+  }, [isAdminVerified, startSessionTimer]);
 
   const exitAdminMode = useCallback(() => {
+    clearTimers();
     setIsInAdminMode(false);
     setSelectedUser(null);
-  }, []);
+    setSessionExpiresAt(null);
+  }, [clearTimers]);
 
   const logAdminAction = useCallback(async (
     action: string,
@@ -185,6 +296,8 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         enterAdminMode,
         exitAdminMode,
         logAdminAction,
+        sessionExpiresAt,
+        resetSessionTimer,
       }}
     >
       {children}

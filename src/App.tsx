@@ -59,6 +59,7 @@ const AdminCurrencyConversion = lazy(() => import("./pages/admin/AdminCurrencyCo
 const AdminChallenges = lazy(() => import("./pages/admin/AdminChallenges"));
 const AdminSessions = lazy(() => import("./pages/admin/AdminSessions"));
 const AdminRolesPage = lazy(() => import("./pages/admin/AdminRolesPage"));
+const AdminAuditHistory = lazy(() => import("./pages/admin/AdminAuditHistory"));
 const AdminProfile = lazy(() => import("./pages/admin/AdminProfile"));
 const AdminSettings = lazy(() => import("./pages/admin/AdminSettings"));
 const AdminAbout = lazy(() => import("./pages/admin/AdminAbout"));
@@ -151,6 +152,7 @@ const AppContent = () => {
             <Route path="challenges" element={<AdminChallenges />} />
             <Route path="sessions" element={<AdminSessions />} />
             <Route path="roles" element={<AdminRolesPage />} />
+            <Route path="audit" element={<AdminAuditHistory />} />
             <Route path="profile" element={<AdminProfile />} />
             <Route path="settings" element={<AdminSettings />} />
             <Route path="about" element={<AdminAbout />} />
