@@ -8,7 +8,8 @@ import {
   getLanguageInfo,
   loadTranslations,
   getTranslation,
-  TranslationDictionary
+  TranslationDictionary,
+  isValidLanguage
 } from '@/lib/i18n';
 import { en } from '@/lib/i18n/locales/en';
 
@@ -24,11 +25,18 @@ const LanguageContext = createContext<LanguageContextType | undefined>(undefined
 
 export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [language, setLanguageState] = useState<Language>(() => {
-    const saved = localStorage.getItem('language') as Language;
-    if (saved && LANGUAGES.some(l => l.code === saved)) {
+    const saved = localStorage.getItem('language');
+    // Validate saved language is authorized
+    if (saved && isValidLanguage(saved)) {
       return saved;
     }
-    return getBrowserLanguage();
+    // Try browser language
+    const browserLang = getBrowserLanguage();
+    if (isValidLanguage(browserLang)) {
+      return browserLang;
+    }
+    // Default to English
+    return DEFAULT_LANGUAGE;
   });
   
   const [translations, setTranslations] = useState<TranslationDictionary>(en);
@@ -53,6 +61,11 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   }, [language]);
 
   const setLanguage = useCallback((lang: Language) => {
+    // Security: Only allow authorized languages
+    if (!isValidLanguage(lang)) {
+      console.warn(`Attempted to set unauthorized language: ${lang}`);
+      return;
+    }
     setLanguageState(lang);
   }, []);
 
