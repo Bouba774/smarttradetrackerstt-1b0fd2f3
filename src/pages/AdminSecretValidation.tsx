@@ -33,11 +33,8 @@ const AdminSecretValidation: React.FC = () => {
     }
   }, [isAdmin, roleLoading, navigate]);
 
-  useEffect(() => {
-    if (isAdminVerified) {
-      navigate('/app/admin/dashboard');
-    }
-  }, [isAdminVerified, navigate]);
+  // Ne pas rediriger automatiquement si déjà vérifié - toujours demander le mot de passe
+  // L'utilisateur doit toujours entrer le mot de passe pour accéder au mode admin
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -84,23 +81,15 @@ const AdminSecretValidation: React.FC = () => {
     <div className="min-h-screen bg-background flex items-center justify-center p-4 relative overflow-hidden">
       {/* Background effects - neutre sans indication visuelle */}
       <div className="absolute inset-0 bg-gradient-to-br from-muted/5 via-background to-muted/5" />
-      <div className="absolute top-0 left-1/4 w-96 h-96 bg-muted/10 rounded-full blur-3xl" />
-      <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-muted/10 rounded-full blur-3xl" />
 
       <div className="w-full max-w-md relative z-10">
-        {/* Security Icon - sans indication admin */}
+        {/* Simple lock icon - no text */}
         <div className="text-center mb-8">
-          <div className="flex justify-center mb-4">
-            <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-muted/20 to-muted/20 flex items-center justify-center border border-border">
-              <Lock className="w-10 h-10 text-muted-foreground" />
+          <div className="flex justify-center">
+            <div className="w-16 h-16 rounded-xl bg-muted/20 flex items-center justify-center border border-border">
+              <Lock className="w-8 h-8 text-muted-foreground" />
             </div>
           </div>
-          <h1 className="font-display text-2xl font-bold text-foreground">
-            {language === 'fr' ? 'Vérification supplémentaire' : 'Additional Verification'}
-          </h1>
-          <p className="text-muted-foreground text-sm mt-2">
-            {language === 'fr' ? 'Sécurité renforcée' : 'Enhanced Security'}
-          </p>
         </div>
 
         {/* Validation Card */}
@@ -136,7 +125,7 @@ const AdminSecretValidation: React.FC = () => {
                     value={secret}
                     onChange={(e) => setSecret(e.target.value)}
                     className={`pl-10 bg-secondary/50 border-border ${error ? 'border-destructive' : ''}`}
-                    placeholder="Nm cmp d dev d lap"
+                    placeholder="••••••••••••"
                     autoComplete="off"
                     autoFocus
                   />
