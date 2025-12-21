@@ -640,7 +640,84 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      user_pin_status: {
+        Row: {
+          biometric_enabled: boolean | null
+          has_pin: boolean | null
+          max_attempts: number | null
+          pin_length: number | null
+          user_id: string | null
+          wipe_on_max_attempts: boolean | null
+        }
+        Insert: {
+          biometric_enabled?: boolean | null
+          has_pin?: never
+          max_attempts?: number | null
+          pin_length?: number | null
+          user_id?: string | null
+          wipe_on_max_attempts?: boolean | null
+        }
+        Update: {
+          biometric_enabled?: boolean | null
+          has_pin?: never
+          max_attempts?: number | null
+          pin_length?: number | null
+          user_id?: string | null
+          wipe_on_max_attempts?: boolean | null
+        }
+        Relationships: []
+      }
+      user_sessions_masked: {
+        Row: {
+          browser_name: string | null
+          browser_version: string | null
+          country: string | null
+          country_code: string | null
+          created_at: string | null
+          device_type: string | null
+          id: string | null
+          is_mobile: boolean | null
+          os_name: string | null
+          os_version: string | null
+          session_end: string | null
+          session_start: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          browser_name?: string | null
+          browser_version?: string | null
+          country?: string | null
+          country_code?: string | null
+          created_at?: string | null
+          device_type?: string | null
+          id?: string | null
+          is_mobile?: boolean | null
+          os_name?: string | null
+          os_version?: string | null
+          session_end?: string | null
+          session_start?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          browser_name?: string | null
+          browser_version?: string | null
+          country?: string | null
+          country_code?: string | null
+          created_at?: string | null
+          device_type?: string | null
+          id?: string | null
+          is_mobile?: boolean | null
+          os_name?: string | null
+          os_version?: string | null
+          session_end?: string | null
+          session_start?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       check_rate_limit: {
