@@ -166,7 +166,12 @@ const AdminRoles: React.FC = () => {
       const result = await response.json();
 
       if (!response.ok || !result.found) {
-        toast.error(language === 'fr' ? 'Utilisateur non trouvé' : 'User not found');
+        toast.error(
+          language === 'fr' 
+            ? 'Utilisateur non trouvé. Cet email doit d\'abord être inscrit sur l\'application avant de pouvoir lui attribuer un rôle.' 
+            : 'User not found. This email must first be registered on the application before you can assign a role.',
+          { duration: 6000 }
+        );
         return;
       }
 
