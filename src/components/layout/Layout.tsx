@@ -15,6 +15,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const location = useLocation();
   const isDashboard = location.pathname === '/dashboard';
   const isAuthPage = location.pathname === '/auth' || location.pathname === '/reset-password';
+  const isSettingsPage = location.pathname === '/settings';
 
   return (
     <SidebarProvider defaultOpen={false}>
@@ -40,8 +41,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           {/* Ad Banner at bottom - hidden on auth page */}
           {!isAuthPage && <AdBanner />}
           
-          {/* Help Button - floating on all pages */}
-          <HelpButton />
+          {/* Help Button - floating on all pages except settings */}
+          {!isSettingsPage && <HelpButton />}
         </SidebarInset>
       </div>
     </SidebarProvider>
