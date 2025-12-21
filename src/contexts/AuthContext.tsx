@@ -50,13 +50,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
+    let isMounted = true;
+
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        console.log('Auth state changed:', event, session?.user?.id);
+      (event, currentSession) => {
+        if (!isMounted) return;
         
-        // Handle specific events
-        if (event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED' && !session) {
+        console.log('Auth state changed:', event, currentSession?.user?.id);
+        
+        // Handle sign out explicitly
+        if (event === 'SIGNED_OUT') {
           setSession(null);
           setUser(null);
           setProfile(null);
@@ -64,13 +68,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           return;
         }
         
-        setSession(session);
-        setUser(session?.user ?? null);
+        // For all other events, update state with session
+        setSession(currentSession);
+        setUser(currentSession?.user ?? null);
         
         // Defer profile fetch with setTimeout to avoid deadlock
-        if (session?.user) {
+        if (currentSession?.user) {
           setTimeout(() => {
-            fetchProfile(session.user.id);
+            if (isMounted) {
+              fetchProfile(currentSession.user.id);
+            }
           }, 0);
         } else {
           setProfile(null);
@@ -80,26 +87,47 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     );
 
-    // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session }, error }) => {
-      if (error) {
-        console.error('Error getting session:', error);
-        // Don't clear session on transient errors, let onAuthStateChange handle it
+    // THEN check for existing session - this is critical for page reloads/updates
+    const initializeSession = async () => {
+      try {
+        const { data: { session: existingSession }, error } = await supabase.auth.getSession();
+        
+        if (!isMounted) return;
+        
+        if (error) {
+          console.error('Error getting session:', error);
+          // Try to refresh the session if there's an error
+          const { data: refreshData } = await supabase.auth.refreshSession();
+          if (refreshData.session && isMounted) {
+            setSession(refreshData.session);
+            setUser(refreshData.session.user);
+            fetchProfile(refreshData.session.user.id);
+          }
+          setLoading(false);
+          return;
+        }
+        
+        if (existingSession) {
+          setSession(existingSession);
+          setUser(existingSession.user);
+          fetchProfile(existingSession.user.id);
+        }
+        
+        setLoading(false);
+      } catch (error) {
+        console.error('Failed to initialize session:', error);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
-      
-      setSession(session);
-      setUser(session?.user ?? null);
-      
-      if (session?.user) {
-        fetchProfile(session.user.id);
-      }
-      setLoading(false);
-    }).catch((error) => {
-      console.error('Failed to get session:', error);
-      setLoading(false);
-    });
+    };
 
-    return () => subscription.unsubscribe();
+    initializeSession();
+
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signUp = async (email: string, password: string, nickname: string) => {
