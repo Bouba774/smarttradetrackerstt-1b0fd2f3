@@ -197,6 +197,73 @@ const Help = () => {
             ))}
           </div>
         )}
+
+        {/* Feedback Section */}
+        <div className="max-w-3xl mx-auto mt-8">
+          <div className="glass-card p-4 md:p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <MessageSquare className="h-6 w-6 text-profit" />
+                <h2 className="text-lg md:text-xl font-semibold text-foreground">
+                  {t('feedbackTitle') || 'Vous n\'avez pas trouvé de réponse ?'}
+                </h2>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowFeedback(!showFeedback)}
+                className="text-profit border-profit hover:bg-profit/10"
+              >
+                {showFeedback 
+                  ? (t('hide') || 'Masquer') 
+                  : (t('contactUs') || 'Nous contacter')}
+              </Button>
+            </div>
+
+            {showFeedback && (
+              <div className="space-y-4 animate-fade-in">
+                <p className="text-muted-foreground text-sm">
+                  {t('feedbackDescription') || 'Décrivez votre question ou problème et nous vous répondrons dans les plus brefs délais.'}
+                </p>
+                
+                {user && (
+                  <div className="text-sm text-muted-foreground bg-secondary/30 p-3 rounded-lg">
+                    <span className="font-medium">{t('email') || 'Email'} : </span>
+                    {user.email}
+                  </div>
+                )}
+
+                <Textarea
+                  placeholder={t('feedbackPlaceholder') || 'Décrivez votre question ou problème...'}
+                  value={feedbackMessage}
+                  onChange={(e) => setFeedbackMessage(e.target.value)}
+                  className="min-h-[120px] bg-secondary/30 border-border resize-none"
+                  disabled={isSending}
+                />
+
+                <div className="flex justify-end">
+                  <Button
+                    onClick={handleSendFeedback}
+                    disabled={isSending || !feedbackMessage.trim()}
+                    className="bg-profit hover:bg-profit/90 text-white"
+                  >
+                    {isSending ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2" />
+                        {t('sending') || 'Envoi...'}
+                      </>
+                    ) : (
+                      <>
+                        <Send className="h-4 w-4 mr-2" />
+                        {t('sendFeedback') || 'Envoyer'}
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
       </main>
     </div>
   );
