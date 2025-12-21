@@ -17,24 +17,44 @@ export interface AdminUserProfile {
   updated_at: string;
 }
 
+/**
+ * Hook sécurisé pour accéder au profil d'un utilisateur en mode admin.
+ * Utilise l'edge function admin-data-access qui :
+ * - Vérifie le rôle admin côté serveur
+ * - Journalise tous les accès dans admin_audit_logs
+ * - Retourne uniquement des données en lecture seule
+ */
 export const useAdminProfile = () => {
   const { selectedUser, isAdminVerified } = useAdmin();
 
   const profileQuery = useQuery({
-    queryKey: ['admin-profile', selectedUser?.id],
+    queryKey: ['admin-profile-secure', selectedUser?.id],
     queryFn: async () => {
       if (!selectedUser) return null;
       
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('user_id', selectedUser.id)
-        .maybeSingle();
+      // Utiliser l'edge function sécurisée pour l'accès aux données
+      const { data, error } = await supabase.functions.invoke('admin-data-access', {
+        body: {
+          targetUserId: selectedUser.id,
+          dataType: 'profile',
+          action: 'read'
+        }
+      });
 
-      if (error) throw error;
-      return data as AdminUserProfile | null;
+      if (error) {
+        console.error('[useAdminProfile] Edge function error:', error);
+        throw error;
+      }
+
+      if (!data?.success) {
+        throw new Error(data?.error || 'Accès refusé');
+      }
+
+      return data.data as AdminUserProfile | null;
     },
-    enabled: !!selectedUser && isAdminVerified
+    enabled: !!selectedUser && isAdminVerified,
+    staleTime: 60000, // 1 minute de cache
+    retry: 1,
   });
 
   return {

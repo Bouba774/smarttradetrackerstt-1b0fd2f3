@@ -82,24 +82,24 @@ const AdminSecretValidation: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Background effects */}
-      <div className="absolute inset-0 bg-gradient-to-br from-destructive/5 via-background to-warning/5" />
-      <div className="absolute top-0 left-1/4 w-96 h-96 bg-destructive/10 rounded-full blur-3xl" />
-      <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-warning/10 rounded-full blur-3xl" />
+      {/* Background effects - neutre sans indication visuelle */}
+      <div className="absolute inset-0 bg-gradient-to-br from-muted/5 via-background to-muted/5" />
+      <div className="absolute top-0 left-1/4 w-96 h-96 bg-muted/10 rounded-full blur-3xl" />
+      <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-muted/10 rounded-full blur-3xl" />
 
       <div className="w-full max-w-md relative z-10">
-        {/* Security Icon */}
+        {/* Security Icon - sans indication admin */}
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
-            <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-destructive/20 to-warning/20 flex items-center justify-center border border-destructive/30">
-              <Shield className="w-10 h-10 text-destructive" />
+            <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-muted/20 to-muted/20 flex items-center justify-center border border-border">
+              <Lock className="w-10 h-10 text-muted-foreground" />
             </div>
           </div>
           <h1 className="font-display text-2xl font-bold text-foreground">
-            {language === 'fr' ? 'Vérification requise' : 'Verification Required'}
+            {language === 'fr' ? 'Vérification supplémentaire' : 'Additional Verification'}
           </h1>
           <p className="text-muted-foreground text-sm mt-2">
-            {language === 'fr' ? 'Accès restreint' : 'Restricted Access'}
+            {language === 'fr' ? 'Sécurité renforcée' : 'Enhanced Security'}
           </p>
         </div>
 
@@ -147,19 +147,13 @@ const AdminSecretValidation: React.FC = () => {
                     {error}
                   </p>
                 )}
-                {attemptsRemaining !== null && attemptsRemaining > 0 && (
-                  <p className="text-warning text-xs">
-                    {language === 'fr' 
-                      ? `${attemptsRemaining} tentative(s) restante(s)` 
-                      : `${attemptsRemaining} attempt(s) remaining`}
-                  </p>
-                )}
+                {/* Ne pas révéler le nombre de tentatives - sécurité */}
               </div>
 
               <Button
                 type="submit"
                 disabled={isVerifying}
-                className="w-full bg-gradient-to-r from-destructive to-warning hover:opacity-90"
+                className="w-full"
               >
                 {isVerifying ? (
                   <div className="flex items-center gap-2">
@@ -168,8 +162,8 @@ const AdminSecretValidation: React.FC = () => {
                   </div>
                 ) : (
                   <div className="flex items-center gap-2">
-                    <Shield className="w-4 h-4" />
-                    {language === 'fr' ? 'Valider' : 'Validate'}
+                    <Lock className="w-4 h-4" />
+                    {language === 'fr' ? 'Continuer' : 'Continue'}
                   </div>
                 )}
               </Button>

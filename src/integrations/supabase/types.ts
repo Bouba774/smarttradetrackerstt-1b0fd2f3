@@ -671,9 +671,23 @@ export type Database = {
       is_admin: { Args: { _user_id: string }; Returns: boolean }
       is_admin_blocked: { Args: { p_admin_id: string }; Returns: boolean }
       is_user_banned: { Args: { _user_id: string }; Returns: boolean }
+      log_admin_data_access: {
+        Args: {
+          p_action: string
+          p_admin_id: string
+          p_ip_address?: string
+          p_table_name: string
+          p_target_user_id: string
+        }
+        Returns: undefined
+      }
       reset_rate_limit: {
         Args: { p_attempt_type?: string; p_identifier: string }
         Returns: undefined
+      }
+      verify_admin_secret: {
+        Args: { p_admin_id: string; p_secret: string }
+        Returns: boolean
       }
     }
     Enums: {

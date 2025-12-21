@@ -3,24 +3,44 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAdmin } from '@/contexts/AdminContext';
 import { Trade } from './useTrades';
 
+/**
+ * Hook sécurisé pour accéder aux trades d'un utilisateur en mode admin.
+ * Utilise l'edge function admin-data-access qui :
+ * - Vérifie le rôle admin côté serveur
+ * - Journalise tous les accès dans admin_audit_logs
+ * - Retourne uniquement des données en lecture seule
+ */
 export const useAdminTrades = () => {
   const { selectedUser, isAdminVerified } = useAdmin();
 
   const tradesQuery = useQuery({
-    queryKey: ['admin-trades', selectedUser?.id],
+    queryKey: ['admin-trades-secure', selectedUser?.id],
     queryFn: async () => {
       if (!selectedUser) return [];
       
-      const { data, error } = await supabase
-        .from('trades')
-        .select('*')
-        .eq('user_id', selectedUser.id)
-        .order('trade_date', { ascending: false });
+      // Utiliser l'edge function sécurisée pour l'accès aux données
+      const { data, error } = await supabase.functions.invoke('admin-data-access', {
+        body: {
+          targetUserId: selectedUser.id,
+          dataType: 'trades',
+          action: 'read'
+        }
+      });
 
-      if (error) throw error;
-      return data as Trade[];
+      if (error) {
+        console.error('[useAdminTrades] Edge function error:', error);
+        throw error;
+      }
+
+      if (!data?.success) {
+        throw new Error(data?.error || 'Accès refusé');
+      }
+
+      return (data.data || []) as Trade[];
     },
-    enabled: !!selectedUser && isAdminVerified
+    enabled: !!selectedUser && isAdminVerified,
+    staleTime: 30000, // 30 secondes de cache
+    retry: 1,
   });
 
   // Calculate statistics
