@@ -797,6 +797,39 @@ export type Database = {
         }
         Relationships: []
       }
+      unauthorized_access_logs: {
+        Row: {
+          attempted_at: string
+          details: Json | null
+          id: string
+          ip_address: string | null
+          operation: string
+          table_name: string
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          attempted_at?: string
+          details?: Json | null
+          id?: string
+          ip_address?: string | null
+          operation: string
+          table_name: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          attempted_at?: string
+          details?: Json | null
+          id?: string
+          ip_address?: string | null
+          operation?: string
+          table_name?: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       user_challenges: {
         Row: {
           challenge_id: string
@@ -1206,6 +1239,10 @@ export type Database = {
           p_table_name: string
           p_target_user_id: string
         }
+        Returns: undefined
+      }
+      log_unauthorized_access: {
+        Args: { p_details?: Json; p_operation: string; p_table_name: string }
         Returns: undefined
       }
       request_account_deletion: { Args: { p_reason?: string }; Returns: Json }
