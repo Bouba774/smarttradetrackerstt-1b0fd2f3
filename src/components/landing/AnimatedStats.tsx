@@ -1,11 +1,9 @@
 import React, { useEffect, useState, useRef } from 'react';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { TrendingUp, TrendingDown, Activity, Zap, Target, Award } from 'lucide-react';
 
-interface AnimatedStatsProps {
-  language: string;
-}
-
-const AnimatedStats: React.FC<AnimatedStatsProps> = ({ language }) => {
+const AnimatedStats: React.FC = () => {
+  const { t } = useLanguage();
   const [isVisible, setIsVisible] = useState(false);
   const [values, setValues] = useState({
     winrate: 0,
@@ -61,7 +59,7 @@ const AnimatedStats: React.FC<AnimatedStatsProps> = ({ language }) => {
   const stats = [
     {
       icon: Target,
-      label: language === 'fr' ? 'Taux de Réussite' : 'Win Rate',
+      label: t('animatedStatsWinRate'),
       value: `${values.winrate}%`,
       color: 'text-profit',
       bgColor: 'bg-profit/10',
@@ -70,7 +68,7 @@ const AnimatedStats: React.FC<AnimatedStatsProps> = ({ language }) => {
     },
     {
       icon: Activity,
-      label: language === 'fr' ? 'Facteur Profit' : 'Profit Factor',
+      label: t('animatedStatsProfitFactor'),
       value: values.profitFactor.toFixed(2),
       color: 'text-primary',
       bgColor: 'bg-primary/10',
@@ -79,7 +77,7 @@ const AnimatedStats: React.FC<AnimatedStatsProps> = ({ language }) => {
     },
     {
       icon: Zap,
-      label: language === 'fr' ? 'Trades ce mois' : 'Trades this month',
+      label: t('animatedStatsTradesMonth'),
       value: values.trades.toString(),
       color: 'text-amber-500',
       bgColor: 'bg-amber-500/10',
@@ -88,7 +86,7 @@ const AnimatedStats: React.FC<AnimatedStatsProps> = ({ language }) => {
     },
     {
       icon: Award,
-      label: language === 'fr' ? 'Profit Total' : 'Total Profit',
+      label: t('animatedStatsTotalProfit'),
       value: `$${values.profit.toLocaleString()}`,
       color: 'text-profit',
       bgColor: 'bg-profit/10',

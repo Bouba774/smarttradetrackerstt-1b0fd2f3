@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { 
   BarChart3, 
   TrendingUp, 
@@ -8,109 +9,102 @@ import {
   Trophy, 
   BookOpen, 
   Bot,
-  Target,
-  Wallet,
-  Clock,
-  Shield,
   Sparkles,
   ChevronRight
 } from 'lucide-react';
 
-interface FeatureShowcaseProps {
-  language: string;
-}
-
-const FeatureShowcase: React.FC<FeatureShowcaseProps> = ({ language }) => {
+const FeatureShowcase: React.FC = () => {
+  const { t } = useLanguage();
   const [activeFeature, setActiveFeature] = useState(0);
 
   const features = [
     {
       icon: BarChart3,
-      titleFr: 'Tableau de Bord Professionnel',
-      titleEn: 'Professional Dashboard',
-      descFr: 'Vue complète de vos performances avec plus de 20 statistiques en temps réel. Winrate, profit factor, drawdown, espérance mathématique et bien plus.',
-      descEn: 'Complete view of your performance with 20+ real-time statistics. Winrate, profit factor, drawdown, mathematical expectancy and more.',
+      title: t('featureShowcaseDashboardTitle'),
+      desc: t('featureShowcaseDashboardDesc'),
       color: 'from-blue-500 to-cyan-500',
-      highlights: language === 'fr' 
-        ? ['Statistiques en temps réel', 'Graphiques interactifs', 'Courbe d\'équité'] 
-        : ['Real-time statistics', 'Interactive charts', 'Equity curve']
+      highlights: [
+        t('featureShowcaseDashboardH1'),
+        t('featureShowcaseDashboardH2'),
+        t('featureShowcaseDashboardH3')
+      ]
     },
     {
       icon: TrendingUp,
-      titleFr: 'Historique Complet des Trades',
-      titleEn: 'Complete Trade History',
-      descFr: 'Enregistrez chaque trade avec tous les détails : entrée, sortie, SL, TP, émotions, setup, timeframe et jusqu\'à 4 captures d\'écran.',
-      descEn: 'Record every trade with all details: entry, exit, SL, TP, emotions, setup, timeframe and up to 4 screenshots.',
+      title: t('featureShowcaseHistoryTitle'),
+      desc: t('featureShowcaseHistoryDesc'),
       color: 'from-green-500 to-emerald-500',
-      highlights: language === 'fr' 
-        ? ['Filtres avancés', 'Export PDF/CSV/JSON', 'Captures d\'écran'] 
-        : ['Advanced filters', 'PDF/CSV/JSON export', 'Screenshots']
+      highlights: [
+        t('featureShowcaseHistoryH1'),
+        t('featureShowcaseHistoryH2'),
+        t('featureShowcaseHistoryH3')
+      ]
     },
     {
       icon: Brain,
-      titleFr: 'Analyse Psychologique',
-      titleEn: 'Psychological Analysis',
-      descFr: 'Comprenez l\'impact de vos émotions sur vos performances. Suivez votre discipline, identifiez vos patterns et améliorez votre mindset.',
-      descEn: 'Understand the impact of your emotions on your performance. Track your discipline, identify your patterns and improve your mindset.',
+      title: t('featureShowcasePsychologyTitle'),
+      desc: t('featureShowcasePsychologyDesc'),
       color: 'from-purple-500 to-pink-500',
-      highlights: language === 'fr' 
-        ? ['Score de discipline', 'Analyse émotionnelle', 'Points d\'amélioration'] 
-        : ['Discipline score', 'Emotional analysis', 'Improvement points']
+      highlights: [
+        t('featureShowcasePsychologyH1'),
+        t('featureShowcasePsychologyH2'),
+        t('featureShowcasePsychologyH3')
+      ]
     },
     {
       icon: Video,
-      titleFr: 'Journal Vidéo & Audio',
-      titleEn: 'Video & Audio Journal',
-      descFr: 'Capturez vos analyses en vidéo ou audio jusqu\'à 60 secondes. Changez de caméra en plein enregistrement et rejouez vos sessions.',
-      descEn: 'Capture your analyses in video or audio up to 60 seconds. Switch cameras during recording and replay your sessions.',
+      title: t('featureShowcaseVideoTitle'),
+      desc: t('featureShowcaseVideoDesc'),
       color: 'from-red-500 to-orange-500',
-      highlights: language === 'fr' 
-        ? ['Enregistrement 60s', 'Switch caméra live', 'Bibliothèque'] 
-        : ['60s recording', 'Live camera switch', 'Library']
+      highlights: [
+        t('featureShowcaseVideoH1'),
+        t('featureShowcaseVideoH2'),
+        t('featureShowcaseVideoH3')
+      ]
     },
     {
       icon: Calculator,
-      titleFr: 'Calculatrice de Lot Avancée',
-      titleEn: 'Advanced Lot Calculator',
-      descFr: 'Calculez vos positions optimales pour Forex, Crypto, Indices, Métaux et Actions. Formules adaptées à chaque type d\'actif.',
-      descEn: 'Calculate your optimal positions for Forex, Crypto, Indices, Metals and Stocks. Formulas adapted to each asset type.',
+      title: t('featureShowcaseCalculatorTitle'),
+      desc: t('featureShowcaseCalculatorDesc'),
       color: 'from-amber-500 to-yellow-500',
-      highlights: language === 'fr' 
-        ? ['Multi-actifs', 'Gestion du risque', 'Ratio R:R'] 
-        : ['Multi-assets', 'Risk management', 'R:R ratio']
+      highlights: [
+        t('featureShowcaseCalculatorH1'),
+        t('featureShowcaseCalculatorH2'),
+        t('featureShowcaseCalculatorH3')
+      ]
     },
     {
       icon: Trophy,
-      titleFr: 'Défis & Gamification',
-      titleEn: 'Challenges & Gamification',
-      descFr: 'Progressez avec des défis stimulants et débloquez des badges. Montez en niveau de Débutant à Légende et accumulez des points.',
-      descEn: 'Progress with stimulating challenges and unlock badges. Level up from Beginner to Legend and accumulate points.',
+      title: t('featureShowcaseChallengesTitle'),
+      desc: t('featureShowcaseChallengesDesc'),
       color: 'from-indigo-500 to-violet-500',
-      highlights: language === 'fr' 
-        ? ['6 niveaux', 'Badges exclusifs', 'Progression dynamique'] 
-        : ['6 levels', 'Exclusive badges', 'Dynamic progression']
+      highlights: [
+        t('featureShowcaseChallengesH1'),
+        t('featureShowcaseChallengesH2'),
+        t('featureShowcaseChallengesH3')
+      ]
     },
     {
       icon: BookOpen,
-      titleFr: 'Leçons & Routine',
-      titleEn: 'Lessons & Routine',
-      descFr: 'Checklist pré-marché personnalisable, objectifs journaliers, leçons apprises et évaluation quotidienne pour une discipline de fer.',
-      descEn: 'Customizable pre-market checklist, daily objectives, lessons learned and daily evaluation for iron discipline.',
+      title: t('featureShowcaseLessonsTitle'),
+      desc: t('featureShowcaseLessonsDesc'),
       color: 'from-teal-500 to-cyan-500',
-      highlights: language === 'fr' 
-        ? ['Checklist éditable', 'Journal quotidien', 'Auto-évaluation'] 
-        : ['Editable checklist', 'Daily journal', 'Self-evaluation']
+      highlights: [
+        t('featureShowcaseLessonsH1'),
+        t('featureShowcaseLessonsH2'),
+        t('featureShowcaseLessonsH3')
+      ]
     },
     {
       icon: Bot,
-      titleFr: 'Assistant IA Intelligent',
-      titleEn: 'Intelligent AI Assistant',
-      descFr: 'Obtenez des insights personnalisés 24/7. L\'IA analyse vos trades et comportements pour vous aider à progresser.',
-      descEn: 'Get personalized insights 24/7. AI analyzes your trades and behaviors to help you progress.',
+      title: t('featureShowcaseAITitle'),
+      desc: t('featureShowcaseAIDesc'),
       color: 'from-fuchsia-500 to-pink-500',
-      highlights: language === 'fr' 
-        ? ['Analyse personnalisée', 'Conseils contextuels', 'Disponible 24/7'] 
-        : ['Personalized analysis', 'Contextual advice', 'Available 24/7']
+      highlights: [
+        t('featureShowcaseAIH1'),
+        t('featureShowcaseAIH2'),
+        t('featureShowcaseAIH3')
+      ]
     },
   ];
 
@@ -135,7 +129,7 @@ const FeatureShowcase: React.FC<FeatureShowcaseProps> = ({ language }) => {
             >
               <Icon className="w-4 h-4" />
               <span className="text-sm font-medium">
-                {language === 'fr' ? feature.titleFr.split(' ')[0] : feature.titleEn.split(' ')[0]}
+                {feature.title.split(' ')[0]}
               </span>
             </button>
           );
@@ -160,11 +154,11 @@ const FeatureShowcase: React.FC<FeatureShowcaseProps> = ({ language }) => {
               </div>
               
               <h3 className="text-2xl md:text-3xl font-bold text-foreground mb-4">
-                {language === 'fr' ? activeItem.titleFr : activeItem.titleEn}
+                {activeItem.title}
               </h3>
               
               <p className="text-muted-foreground leading-relaxed mb-6">
-                {language === 'fr' ? activeItem.descFr : activeItem.descEn}
+                {activeItem.desc}
               </p>
               
               {/* Highlights */}
@@ -202,7 +196,7 @@ const FeatureShowcase: React.FC<FeatureShowcaseProps> = ({ language }) => {
               className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
               <ChevronRight className="w-4 h-4 rotate-180" />
-              {language === 'fr' ? 'Précédent' : 'Previous'}
+              {t('previous')}
             </button>
             
             <div className="flex gap-1.5">
@@ -220,7 +214,7 @@ const FeatureShowcase: React.FC<FeatureShowcaseProps> = ({ language }) => {
               onClick={() => setActiveFeature((prev) => (prev + 1) % features.length)}
               className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
-              {language === 'fr' ? 'Suivant' : 'Next'}
+              {t('next')}
               <ChevronRight className="w-4 h-4" />
             </button>
           </div>

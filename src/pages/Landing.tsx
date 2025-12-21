@@ -426,7 +426,7 @@ const Landing = () => {
 
             {/* Interactive Feature Showcase */}
             <ScrollReveal animation="fade-up" delay={100}>
-              <FeatureShowcase language={language} />
+              <FeatureShowcase />
             </ScrollReveal>
 
           </div>
@@ -457,7 +457,7 @@ const Landing = () => {
             </ScrollReveal>
 
             <ScrollReveal animation="fade-up" delay={100}>
-              <AnimatedStats language={language} />
+              <AnimatedStats />
             </ScrollReveal>
           </div>
         </section>
