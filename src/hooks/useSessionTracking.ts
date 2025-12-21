@@ -47,22 +47,61 @@ const parseUserAgent = (ua: string): Partial<DeviceInfo> => {
     fingerprint: generateFingerprint(),
   };
 
-  // Detect browser
-  if (ua.includes('Firefox/')) {
-    result.browserName = 'Firefox';
-    result.browserVersion = ua.match(/Firefox\/(\d+\.?\d*)/)?.[1] || '';
-  } else if (ua.includes('Edg/')) {
+  // Enhanced browser detection - check specific browsers first
+  if (/Phoenix/.test(ua)) {
+    result.browserName = 'Phoenix';
+    result.browserVersion = ua.match(/Phoenix\/(\d+\.?\d*)/)?.[1] || '';
+  } else if (/DuckDuckGo/.test(ua)) {
+    result.browserName = 'DuckDuckGo';
+    result.browserVersion = ua.match(/DuckDuckGo\/(\d+)/)?.[1] || '';
+  } else if ((navigator as any).brave?.isBrave) {
+    result.browserName = 'Brave';
+    result.browserVersion = ua.match(/Chrome\/(\d+)/)?.[1] || '';
+  } else if (/Vivaldi/.test(ua)) {
+    result.browserName = 'Vivaldi';
+    result.browserVersion = ua.match(/Vivaldi\/(\d+\.?\d*)/)?.[1] || '';
+  } else if (/YaBrowser/.test(ua)) {
+    result.browserName = 'Yandex';
+    result.browserVersion = ua.match(/YaBrowser\/(\d+\.?\d*)/)?.[1] || '';
+  } else if (/UCBrowser|UCWEB/.test(ua)) {
+    result.browserName = 'UC Browser';
+    result.browserVersion = ua.match(/UCBrowser\/(\d+\.?\d*)/)?.[1] || '';
+  } else if (/Puffin/.test(ua)) {
+    result.browserName = 'Puffin';
+    result.browserVersion = ua.match(/Puffin\/(\d+\.?\d*)/)?.[1] || '';
+  } else if (/Whale/.test(ua)) {
+    result.browserName = 'Whale';
+    result.browserVersion = ua.match(/Whale\/(\d+\.?\d*)/)?.[1] || '';
+  } else if (/QQBrowser/.test(ua)) {
+    result.browserName = 'QQ Browser';
+    result.browserVersion = ua.match(/QQBrowser\/(\d+\.?\d*)/)?.[1] || '';
+  } else if (/Kiwi/.test(ua)) {
+    result.browserName = 'Kiwi';
+    result.browserVersion = ua.match(/Chrome\/(\d+)/)?.[1] || '';
+  } else if (/MiuiBrowser/.test(ua)) {
+    result.browserName = 'Mi Browser';
+    result.browserVersion = ua.match(/MiuiBrowser\/(\d+\.?\d*)/)?.[1] || '';
+  } else if (/HuaweiBrowser/.test(ua)) {
+    result.browserName = 'Huawei Browser';
+    result.browserVersion = ua.match(/HuaweiBrowser\/(\d+\.?\d*)/)?.[1] || '';
+  } else if (/Edg\//.test(ua)) {
     result.browserName = 'Edge';
     result.browserVersion = ua.match(/Edg\/(\d+\.?\d*)/)?.[1] || '';
-  } else if (ua.includes('Chrome/')) {
+  } else if (/OPR\/|Opera/.test(ua)) {
+    result.browserName = /Opera GX/.test(ua) ? 'Opera GX' : 'Opera';
+    result.browserVersion = ua.match(/OPR\/(\d+\.?\d*)/)?.[1] || '';
+  } else if (/SamsungBrowser/.test(ua)) {
+    result.browserName = 'Samsung Internet';
+    result.browserVersion = ua.match(/SamsungBrowser\/(\d+\.?\d*)/)?.[1] || '';
+  } else if (/Firefox\//.test(ua)) {
+    result.browserName = /Focus/.test(ua) ? 'Firefox Focus' : 'Firefox';
+    result.browserVersion = ua.match(/Firefox\/(\d+\.?\d*)/)?.[1] || '';
+  } else if (/Chrome\//.test(ua) && !/Chromium/.test(ua)) {
     result.browserName = 'Chrome';
     result.browserVersion = ua.match(/Chrome\/(\d+\.?\d*)/)?.[1] || '';
-  } else if (ua.includes('Safari/') && !ua.includes('Chrome')) {
+  } else if (/Safari\//.test(ua) && !/Chrome/.test(ua)) {
     result.browserName = 'Safari';
     result.browserVersion = ua.match(/Version\/(\d+\.?\d*)/)?.[1] || '';
-  } else if (ua.includes('Opera') || ua.includes('OPR/')) {
-    result.browserName = 'Opera';
-    result.browserVersion = ua.match(/(?:Opera|OPR)\/(\d+\.?\d*)/)?.[1] || '';
   } else {
     result.browserName = 'Unknown';
     result.browserVersion = '';
@@ -92,14 +131,14 @@ const parseUserAgent = (ua: string): Partial<DeviceInfo> => {
     result.osVersion = '';
   }
 
-  // Detect device type and vendor
+  // Detect device type
   const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
   const isTablet = /iPad|Android(?!.*Mobile)/i.test(ua);
   
   result.isMobile = isMobile;
   result.deviceType = isTablet ? 'tablet' : isMobile ? 'mobile' : 'desktop';
 
-  // Enhanced device vendor and model detection
+  // Enhanced device vendor and model detection for more brands
   if (ua.includes('iPhone')) {
     result.deviceVendor = 'Apple';
     result.deviceModel = 'iPhone';
@@ -109,10 +148,57 @@ const parseUserAgent = (ua: string): Partial<DeviceInfo> => {
   } else if (ua.includes('Macintosh')) {
     result.deviceVendor = 'Apple';
     result.deviceModel = 'Mac';
-  } else if (/Samsung|SAMSUNG|SM-[A-Z]/i.test(ua)) {
-    result.deviceVendor = 'Samsung';
-    const model = ua.match(/SM-[A-Z0-9]+/i) || ua.match(/Galaxy\s*[^;)\s]*/i);
-    result.deviceModel = model?.[0]?.trim() || 'Galaxy';
+  } else if (/Android/.test(ua)) {
+    // Extract Android device info
+    const buildMatch = ua.match(/;\s*([^;)]+)\s*Build/i);
+    
+    if (buildMatch) {
+      const deviceString = buildMatch[1].trim();
+      
+      // Known vendors
+      const vendorMap: { [key: string]: string } = {
+        'SM-': 'Samsung', 'Galaxy': 'Samsung', 'SAMSUNG': 'Samsung',
+        'Infinix': 'Infinix', 'TECNO': 'Tecno', 'itel': 'Itel', 'ITEL': 'Itel',
+        'Redmi': 'Xiaomi', 'Mi ': 'Xiaomi', 'POCO': 'Xiaomi', 'M2': 'Xiaomi',
+        'Pixel': 'Google', 'HUAWEI': 'Huawei', 'VOG-': 'Huawei', 'ELE-': 'Huawei',
+        'OPPO': 'Oppo', 'CPH': 'Oppo', 'RMX': 'Realme', 'realme': 'Realme',
+        'vivo': 'Vivo', 'V2': 'Vivo', 'OnePlus': 'OnePlus', 'LE2': 'OnePlus',
+        'Nokia': 'Nokia', 'TA-': 'Nokia', 'Motorola': 'Motorola', 'moto': 'Motorola',
+        'LG-': 'LG', 'LM-': 'LG', 'Sony': 'Sony', 'Xperia': 'Sony',
+        'ASUS': 'Asus', 'ZS': 'Asus', 'Lenovo': 'Lenovo', 'ZTE': 'ZTE', 'HTC': 'HTC',
+      };
+      
+      // Friendly names for common models
+      const friendlyNames: { [key: string]: string } = {
+        'X6528': 'Infinix HOT 40i', 'X6831': 'Infinix HOT 40 Pro',
+        'X6711': 'Infinix Smart 8', 'X6515': 'Infinix HOT 30i', 'X669': 'Infinix HOT 20',
+        'SM-A546': 'Galaxy A54', 'SM-A536': 'Galaxy A53', 'SM-A346': 'Galaxy A34',
+        'SM-A236': 'Galaxy A23', 'SM-A146': 'Galaxy A14', 'SM-A047': 'Galaxy A04s',
+        'SM-S918': 'Galaxy S23 Ultra', 'SM-S916': 'Galaxy S23+', 'SM-S911': 'Galaxy S23',
+      };
+      
+      let vendor = 'Android';
+      for (const [prefix, vendorName] of Object.entries(vendorMap)) {
+        if (deviceString.includes(prefix)) {
+          vendor = vendorName;
+          break;
+        }
+      }
+      
+      let model = deviceString;
+      for (const [modelNum, friendly] of Object.entries(friendlyNames)) {
+        if (deviceString.includes(modelNum)) {
+          model = friendly;
+          break;
+        }
+      }
+      
+      result.deviceVendor = vendor;
+      result.deviceModel = model;
+    } else {
+      result.deviceVendor = 'Android';
+      result.deviceModel = isMobile ? 'Phone' : 'Tablet';
+    }
   } else if (result.deviceType === 'desktop') {
     if (result.osName === 'Windows') {
       result.deviceVendor = 'Windows';
@@ -126,21 +212,6 @@ const parseUserAgent = (ua: string): Partial<DeviceInfo> => {
     } else {
       result.deviceVendor = 'Desktop';
       result.deviceModel = 'PC';
-    }
-  } else if (ua.includes('Android')) {
-    const androidModel = ua.match(/;\s*([^;)]+?)\s*(?:Build|MIUI)/i);
-    if (androidModel && androidModel[1]) {
-      const modelName = androidModel[1].trim();
-      if (modelName !== 'K' && modelName !== 'wv' && modelName.length > 2) {
-        result.deviceVendor = 'Android';
-        result.deviceModel = modelName;
-      } else {
-        result.deviceVendor = 'Android';
-        result.deviceModel = 'Mobile';
-      }
-    } else {
-      result.deviceVendor = 'Android';
-      result.deviceModel = 'Mobile';
     }
   } else {
     result.deviceVendor = result.osName || 'Unknown';
