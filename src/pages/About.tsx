@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowLeft, TrendingUp, Target, Eye, Sparkles, Shield, Heart, Rocket, BarChart3, Brain, Video, BookOpen, Trophy, Calculator, Bot, Globe, Palette, Zap, Lock, FileText } from 'lucide-react';
+import { ArrowLeft, TrendingUp, Target, Eye, Sparkles, Shield, Heart, Rocket, BarChart3, Brain, Video, BookOpen, Trophy, Calculator, Bot, Globe, Palette, Zap, Lock, FileText, HelpCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -215,6 +215,12 @@ const About: React.FC = () => {
                 <Button variant="outline" className="w-full justify-start gap-2">
                   <FileText className="w-4 h-4 text-profit" />
                   {t('termsOfService')}
+                </Button>
+              </Link>
+              <Link to="/aide" className="flex-1">
+                <Button variant="outline" className="w-full justify-start gap-2">
+                  <HelpCircle className="w-4 h-4 text-profit" />
+                  {t('help') || 'Aide'}
                 </Button>
               </Link>
             </div>

@@ -208,14 +208,6 @@ const Landing = () => {
     { icon: Users, title: t('landingSupportLabel'), desc: t('landingHelpAvailable') },
   ];
 
-  const faqs = [
-    { question: t('landingFaq1Q'), answer: t('landingFaq1A') },
-    { question: t('landingFaq2Q'), answer: t('landingFaq2A') },
-    { question: t('landingFaq3Q'), answer: t('landingFaq3A') },
-    { question: t('landingFaq4Q'), answer: t('landingFaq4A') },
-    { question: t('landingFaq5Q'), answer: t('landingFaq5A') },
-    { question: t('landingFaq6Q'), answer: t('landingFaq6A') }
-  ];
 
   return (
     <div className="min-h-screen bg-background relative overflow-x-hidden">
@@ -589,43 +581,6 @@ const Landing = () => {
           </div>
         </section>
 
-        {/* FAQ Section */}
-        <section id="faq" className="py-24 sm:py-32">
-          <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-            <ScrollReveal animation="fade-up">
-              <div className="text-center mb-16">
-                <span className="text-sm text-primary font-medium mb-4 block">
-                  {t('landingFaq')}
-                </span>
-                <h2 className="text-3xl sm:text-4xl font-bold text-foreground">
-                  {t('landingFaqTitle')}
-                </h2>
-              </div>
-            </ScrollReveal>
-            
-            <ScrollReveal animation="fade-up" delay={100}>
-              <Accordion type="single" collapsible className="space-y-3">
-                {faqs.map((faq, index) => (
-                  <AccordionItem 
-                    key={index} 
-                    value={`faq-${index}`}
-                    className="border border-border/50 rounded-2xl bg-card/30 px-6 overflow-hidden data-[state=open]:bg-card/60 transition-colors"
-                  >
-                    <AccordionTrigger className="text-left text-foreground hover:no-underline py-5 [&[data-state=open]>svg]:rotate-180">
-                      <span className="flex items-center gap-3">
-                        <HelpCircle className="w-5 h-5 text-primary flex-shrink-0" />
-                        <span className="font-medium">{faq.question}</span>
-                      </span>
-                    </AccordionTrigger>
-                    <AccordionContent className="text-muted-foreground pb-5 pl-8">
-                      {faq.answer}
-                    </AccordionContent>
-                  </AccordionItem>
-                ))}
-              </Accordion>
-            </ScrollReveal>
-          </div>
-        </section>
 
         {/* CTA Section */}
         <section className="py-24 sm:py-32 bg-card/20">
