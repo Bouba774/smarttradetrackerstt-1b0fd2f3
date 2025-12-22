@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useSessionSettings, DEFAULT_SESSION_HOURS, SessionHours } from '@/hooks/useSessionSettings';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Clock, RotateCcw, Settings2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -15,6 +14,13 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 interface SessionSettingsCardProps {
   onUpdate?: () => void;
@@ -44,18 +50,14 @@ const SessionSettingsCard: React.FC<SessionSettingsCardProps> = ({ onUpdate }) =
     },
   ];
 
-  const handleSave = () => {
-    // Validate hours
-    for (const session of sessions) {
-      const hours = localHours[session.key];
-      if (hours.start < 0 || hours.start > 23 || hours.end < 0 || hours.end > 23) {
-        toast.error(language === 'fr' 
-          ? 'Les heures doivent être entre 0 et 23' 
-          : 'Hours must be between 0 and 23');
-        return;
-      }
-    }
+  // Generate hours array (0-23)
+  const hours = Array.from({ length: 24 }, (_, i) => i);
 
+  const formatHour = (hour: number) => {
+    return `${hour.toString().padStart(2, '0')}:00`;
+  };
+
+  const handleSave = () => {
     saveSessionHours(localHours);
     setOpen(false);
     toast.success(language === 'fr' 
@@ -107,47 +109,63 @@ const SessionSettingsCard: React.FC<SessionSettingsCardProps> = ({ onUpdate }) =
                 <div className={`w-3 h-3 rounded-full ${session.color}`} />
                 <Label className="font-medium">{session.label}</Label>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
                 <div className="flex-1">
-                  <Label className="text-xs text-muted-foreground">
+                  <Label className="text-xs text-muted-foreground mb-1 block">
                     {language === 'fr' ? 'Début' : 'Start'}
                   </Label>
-                  <Input
-                    type="number"
-                    min={0}
-                    max={23}
-                    value={localHours[session.key].start}
-                    onChange={(e) => setLocalHours({
+                  <Select
+                    value={localHours[session.key].start.toString()}
+                    onValueChange={(value) => setLocalHours({
                       ...localHours,
                       [session.key]: {
                         ...localHours[session.key],
-                        start: parseInt(e.target.value) || 0,
+                        start: parseInt(value),
                       },
                     })}
-                    className="mt-1"
-                  />
+                  >
+                    <SelectTrigger className="w-full">
+                      <Clock className="w-4 h-4 mr-2 text-muted-foreground" />
+                      <SelectValue placeholder="00:00" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {hours.map((hour) => (
+                        <SelectItem key={hour} value={hour.toString()}>
+                          {formatHour(hour)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-                <span className="text-muted-foreground pt-6">-</span>
+                <span className="text-muted-foreground pt-5">→</span>
                 <div className="flex-1">
-                  <Label className="text-xs text-muted-foreground">
+                  <Label className="text-xs text-muted-foreground mb-1 block">
                     {language === 'fr' ? 'Fin' : 'End'}
                   </Label>
-                  <Input
-                    type="number"
-                    min={0}
-                    max={23}
-                    value={localHours[session.key].end}
-                    onChange={(e) => setLocalHours({
+                  <Select
+                    value={localHours[session.key].end.toString()}
+                    onValueChange={(value) => setLocalHours({
                       ...localHours,
                       [session.key]: {
                         ...localHours[session.key],
-                        end: parseInt(e.target.value) || 0,
+                        end: parseInt(value),
                       },
                     })}
-                    className="mt-1"
-                  />
+                  >
+                    <SelectTrigger className="w-full">
+                      <Clock className="w-4 h-4 mr-2 text-muted-foreground" />
+                      <SelectValue placeholder="00:00" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {hours.map((hour) => (
+                        <SelectItem key={hour} value={hour.toString()}>
+                          {formatHour(hour)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-                <span className="text-xs text-muted-foreground pt-6">UTC</span>
+                <span className="text-xs text-muted-foreground pt-5 font-medium">UTC</span>
               </div>
             </div>
           ))}
