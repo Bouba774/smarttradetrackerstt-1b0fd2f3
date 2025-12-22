@@ -64,21 +64,35 @@ const clamp = (value: number, min: number, max: number): number => {
   return Math.min(Math.max(value, min), max);
 };
 
-// Utility: Format duration from minutes
-const formatDuration = (minutes: number): string => {
-  if (!Number.isFinite(minutes) || minutes <= 0) return '0m';
+// Utility: Format duration from seconds
+const formatDurationFromSeconds = (seconds: number): string => {
+  if (!Number.isFinite(seconds) || seconds <= 0) return '0s';
   
-  const totalMinutes = Math.floor(minutes);
-  const days = Math.floor(totalMinutes / (60 * 24));
-  const hours = Math.floor((totalMinutes % (60 * 24)) / 60);
-  const mins = totalMinutes % 60;
+  const totalSeconds = Math.floor(seconds);
+  
+  // If less than 1 minute, show seconds
+  if (totalSeconds < 60) {
+    return `${totalSeconds}s`;
+  }
+  
+  const days = Math.floor(totalSeconds / (60 * 60 * 24));
+  const hours = Math.floor((totalSeconds % (60 * 60 * 24)) / (60 * 60));
+  const mins = Math.floor((totalSeconds % (60 * 60)) / 60);
+  const secs = totalSeconds % 60;
   
   const parts: string[] = [];
   if (days > 0) parts.push(`${days}j`);
   if (hours > 0) parts.push(`${hours}h`);
-  if (mins > 0 || parts.length === 0) parts.push(`${mins}m`);
+  if (mins > 0) parts.push(`${mins}m`);
+  // Only show seconds if no larger unit and seconds > 0
+  if (parts.length === 0 && secs > 0) parts.push(`${secs}s`);
   
-  return parts.join(' ');
+  return parts.length > 0 ? parts.join(' ') : '0s';
+};
+
+// Legacy function for backward compatibility
+const formatDuration = (minutes: number): string => {
+  return formatDurationFromSeconds(minutes * 60);
 };
 
 // Calculate streaks from sorted trades
@@ -361,13 +375,18 @@ export const useAdvancedStats = (trades: Trade[]): AdvancedStats => {
       (sum, t) => sum + (t.duration_seconds ?? 0), 
       0
     );
-    const totalDurationMinutes = totalDurationSeconds / 60;
     
+    // Calculate average duration in seconds
+    const avgDurationSeconds = tradesWithDuration.length > 0 
+      ? totalDurationSeconds / tradesWithDuration.length 
+      : 0;
+    
+    // Use seconds-based formatting for accurate display
     const avgTradeDuration = tradesWithDuration.length > 0 
-      ? formatDuration(totalDurationMinutes / tradesWithDuration.length) 
-      : '0m';
+      ? formatDurationFromSeconds(avgDurationSeconds) 
+      : '0s';
     
-    const totalTimeInPosition = formatDuration(totalDurationMinutes);
+    const totalTimeInPosition = formatDurationFromSeconds(totalDurationSeconds);
 
     // ==========================================
     // RETURN FINAL STATS

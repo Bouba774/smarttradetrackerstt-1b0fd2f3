@@ -127,32 +127,30 @@ export const usePerformanceHeatmap = (trades: Trade[], language: string = 'fr'):
     const tradedDays = byDay.filter(d => d.trades > 0);
     const tradedHours = byHour.filter(h => h.trades > 0);
 
-    // Find best day (highest PnL)
-    const bestDay = tradedDays.length > 0
-      ? tradedDays.reduce((best, curr) => curr.pnl > best.pnl ? curr : best)
+    // Find best day (highest PnL) - only if positive
+    const positiveDays = tradedDays.filter(d => d.pnl > 0);
+    const bestDay = positiveDays.length > 0
+      ? positiveDays.reduce((best, curr) => curr.pnl > best.pnl ? curr : best)
       : null;
     
-    // Find worst day (lowest PnL) - but only if there are multiple days or the PnL is negative
-    // If only one day traded with positive PnL, there is no "worst" day
-    let worstDay = null;
-    if (tradedDays.length > 1) {
-      worstDay = tradedDays.reduce((worst, curr) => curr.pnl < worst.pnl ? curr : worst);
-    } else if (tradedDays.length === 1 && tradedDays[0].pnl < 0) {
-      worstDay = tradedDays[0];
-    }
-    
-    // Find best hour (highest PnL)
-    const bestHour = tradedHours.length > 0
-      ? tradedHours.reduce((best, curr) => curr.pnl > best.pnl ? curr : best)
+    // Find worst day - ONLY if PnL is actually negative (< 0)
+    // A positive day can NEVER be "worst"
+    const negativeDays = tradedDays.filter(d => d.pnl < 0);
+    const worstDay = negativeDays.length > 0
+      ? negativeDays.reduce((worst, curr) => curr.pnl < worst.pnl ? curr : worst)
       : null;
     
-    // Find worst hour - same logic as worst day
-    let worstHour = null;
-    if (tradedHours.length > 1) {
-      worstHour = tradedHours.reduce((worst, curr) => curr.pnl < worst.pnl ? curr : worst);
-    } else if (tradedHours.length === 1 && tradedHours[0].pnl < 0) {
-      worstHour = tradedHours[0];
-    }
+    // Find best hour (highest PnL) - only if positive
+    const positiveHours = tradedHours.filter(h => h.pnl > 0);
+    const bestHour = positiveHours.length > 0
+      ? positiveHours.reduce((best, curr) => curr.pnl > best.pnl ? curr : best)
+      : null;
+    
+    // Find worst hour - ONLY if PnL is actually negative
+    const negativeHours = tradedHours.filter(h => h.pnl < 0);
+    const worstHour = negativeHours.length > 0
+      ? negativeHours.reduce((worst, curr) => curr.pnl < worst.pnl ? curr : worst)
+      : null;
 
     return {
       cells,

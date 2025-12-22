@@ -115,23 +115,41 @@ const AIDailySummaryCard: React.FC<AIDailySummaryCardProps> = ({ trades }) => {
             </ul>
           </div>
 
-          {/* Improvements */}
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <AlertCircle className="w-4 h-4 text-primary" />
-              <span className="text-sm font-medium text-foreground">
-                {language === 'fr' ? 'À améliorer' : 'To Improve'}
-              </span>
+          {/* Improvements - show positive message if none */}
+          {summary.improvements.length > 0 ? (
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <AlertCircle className="w-4 h-4 text-primary" />
+                <span className="text-sm font-medium text-foreground">
+                  {language === 'fr' ? 'À améliorer' : 'To Improve'}
+                </span>
+              </div>
+              <ul className="space-y-1">
+                {summary.improvements.map((improvement, idx) => (
+                  <li key={idx} className="text-sm text-muted-foreground pl-6 relative">
+                    <span className="absolute left-2 top-1.5 w-1.5 h-1.5 rounded-full bg-primary" />
+                    {improvement}
+                  </li>
+                ))}
+              </ul>
             </div>
-            <ul className="space-y-1">
-              {summary.improvements.map((improvement, idx) => (
-                <li key={idx} className="text-sm text-muted-foreground pl-6 relative">
-                  <span className="absolute left-2 top-1.5 w-1.5 h-1.5 rounded-full bg-primary" />
-                  {improvement}
-                </li>
-              ))}
-            </ul>
-          </div>
+          ) : (
+            <div className="p-3 rounded-lg bg-profit/10 border border-profit/20">
+              <div className="flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 text-profit" />
+                <span className="text-sm font-medium text-profit">
+                  {language === 'fr' 
+                    ? 'Excellent ! Aucun point d\'amélioration détecté' 
+                    : 'Excellent! No improvements needed'}
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1 pl-6">
+                {language === 'fr' 
+                  ? 'Continue comme ça, tu respectes parfaitement ton plan de trading !' 
+                  : 'Keep it up, you\'re perfectly following your trading plan!'}
+              </p>
+            </div>
+          )}
 
           {/* Encouragement */}
           <div className="p-3 rounded-lg bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/20">

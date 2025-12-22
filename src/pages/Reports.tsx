@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import AIDailySummaryCard from '@/components/AIDailySummaryCard';
+import SessionSettingsCard from '@/components/SessionSettingsCard';
 import RewardChestsDisplay from '@/components/RewardChestsDisplay';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subMonths, addMonths, isWithinInterval, parseISO, getDay } from 'date-fns';
 import { fr, enUS } from 'date-fns/locale';
@@ -365,6 +366,7 @@ const Reports: React.FC = () => {
               <div className="flex items-center gap-2">
                 <Globe className="w-5 h-5 text-primary" />
                 <h3 className="font-display font-semibold text-foreground">{t('sessionAnalysis')}</h3>
+                <SessionSettingsCard />
               </div>
               {sessionAnalysis.bestSessionBadge && (
                 <span className="text-xs bg-primary/20 text-primary px-2 py-1 rounded-full">

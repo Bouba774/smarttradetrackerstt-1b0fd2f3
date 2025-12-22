@@ -87,14 +87,33 @@ export const useDisciplineScore = (trades: Trade[]): DisciplineAnalysis => {
       noOvertrading,
     };
 
-    // Calculate overall score (weighted average)
-    const overallScore = Math.round(
-      (slRespect * 0.25) + 
-      (tpRespect * 0.20) + 
-      (planRespect * 0.20) + 
-      (riskManagement * 0.20) + 
-      (noOvertrading * 0.15)
-    );
+    // Calculate overall score (weighted average only on filled criteria)
+    // A criterion is considered "filled" if there's data to evaluate it
+    const hasSlData = trades.length > 0;
+    const hasTpData = trades.length > 0;
+    const hasSetupData = trades.length > 0;
+    const hasRiskData = trades.length > 0;
+    const hasOvertradingData = daysTraded > 0;
+
+    // Calculate weighted score only on criteria that are actively measured
+    // If a user has 0% on a metric because they haven't used it yet vs deliberately not using it
+    const weights = {
+      sl: hasSlData ? 0.25 : 0,
+      tp: hasTpData ? 0.20 : 0,
+      plan: hasSetupData ? 0.20 : 0,
+      risk: hasRiskData ? 0.20 : 0,
+      overtrading: hasOvertradingData ? 0.15 : 0,
+    };
+
+    const totalWeight = weights.sl + weights.tp + weights.plan + weights.risk + weights.overtrading;
+
+    const overallScore = totalWeight > 0 ? Math.round(
+      ((slRespect * weights.sl) + 
+       (tpRespect * weights.tp) + 
+       (planRespect * weights.plan) + 
+       (riskManagement * weights.risk) + 
+       (noOvertrading * weights.overtrading)) / totalWeight
+    ) : 0;
 
     // Calculate daily discipline history
     const dailyScores: Record<string, { score: number; trades: number }> = {};

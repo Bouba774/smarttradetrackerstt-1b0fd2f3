@@ -21,25 +21,60 @@ export interface SessionAnalysis {
   totalBySession: Record<MarketSession, number>;
 }
 
-// Session hours in UTC
-const SESSION_HOURS = {
+export interface SessionHoursConfig {
+  asia: { start: number; end: number };
+  london: { start: number; end: number };
+  newYork: { start: number; end: number };
+}
+
+// Default session hours in UTC
+const DEFAULT_SESSION_HOURS: SessionHoursConfig = {
   asia: { start: 0, end: 8 },      // 00:00 - 08:00 UTC
   london: { start: 7, end: 16 },   // 07:00 - 16:00 UTC
   newYork: { start: 12, end: 21 }, // 12:00 - 21:00 UTC
 };
 
-const getSession = (hour: number): MarketSession => {
-  // Check for overlap periods first
-  if (hour >= 12 && hour < 16) return 'overlap'; // London-NY overlap
-  if (hour >= 7 && hour < 8) return 'overlap';   // Asia-London overlap
+const getSession = (hour: number, sessionHours: SessionHoursConfig): MarketSession => {
+  const { asia, london, newYork } = sessionHours;
   
-  if (hour >= SESSION_HOURS.london.start && hour < SESSION_HOURS.london.end) return 'london';
-  if (hour >= SESSION_HOURS.newYork.start && hour < SESSION_HOURS.newYork.end) return 'newYork';
+  // Check for overlap periods first
+  const inLondon = hour >= london.start && hour < london.end;
+  const inNewYork = hour >= newYork.start && hour < newYork.end;
+  const inAsia = hour >= asia.start && hour < asia.end;
+  
+  // London-NY overlap
+  if (inLondon && inNewYork) return 'overlap';
+  // Asia-London overlap  
+  if (inAsia && inLondon) return 'overlap';
+  
+  if (inLondon) return 'london';
+  if (inNewYork) return 'newYork';
+  if (inAsia) return 'asia';
+  
+  // Default to asia for hours outside defined sessions
   return 'asia';
 };
 
-export const useSessionAnalysis = (trades: Trade[], language: string = 'fr'): SessionAnalysis => {
+export const useSessionAnalysis = (
+  trades: Trade[], 
+  language: string = 'fr',
+  customSessionHours?: SessionHoursConfig
+): SessionAnalysis => {
   return useMemo(() => {
+    // Use custom hours or defaults
+    const sessionHours = customSessionHours || (() => {
+      // Try to load from localStorage
+      try {
+        const saved = localStorage.getItem('smart-trade-tracker-session-hours');
+        if (saved) {
+          return { ...DEFAULT_SESSION_HOURS, ...JSON.parse(saved) };
+        }
+      } catch (e) {
+        console.error('Error loading session hours:', e);
+      }
+      return DEFAULT_SESSION_HOURS;
+    })();
+
     const sessionData: Record<MarketSession, { trades: Trade[]; pnl: number; wins: number; losses: number }> = {
       london: { trades: [], pnl: 0, wins: 0, losses: 0 },
       newYork: { trades: [], pnl: 0, wins: 0, losses: 0 },
@@ -51,7 +86,7 @@ export const useSessionAnalysis = (trades: Trade[], language: string = 'fr'): Se
     trades.forEach(trade => {
       const tradeDate = parseISO(trade.trade_date);
       const hour = getHours(tradeDate);
-      const session = getSession(hour);
+      const session = getSession(hour, sessionHours);
       
       sessionData[session].trades.push(trade);
       sessionData[session].pnl += trade.profit_loss || 0;
