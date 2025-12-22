@@ -1,53 +1,33 @@
-import { useEffect, useState } from 'react';
-import { useNavigation, useLocation } from 'react-router-dom';
+import { useEffect, useState, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 
 const NavigationProgress = () => {
-  const navigation = useNavigation();
   const location = useLocation();
   const [progress, setProgress] = useState(0);
   const [isVisible, setIsVisible] = useState(false);
+  const prevPathRef = useRef(location.pathname);
 
   useEffect(() => {
-    if (navigation.state === 'loading') {
-      setIsVisible(true);
-      setProgress(0);
+    // Only trigger animation if path actually changed
+    if (prevPathRef.current !== location.pathname) {
+      prevPathRef.current = location.pathname;
       
-      // Animate progress
-      const timer1 = setTimeout(() => setProgress(30), 50);
-      const timer2 = setTimeout(() => setProgress(60), 150);
-      const timer3 = setTimeout(() => setProgress(80), 300);
+      setIsVisible(true);
+      setProgress(30);
+      
+      const timer1 = setTimeout(() => setProgress(60), 50);
+      const timer2 = setTimeout(() => setProgress(100), 100);
+      const timer3 = setTimeout(() => {
+        setIsVisible(false);
+        setProgress(0);
+      }, 300);
       
       return () => {
         clearTimeout(timer1);
         clearTimeout(timer2);
         clearTimeout(timer3);
       };
-    } else {
-      if (isVisible) {
-        setProgress(100);
-        const hideTimer = setTimeout(() => {
-          setIsVisible(false);
-          setProgress(0);
-        }, 200);
-        return () => clearTimeout(hideTimer);
-      }
     }
-  }, [navigation.state, isVisible]);
-
-  // Also trigger on location change for lazy-loaded components
-  useEffect(() => {
-    setIsVisible(true);
-    setProgress(30);
-    
-    const timer1 = setTimeout(() => setProgress(60), 50);
-    const timer2 = setTimeout(() => setProgress(100), 100);
-    const timer3 = setTimeout(() => setIsVisible(false), 300);
-    
-    return () => {
-      clearTimeout(timer1);
-      clearTimeout(timer2);
-      clearTimeout(timer3);
-    };
   }, [location.pathname]);
 
   if (!isVisible) return null;
