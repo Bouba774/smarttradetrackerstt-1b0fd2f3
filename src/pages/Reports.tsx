@@ -9,6 +9,7 @@ import { useSelfSabotage } from '@/hooks/useSelfSabotage';
 import { useDisciplineScore } from '@/hooks/useDisciplineScore';
 import { usePerformanceHeatmap } from '@/hooks/usePerformanceHeatmap';
 import { useEmotionCorrelation } from '@/hooks/useEmotionCorrelation';
+import { useNYTime } from '@/hooks/useNYTime';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -19,7 +20,7 @@ import RewardChestsDisplay from '@/components/RewardChestsDisplay';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subMonths, addMonths, isWithinInterval, parseISO, getDay } from 'date-fns';
 import { fr, enUS } from 'date-fns/locale';
 import {
-  AreaChart, Area, BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, RadarChart, PolarGrid, PolarAngleAxis, Radar,
+  AreaChart, Area, BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, RadarChart, PolarGrid, PolarAngleAxis, Radar, Legend,
 } from 'recharts';
 import {
   FileText,
@@ -40,6 +41,7 @@ import {
   Flame,
   AlertCircle,
   Heart,
+  Radio,
 } from 'lucide-react';
 import GaugeChart from '@/components/ui/GaugeChart';
 
@@ -131,6 +133,7 @@ const Reports: React.FC = () => {
   const disciplineScore = useDisciplineScore(periodTrades);
   const heatmap = usePerformanceHeatmap(periodTrades, language);
   const emotionCorrelation = useEmotionCorrelation(periodTrades);
+  const nyTimeInfo = useNYTime(60000); // Update every minute
 
   // Calculate basic statistics
   const stats = useMemo(() => {
@@ -386,6 +389,43 @@ const Reports: React.FC = () => {
 
           {/* Session Analysis */}
           <div className="glass-card p-6 animate-fade-in">
+            {/* Live Session Indicator */}
+            <div className="flex items-center justify-between p-3 mb-4 rounded-lg bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20">
+              <div className="flex items-center gap-3">
+                <div className="relative">
+                  <Radio className="w-5 h-5 text-primary" />
+                  <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-profit rounded-full animate-pulse" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">
+                    {language === 'fr' ? 'Heure New York' : 'New York Time'}
+                  </p>
+                  <p className="font-mono text-lg font-bold text-foreground">{nyTimeInfo.formattedTime}</p>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="text-xs text-muted-foreground">
+                  {language === 'fr' ? 'Session active' : 'Active session'}
+                </p>
+                <div className="flex items-center gap-2">
+                  <div 
+                    className="w-2 h-2 rounded-full" 
+                    style={{ 
+                      backgroundColor: nyTimeInfo.currentSession !== 'none' 
+                        ? ((SESSION_CONFIG[sessionAnalysis.mode] as any)[nyTimeInfo.currentSession]?.color || 'hsl(var(--primary))')
+                        : 'hsl(var(--muted-foreground))'
+                    }} 
+                  />
+                  <span className={cn(
+                    "font-medium",
+                    nyTimeInfo.currentSession !== 'none' ? "text-primary" : "text-muted-foreground"
+                  )}>
+                    {nyTimeInfo.sessionLabel[language as 'fr' | 'en']}
+                  </span>
+                </div>
+              </div>
+            </div>
+
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <Globe className="w-5 h-5 text-primary" />
@@ -405,13 +445,25 @@ const Reports: React.FC = () => {
               {sessionAnalysis.sessions.map(session => {
                 const config = SESSION_CONFIG[sessionAnalysis.mode];
                 const sessionInfo = (config as any)[session.session] || SESSION_NAMES[session.session] || SESSION_NAMES.none;
+                const isActive = nyTimeInfo.currentSession === session.session;
                 return (
-                  <div key={session.session} className="p-3 rounded-lg bg-secondary/30">
+                  <div 
+                    key={session.session} 
+                    className={cn(
+                      "p-3 rounded-lg bg-secondary/30 transition-all",
+                      isActive && "ring-2 ring-primary ring-offset-2 ring-offset-background"
+                    )}
+                  >
                     <div className="flex items-center gap-2 mb-2">
                       <div className="w-2 h-2 rounded-full" style={{ backgroundColor: sessionInfo.color }} />
                       <span className="text-sm font-medium text-foreground">
                         {sessionInfo[language as 'fr' | 'en']}
                       </span>
+                      {isActive && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary text-primary-foreground">
+                          LIVE
+                        </span>
+                      )}
                     </div>
                     <div className="space-y-1">
                       <div className="flex justify-between text-xs">
@@ -432,59 +484,129 @@ const Reports: React.FC = () => {
               })}
             </div>
             
-            {/* Session Distribution Chart */}
-            {sessionAnalysis.sessions.filter(s => s.trades > 0).length > 0 && (
-              <div>
-                <h4 className="text-sm font-medium text-muted-foreground mb-3">
-                  {language === 'fr' ? 'Distribution des trades' : 'Trade Distribution'}
-                </h4>
-                <div className="h-[200px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                      data={sessionAnalysis.sessions.filter(s => s.trades > 0).map(s => {
-                        const config = SESSION_CONFIG[sessionAnalysis.mode];
-                        const sessionInfo = (config as any)[s.session] || SESSION_NAMES[s.session] || SESSION_NAMES.none;
-                        return {
-                          name: sessionInfo[language as 'fr' | 'en'],
-                          trades: s.trades,
-                          wins: s.wins,
-                          losses: s.losses,
-                          winRate: s.winRate,
-                          color: sessionInfo.color,
-                        };
-                      })}
-                      layout="vertical"
-                      margin={{ top: 5, right: 20, left: 70, bottom: 5 }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
-                      <XAxis type="number" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} />
-                      <YAxis 
-                        type="category" 
-                        dataKey="name" 
-                        tick={{ fontSize: 11, fill: 'hsl(var(--foreground))' }}
-                        width={65}
-                      />
-                      <Tooltip
-                        contentStyle={{
-                          backgroundColor: 'hsl(var(--popover))',
-                          border: '1px solid hsl(var(--border))',
-                          borderRadius: '8px',
-                          fontSize: '12px',
-                        }}
-                        labelStyle={{ color: 'hsl(var(--foreground))' }}
-                        formatter={(value: number, name: string) => {
-                          if (name === 'wins') return [value, language === 'fr' ? 'Gains' : 'Wins'];
-                          if (name === 'losses') return [value, language === 'fr' ? 'Pertes' : 'Losses'];
-                          return [value, name];
-                        }}
-                      />
-                      <Bar dataKey="wins" stackId="a" fill="hsl(var(--profit))" name="wins" radius={[0, 0, 0, 0]} />
-                      <Bar dataKey="losses" stackId="a" fill="hsl(var(--loss))" name="losses" radius={[0, 4, 4, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
+            {/* Charts Grid: Distribution + PnL Pie */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Session Distribution Chart */}
+              {sessionAnalysis.sessions.filter(s => s.trades > 0).length > 0 && (
+                <div>
+                  <h4 className="text-sm font-medium text-muted-foreground mb-3">
+                    {language === 'fr' ? 'Distribution des trades' : 'Trade Distribution'}
+                  </h4>
+                  <div className="h-[200px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart
+                        data={sessionAnalysis.sessions.filter(s => s.trades > 0).map(s => {
+                          const config = SESSION_CONFIG[sessionAnalysis.mode];
+                          const sessionInfo = (config as any)[s.session] || SESSION_NAMES[s.session] || SESSION_NAMES.none;
+                          return {
+                            name: sessionInfo[language as 'fr' | 'en'],
+                            trades: s.trades,
+                            wins: s.wins,
+                            losses: s.losses,
+                            winRate: s.winRate,
+                            color: sessionInfo.color,
+                          };
+                        })}
+                        layout="vertical"
+                        margin={{ top: 5, right: 20, left: 70, bottom: 5 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
+                        <XAxis type="number" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} />
+                        <YAxis 
+                          type="category" 
+                          dataKey="name" 
+                          tick={{ fontSize: 11, fill: 'hsl(var(--foreground))' }}
+                          width={65}
+                        />
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: 'hsl(var(--popover))',
+                            border: '1px solid hsl(var(--border))',
+                            borderRadius: '8px',
+                            fontSize: '12px',
+                          }}
+                          labelStyle={{ color: 'hsl(var(--foreground))' }}
+                          formatter={(value: number, name: string) => {
+                            if (name === 'wins') return [value, language === 'fr' ? 'Gains' : 'Wins'];
+                            if (name === 'losses') return [value, language === 'fr' ? 'Pertes' : 'Losses'];
+                            return [value, name];
+                          }}
+                        />
+                        <Bar dataKey="wins" stackId="a" fill="hsl(var(--profit))" name="wins" radius={[0, 0, 0, 0]} />
+                        <Bar dataKey="losses" stackId="a" fill="hsl(var(--loss))" name="losses" radius={[0, 4, 4, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+
+              {/* PnL Distribution Pie Chart */}
+              {sessionAnalysis.sessions.filter(s => s.pnl !== 0).length > 0 && (
+                <div>
+                  <h4 className="text-sm font-medium text-muted-foreground mb-3">
+                    {language === 'fr' ? 'Répartition des profits' : 'Profit Distribution'}
+                  </h4>
+                  <div className="h-[200px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={sessionAnalysis.sessions
+                            .filter(s => s.pnl > 0)
+                            .map(s => {
+                              const config = SESSION_CONFIG[sessionAnalysis.mode];
+                              const sessionInfo = (config as any)[s.session] || SESSION_NAMES[s.session] || SESSION_NAMES.none;
+                              return {
+                                name: sessionInfo[language as 'fr' | 'en'],
+                                value: Math.abs(s.pnl),
+                                color: sessionInfo.color,
+                                session: s.session,
+                              };
+                            })}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={40}
+                          outerRadius={70}
+                          paddingAngle={2}
+                          dataKey="value"
+                          label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                          labelLine={{ stroke: 'hsl(var(--muted-foreground))', strokeWidth: 1 }}
+                        >
+                          {sessionAnalysis.sessions
+                            .filter(s => s.pnl > 0)
+                            .map((s, index) => {
+                              const config = SESSION_CONFIG[sessionAnalysis.mode];
+                              const sessionInfo = (config as any)[s.session] || SESSION_NAMES[s.session] || SESSION_NAMES.none;
+                              return <Cell key={`cell-${index}`} fill={sessionInfo.color} />;
+                            })}
+                        </Pie>
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: 'hsl(var(--popover))',
+                            border: '1px solid hsl(var(--border))',
+                            borderRadius: '8px',
+                            fontSize: '12px',
+                          }}
+                          formatter={(value: number) => [formatAmount(value, true), 'PnL']}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                  {sessionAnalysis.sessions.filter(s => s.pnl < 0).length > 0 && (
+                    <div className="mt-2 text-xs text-muted-foreground text-center">
+                      {language === 'fr' ? 'Sessions en perte: ' : 'Losing sessions: '}
+                      {sessionAnalysis.sessions
+                        .filter(s => s.pnl < 0)
+                        .map(s => {
+                          const config = SESSION_CONFIG[sessionAnalysis.mode];
+                          const sessionInfo = (config as any)[s.session] || SESSION_NAMES[s.session] || SESSION_NAMES.none;
+                          return `${sessionInfo[language as 'fr' | 'en']} (${formatAmount(s.pnl, true)})`;
+                        })
+                        .join(', ')}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Strategy Analysis */}
