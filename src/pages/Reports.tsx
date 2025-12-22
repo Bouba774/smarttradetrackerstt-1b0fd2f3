@@ -48,11 +48,15 @@ type ViewMode = 'week' | 'month';
 const DAYS_FR = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
 const DAYS_EN = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-const SESSION_NAMES = {
+const SESSION_NAMES: Record<string, { fr: string; en: string; color: string }> = {
   london: { fr: 'Londres', en: 'London', color: 'hsl(var(--primary))' },
   newYork: { fr: 'New York', en: 'New York', color: 'hsl(var(--profit))' },
   asia: { fr: 'Asie', en: 'Asia', color: 'hsl(217, 91%, 60%)' },
   overlap: { fr: 'Chevauche.', en: 'Overlap', color: 'hsl(280, 70%, 50%)' },
+  sydney: { fr: 'Sydney', en: 'Sydney', color: 'hsl(45, 93%, 47%)' },
+  tokyo: { fr: 'Tokyo', en: 'Tokyo', color: 'hsl(0, 84%, 60%)' },
+  londonClose: { fr: 'London Close', en: 'London Close', color: 'hsl(180, 70%, 45%)' },
+  none: { fr: 'Hors session', en: 'Off session', color: 'hsl(var(--muted-foreground))' },
 };
 
 const Reports: React.FC = () => {
