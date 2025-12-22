@@ -3,6 +3,7 @@ import Header from './Header';
 import AppSidebar from './AppSidebar';
 import Footer from './Footer';
 import AdBanner from '@/components/AdBanner';
+import NavigationProgress from '@/components/NavigationProgress';
 import { useLocation } from 'react-router-dom';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 
@@ -17,6 +18,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   return (
     <SidebarProvider defaultOpen={false}>
+      <NavigationProgress />
       <div className="min-h-screen flex w-full bg-background relative overflow-x-hidden">
         {/* Ambient glow effects - reduced on mobile for performance */}
         <div className="fixed inset-0 pointer-events-none overflow-hidden">
