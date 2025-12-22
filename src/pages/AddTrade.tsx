@@ -45,21 +45,48 @@ const DEFAULT_SETUPS = [
 const TIMEFRAMES = ['M1', 'M5', 'M15', 'M30', 'M45', 'H1', 'H2', 'H3', 'H4', 'D1', 'W1', 'MN'];
 
 const EMOTIONS = [
-  { value: 'calm', label: 'Calme', emoji: '😌' },
-  { value: 'confident', label: 'Confiant', emoji: '💪' },
-  { value: 'stressed', label: 'Stressé', emoji: '😰' },
-  { value: 'impulsive', label: 'Impulsif', emoji: '⚡' },
-  { value: 'fearful', label: 'Craintif', emoji: '😨' },
-  { value: 'greedy', label: 'Avide', emoji: '🤑' },
-  { value: 'patient', label: 'Patient', emoji: '🧘' },
-  { value: 'focused', label: 'Concentré', emoji: '🎯' },
+  { value: 'calm', labelFr: 'Calme', labelEn: 'Calm', emoji: '😌' },
+  { value: 'confident', labelFr: 'Confiant', labelEn: 'Confident', emoji: '💪' },
+  { value: 'stressed', labelFr: 'Stressé', labelEn: 'Stressed', emoji: '😰' },
+  { value: 'impulsive', labelFr: 'Impulsif', labelEn: 'Impulsive', emoji: '⚡' },
+  { value: 'fearful', labelFr: 'Craintif', labelEn: 'Fearful', emoji: '😨' },
+  { value: 'greedy', labelFr: 'Avide', labelEn: 'Greedy', emoji: '🤑' },
+  { value: 'patient', labelFr: 'Patient', labelEn: 'Patient', emoji: '🧘' },
+  { value: 'focused', labelFr: 'Concentré', labelEn: 'Focused', emoji: '🎯' },
+  { value: 'euphoric', labelFr: 'Euphorique', labelEn: 'Euphoric', emoji: '🤩' },
+  { value: 'anxious', labelFr: 'Anxieux', labelEn: 'Anxious', emoji: '😟' },
+  { value: 'frustrated', labelFr: 'Frustré', labelEn: 'Frustrated', emoji: '😤' },
+  { value: 'neutral', labelFr: 'Neutre', labelEn: 'Neutral', emoji: '😐' },
+  { value: 'doubtful', labelFr: 'Hésitant', labelEn: 'Doubtful', emoji: '🤔' },
+  { value: 'disciplined', labelFr: 'Discipliné', labelEn: 'Disciplined', emoji: '🎖️' },
+  { value: 'overconfident', labelFr: 'Trop confiant', labelEn: 'Overconfident', emoji: '😎' },
+  { value: 'tired', labelFr: 'Fatigué', labelEn: 'Tired', emoji: '😴' },
 ];
 
 const TAGS = [
-  'A+ Setup', 'High Probability', 'Plan Respecté', 'Break-even',
-  'FOMO', 'Revenge Trading', 'Overtrading', 'Early Entry',
-  'Late Entry', 'Perfect Execution', 'News Event', 'Session Open',
-  'Session Close', 'Trend Trade', 'Counter-Trend', 'Scalp',
+  { value: 'a_plus_setup', labelFr: 'Setup A+', labelEn: 'A+ Setup' },
+  { value: 'high_probability', labelFr: 'Haute probabilité', labelEn: 'High Probability' },
+  { value: 'plan_followed', labelFr: 'Plan respecté', labelEn: 'Plan Followed' },
+  { value: 'breakeven', labelFr: 'Break-even', labelEn: 'Break-even' },
+  { value: 'fomo', labelFr: 'FOMO', labelEn: 'FOMO' },
+  { value: 'revenge_trading', labelFr: 'Revenge Trading', labelEn: 'Revenge Trading' },
+  { value: 'overtrading', labelFr: 'Overtrading', labelEn: 'Overtrading' },
+  { value: 'early_entry', labelFr: 'Entrée anticipée', labelEn: 'Early Entry' },
+  { value: 'late_entry', labelFr: 'Entrée tardive', labelEn: 'Late Entry' },
+  { value: 'perfect_execution', labelFr: 'Exécution parfaite', labelEn: 'Perfect Execution' },
+  { value: 'news_event', labelFr: 'Événement news', labelEn: 'News Event' },
+  { value: 'session_open', labelFr: 'Ouverture session', labelEn: 'Session Open' },
+  { value: 'session_close', labelFr: 'Clôture session', labelEn: 'Session Close' },
+  { value: 'trend_trade', labelFr: 'Trade tendance', labelEn: 'Trend Trade' },
+  { value: 'counter_trend', labelFr: 'Contre-tendance', labelEn: 'Counter-Trend' },
+  { value: 'scalp', labelFr: 'Scalp', labelEn: 'Scalp' },
+  { value: 'swing', labelFr: 'Swing', labelEn: 'Swing' },
+  { value: 'sl_hit', labelFr: 'SL touché', labelEn: 'SL Hit' },
+  { value: 'tp_hit', labelFr: 'TP touché', labelEn: 'TP Hit' },
+  { value: 'partial_tp', labelFr: 'TP partiel', labelEn: 'Partial TP' },
+  { value: 'moved_sl', labelFr: 'SL déplacé', labelEn: 'Moved SL' },
+  { value: 'killzone', labelFr: 'Killzone', labelEn: 'Killzone' },
+  { value: 'liquidity_grab', labelFr: 'Prise de liquidité', labelEn: 'Liquidity Grab' },
 ];
 
 const AddTrade: React.FC = () => {
@@ -765,7 +792,7 @@ const AddTrade: React.FC = () => {
                   onClick={() => handleInputChange('emotion', emotion.value)}
                 >
                   <span>{emotion.emoji}</span>
-                  {emotion.label}
+                  {language === 'fr' ? emotion.labelFr : emotion.labelEn}
                 </Button>
               ))}
             </div>
@@ -776,15 +803,15 @@ const AddTrade: React.FC = () => {
             <div className="flex flex-wrap gap-2">
               {TAGS.map(tag => (
                 <Badge
-                  key={tag}
-                  variant={selectedTags.includes(tag) ? 'default' : 'outline'}
+                  key={tag.value}
+                  variant={selectedTags.includes(tag.value) ? 'default' : 'outline'}
                   className={cn(
                     "cursor-pointer transition-all",
-                    selectedTags.includes(tag) && "bg-primary hover:bg-primary/90"
+                    selectedTags.includes(tag.value) && "bg-primary hover:bg-primary/90"
                   )}
-                  onClick={() => toggleTag(tag)}
+                  onClick={() => toggleTag(tag.value)}
                 >
-                  {tag}
+                  {language === 'fr' ? tag.labelFr : tag.labelEn}
                 </Badge>
               ))}
             </div>

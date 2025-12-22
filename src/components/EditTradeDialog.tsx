@@ -448,7 +448,7 @@ const EditTradeDialog: React.FC<EditTradeDialogProps> = ({
               <SelectContent className="bg-popover border-border">
                 {EMOTIONS.map(em => (
                   <SelectItem key={em.value} value={em.value}>
-                    {em.emoji} {em.label}
+                    {em.emoji} {language === 'fr' ? em.labelFr : em.labelEn}
                   </SelectItem>
                 ))}
               </SelectContent>
