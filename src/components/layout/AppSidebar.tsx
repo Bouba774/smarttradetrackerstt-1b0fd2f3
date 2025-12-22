@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAdminRole } from '@/hooks/useAdminRole';
@@ -13,7 +13,6 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarHeader,
-  SidebarFooter,
   useSidebar,
 } from '@/components/ui/sidebar';
 import {
@@ -31,13 +30,7 @@ import {
   Settings,
   Info,
   X,
-  Activity,
-  ShieldCheck,
-  Crown,
-  Shield,
 } from 'lucide-react';
-import { APP_VERSION } from '@/lib/version';
-import { Button } from '@/components/ui/button';
 
 const AppSidebar: React.FC = () => {
   const { t, language } = useLanguage();
@@ -47,8 +40,10 @@ const AppSidebar: React.FC = () => {
   const { isAdminVerified, isInAdminMode } = useAdmin();
   const { state, openMobile, setOpenMobile, isMobile } = useSidebar();
   const isOpen = isMobile ? openMobile : state === 'expanded';
+  
+  // Track clicked item for immediate visual feedback
+  const [clickedPath, setClickedPath] = useState<string | null>(null);
 
-  // Remove all admin-only items from regular sidebar - admin mode is accessed secretly via profile page
   const navItems = [
     { path: '/dashboard', icon: LayoutDashboard, label: t('dashboard') },
     { path: '/add-trade', icon: PlusCircle, label: t('addTrade') },
@@ -65,20 +60,33 @@ const AppSidebar: React.FC = () => {
     { path: '/about', icon: Info, label: t('about') },
   ];
 
-  // No admin mode button in sidebar - it's accessed via profile page star icon
+  // Optimized navigation handler - closes sidebar IMMEDIATELY before navigation
+  const handleNavClick = useCallback((e: React.MouseEvent, path: string) => {
+    e.preventDefault();
+    
+    // Immediate visual feedback
+    setClickedPath(path);
+    
+    // Close sidebar FIRST using requestAnimationFrame for UI priority
+    requestAnimationFrame(() => {
+      if (isMobile && openMobile) {
+        setOpenMobile(false);
+      }
+      
+      // Navigate after sidebar close is triggered
+      requestAnimationFrame(() => {
+        navigate(path);
+        // Reset click state after navigation
+        setTimeout(() => setClickedPath(null), 150);
+      });
+    });
+  }, [isMobile, openMobile, setOpenMobile, navigate]);
 
-  const handleNavClick = () => {
-    // Close sidebar on mobile after navigation
-    if (isMobile && openMobile) {
-      setOpenMobile(false);
-    }
-  };
-
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     if (isMobile) {
       setOpenMobile(false);
     }
-  };
+  }, [isMobile, setOpenMobile]);
 
   return (
     <>
@@ -158,22 +166,25 @@ const AppSidebar: React.FC = () => {
                       >
                         <Link
                           to={item.path}
-                          onClick={handleNavClick}
+                          onClick={(e) => handleNavClick(e, item.path)}
                           className={cn(
                             "flex items-center gap-3 px-3 py-3 rounded-lg transition-all duration-200 group relative touch-target",
                             // Desktop collapsed: circular icon buttons
                             !isMobile && !isOpen && "w-10 h-10 p-0 justify-center rounded-full border border-primary/30 hover:border-primary hover:shadow-neon",
-                            isActive
+                            // Click feedback - scale down briefly
+                            clickedPath === item.path && "scale-95 bg-primary/30",
+                            isActive && !clickedPath
                               ? !isMobile && !isOpen 
                                 ? "bg-primary/20 text-primary shadow-neon border-primary"
                                 : "bg-primary/20 text-primary shadow-neon border-l-2 border-primary"
-                              : "text-muted-foreground hover:text-primary hover:bg-primary/10 active:bg-primary/20",
+                              : !clickedPath && "text-muted-foreground hover:text-primary hover:bg-primary/10 active:bg-primary/20",
                             isMobile || isOpen ? "hover:translate-x-1" : ""
                           )}
                         >
                           <Icon className={cn(
-                            "w-5 h-5 shrink-0 transition-all duration-300",
+                            "w-5 h-5 shrink-0 transition-all duration-150",
                             isActive && "scale-110",
+                            clickedPath === item.path && "scale-90",
                             !isMobile && !isOpen && "w-4 h-4"
                           )} />
                           {(isMobile || isOpen) && (
@@ -181,7 +192,7 @@ const AppSidebar: React.FC = () => {
                               {item.label}
                             </span>
                           )}
-                          {isActive && (isMobile || isOpen) && (
+                          {isActive && (isMobile || isOpen) && !clickedPath && (
                             <div className="absolute right-2 w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
                           )}
                         </Link>
