@@ -1,5 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSessionSettings, SessionType } from './useSessionSettings';
+import { 
+  getNYHour, 
+  getNYMinute, 
+  getKillzoneForNYHour,
+  SESSION_LABELS,
+  getTradingDayStart,
+  getTradingDayEnd,
+  getNYTime,
+} from '@/lib/timezone';
 
 interface NYTimeInfo {
   nyTime: Date;
@@ -8,69 +17,65 @@ interface NYTimeInfo {
   formattedTime: string;
   currentSession: SessionType;
   sessionLabel: { fr: string; en: string };
+  tradingDayStart: Date;
+  tradingDayEnd: Date;
+  isAfterReset: boolean;
 }
-
-const SESSION_LABELS: Record<SessionType, { fr: string; en: string }> = {
-  sydney: { fr: 'Sydney', en: 'Sydney' },
-  tokyo: { fr: 'Tokyo', en: 'Tokyo' },
-  london: { fr: 'Londres', en: 'London' },
-  newYork: { fr: 'New York', en: 'New York' },
-  asia: { fr: 'Killzone Asie', en: 'Asia Killzone' },
-  londonClose: { fr: 'London Close', en: 'London Close' },
-  overlap: { fr: 'Chevauchement', en: 'Overlap' },
-  none: { fr: 'Hors session', en: 'Off session' },
-};
 
 /**
  * Hook to get current New York time and active session in real-time
+ * Uses Intl API for accurate timezone conversion regardless of user's local timezone
  */
 export const useNYTime = (refreshInterval = 1000): NYTimeInfo => {
   const { settings, getSessionForHour } = useSessionSettings();
   
-  const getNYTime = useCallback(() => {
+  const getNYTimeInfo = useCallback((): NYTimeInfo => {
     const now = new Date();
+    const nyHour = getNYHour(now);
+    const nyMinute = getNYMinute(now);
+    const nyTime = getNYTime(now);
     
-    // Create formatter for NY timezone
-    const nyFormatter = new Intl.DateTimeFormat('en-US', {
-      timeZone: 'America/New_York',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: false,
-    });
-    
-    const parts = nyFormatter.formatToParts(now);
-    const hour = parseInt(parts.find(p => p.type === 'hour')?.value || '0');
-    const minute = parseInt(parts.find(p => p.type === 'minute')?.value || '0');
-    
-    // Create a Date object representing NY time
-    const nyDate = new Date();
-    nyDate.setHours(hour, minute);
-    
-    const currentSession = getSessionForHour(hour);
+    // Determine session based on mode
+    let currentSession: SessionType;
+    if (settings.mode === 'killzones') {
+      currentSession = getKillzoneForNYHour(nyHour);
+    } else {
+      currentSession = getSessionForHour(nyHour);
+    }
     
     // Format time string
-    const formattedTime = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+    const formattedTime = `${nyHour.toString().padStart(2, '0')}:${nyMinute.toString().padStart(2, '0')}`;
+    
+    // Trading day boundaries
+    const tradingDayStart = getTradingDayStart(now);
+    const tradingDayEnd = getTradingDayEnd(now);
+    const isAfterReset = nyHour >= 17;
     
     return {
-      nyTime: nyDate,
-      nyHour: hour,
-      nyMinute: minute,
+      nyTime,
+      nyHour,
+      nyMinute,
       formattedTime,
       currentSession,
       sessionLabel: SESSION_LABELS[currentSession] || SESSION_LABELS.none,
+      tradingDayStart,
+      tradingDayEnd,
+      isAfterReset,
     };
-  }, [getSessionForHour]);
+  }, [settings.mode, getSessionForHour]);
   
-  const [timeInfo, setTimeInfo] = useState<NYTimeInfo>(getNYTime);
+  const [timeInfo, setTimeInfo] = useState<NYTimeInfo>(getNYTimeInfo);
   
   useEffect(() => {
+    // Update immediately
+    setTimeInfo(getNYTimeInfo());
+    
     const interval = setInterval(() => {
-      setTimeInfo(getNYTime());
+      setTimeInfo(getNYTimeInfo());
     }, refreshInterval);
     
     return () => clearInterval(interval);
-  }, [getNYTime, refreshInterval]);
+  }, [getNYTimeInfo, refreshInterval]);
   
   return timeInfo;
 };

@@ -41,6 +41,7 @@ export interface AdvancedStats {
   expectancyPercent: number;
   avgRiskReward: number | null; // null = N/A
   avgRiskRewardDisplay: string; // "1:2.5" or "N/A"
+  isRRBelowOne: boolean; // Flag for warning badge when R:R < 1
   
   // Streaks
   longestWinStreak: number;
@@ -308,38 +309,47 @@ export const useAdvancedStats = (trades: Trade[]): AdvancedStats => {
       : 0;
     
     // ==========================================
-    // STEP 8: Performance Indicators
+    // STEP 8: Performance Indicators (FIXED)
     // ==========================================
     // Profit Factor = TotalProfit / TotalLoss
+    // CRITICAL: If losses = 0 and gains > 0, display "∞"
+    //           If gains = 0 and losses = 0, display "0"
     let profitFactor: number | null = null;
-    let profitFactorDisplay = 'N/A';
+    let profitFactorDisplay = '0';
     
-    if (totalLoss > 0) {
+    if (totalLoss > 0 && totalProfit > 0) {
       profitFactor = round(totalProfit / totalLoss, 2);
       profitFactorDisplay = profitFactor.toFixed(2);
-    } else if (totalProfit > 0) {
-      // No losses but has profits = infinity
+    } else if (totalProfit > 0 && totalLoss === 0) {
+      // Has profits but no losses = infinity
       profitFactor = null;
       profitFactorDisplay = '∞';
-    } else {
-      // No trades or no profit/loss
+    } else if (totalProfit === 0 && totalLoss > 0) {
+      // Only losses, no profits
       profitFactor = 0;
-      profitFactorDisplay = '0.00';
+      profitFactorDisplay = '0';
+    } else {
+      // No trades or no profit/loss (both 0)
+      profitFactor = 0;
+      profitFactorDisplay = '0';
     }
     
     // Risk/Reward Ratio = AvgProfit / AvgLoss
+    // CRITICAL: Badge RED if R:R < 1 (handled in UI)
     let avgRiskReward: number | null = null;
     let avgRiskRewardDisplay = 'N/A';
+    let isRRBelowOne = false;
     
-    if (avgLossPerTrade > 0) {
+    if (avgLossPerTrade > 0 && avgProfitPerTrade > 0) {
       avgRiskReward = round(avgProfitPerTrade / avgLossPerTrade, 2);
       avgRiskRewardDisplay = avgRiskReward.toFixed(2);
-    } else if (avgProfitPerTrade > 0) {
+      isRRBelowOne = avgRiskReward < 1;
+    } else if (avgProfitPerTrade > 0 && avgLossPerTrade === 0) {
       avgRiskReward = null;
       avgRiskRewardDisplay = '∞';
     } else {
       avgRiskReward = 0;
-      avgRiskRewardDisplay = '0.00';
+      avgRiskRewardDisplay = '0';
     }
     
     // Expectancy = (WinRate * AvgProfit) - (LossRate * AvgLoss)
@@ -448,6 +458,7 @@ export const useAdvancedStats = (trades: Trade[]): AdvancedStats => {
       expectancyPercent,
       avgRiskReward: avgRiskReward ?? 0,
       avgRiskRewardDisplay,
+      isRRBelowOne,
       longestWinStreak: streaks.longestWin,
       longestLossStreak: streaks.longestLoss,
       currentStreak: streaks.current,

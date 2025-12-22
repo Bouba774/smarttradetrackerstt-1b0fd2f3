@@ -1,7 +1,8 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Trade } from './useTrades';
-import { format, startOfDay, endOfDay, parseISO, isWithinInterval } from 'date-fns';
+import { parseISO } from 'date-fns';
+import { getTradingDayStart, getTradingDayEnd, getNYTime } from '@/lib/timezone';
 
 export interface DailySummary {
   strengths: string[];
@@ -19,6 +20,10 @@ export interface DailySummary {
   noActivity: boolean;
 }
 
+/**
+ * Hook for generating AI daily trading summary
+ * CRITICAL: Uses NY Time for daily reset at 17:00 NY (23:00 Cameroon)
+ */
 export const useAIDailySummary = (trades: Trade[], language: string = 'fr') => {
   const [summary, setSummary] = useState<DailySummary | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -29,14 +34,15 @@ export const useAIDailySummary = (trades: Trade[], language: string = 'fr') => {
     setError(null);
 
     try {
-      // Get today's trades
-      const today = new Date();
+      // CRITICAL: Use NY trading day boundaries (17:00 NY to 17:00 NY next day)
+      const now = new Date();
+      const tradingDayStart = getTradingDayStart(now);
+      const tradingDayEnd = getTradingDayEnd(now);
+      
+      // Filter trades within the current trading day
       const todayTrades = trades.filter(trade => {
         const tradeDate = parseISO(trade.trade_date);
-        return isWithinInterval(tradeDate, {
-          start: startOfDay(today),
-          end: endOfDay(today),
-        });
+        return tradeDate >= tradingDayStart && tradeDate < tradingDayEnd;
       });
 
       // Calculate today's stats - only count closed trades for winrate
@@ -70,11 +76,11 @@ export const useAIDailySummary = (trades: Trade[], language: string = 'fr') => {
         worstTrade: Math.round(worstTrade * 100) / 100,
       };
 
-      // CRITICAL: If no trades, return a specific message
+      // CRITICAL: If no trades, display specific message - NO HALLUCINATION
       if (todayTrades.length === 0) {
         const noActivityMessage = language === 'fr'
-          ? "Aucune activité de trading enregistrée pour cette période."
-          : "No trading activity recorded for this period.";
+          ? "Aucun trade enregistré. Analyse en attente."
+          : "No trades recorded. Analysis pending.";
         
         setSummary({
           strengths: [],
@@ -210,14 +216,13 @@ export const useAIDailySummary = (trades: Trade[], language: string = 'fr') => {
       console.error('Error generating summary:', err);
       setError(err instanceof Error ? err.message : 'Failed to generate summary');
       
-      // Provide fallback summary
-      const today = new Date();
+      // Provide fallback summary using NY trading day
+      const now = new Date();
+      const tradingDayStart = getTradingDayStart(now);
+      const tradingDayEnd = getTradingDayEnd(now);
       const todayTrades = trades.filter(trade => {
         const tradeDate = parseISO(trade.trade_date);
-        return isWithinInterval(tradeDate, {
-          start: startOfDay(today),
-          end: endOfDay(today),
-        });
+        return tradeDate >= tradingDayStart && tradeDate < tradingDayEnd;
       });
 
       const noActivity = todayTrades.length === 0;
