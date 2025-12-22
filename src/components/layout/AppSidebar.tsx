@@ -134,7 +134,7 @@ const AppSidebar: React.FC = () => {
         <SidebarContent className="py-2 sm:py-4 overflow-y-auto">
           <SidebarGroup>
             <SidebarGroupContent>
-              <SidebarMenu>
+              <SidebarMenu className={cn(!isMobile && !isOpen && "flex flex-col items-center gap-2")}>
                 {navItems.map((item, index) => {
                   const Icon = item.icon;
                   const isActive = location.pathname === item.path;
@@ -144,7 +144,8 @@ const AppSidebar: React.FC = () => {
                       key={item.path}
                       className={cn(
                         "opacity-0 translate-x-[-20px]",
-                        isOpen && "animate-[slideInLeft_0.3s_ease-out_forwards]"
+                        isOpen && "animate-[slideInLeft_0.3s_ease-out_forwards]",
+                        !isMobile && !isOpen && "opacity-100 translate-x-0 w-auto"
                       )}
                       style={{ 
                         animationDelay: isOpen ? `${index * 30}ms` : '0ms'
@@ -160,19 +161,27 @@ const AppSidebar: React.FC = () => {
                           onClick={handleNavClick}
                           className={cn(
                             "flex items-center gap-3 px-3 py-3 rounded-lg transition-all duration-200 group relative touch-target",
+                            // Desktop collapsed: circular icon buttons
+                            !isMobile && !isOpen && "w-10 h-10 p-0 justify-center rounded-full border border-primary/30 hover:border-primary hover:shadow-neon",
                             isActive
-                              ? "bg-primary/20 text-primary shadow-neon border-l-2 border-primary"
-                              : "text-muted-foreground hover:text-primary hover:bg-primary/10 hover:translate-x-1 active:bg-primary/20"
+                              ? !isMobile && !isOpen 
+                                ? "bg-primary/20 text-primary shadow-neon border-primary"
+                                : "bg-primary/20 text-primary shadow-neon border-l-2 border-primary"
+                              : "text-muted-foreground hover:text-primary hover:bg-primary/10 active:bg-primary/20",
+                            isMobile || isOpen ? "hover:translate-x-1" : ""
                           )}
                         >
                           <Icon className={cn(
                             "w-5 h-5 shrink-0 transition-all duration-300",
-                            isActive && "scale-110"
+                            isActive && "scale-110",
+                            !isMobile && !isOpen && "w-4 h-4"
                           )} />
-                          <span className="text-sm font-medium truncate">
-                            {item.label}
-                          </span>
-                          {isActive && (
+                          {(isMobile || isOpen) && (
+                            <span className="text-sm font-medium truncate">
+                              {item.label}
+                            </span>
+                          )}
+                          {isActive && (isMobile || isOpen) && (
                             <div className="absolute right-2 w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
                           )}
                         </Link>
@@ -184,15 +193,6 @@ const AppSidebar: React.FC = () => {
             </SidebarGroupContent>
           </SidebarGroup>
         </SidebarContent>
-
-        <SidebarFooter className="p-3 sm:p-4 border-t border-primary/20 space-y-3">
-          
-          <div className="text-center">
-            <p className="text-[10px] text-muted-foreground">
-              Smart Trade Tracker V{APP_VERSION}
-            </p>
-          </div>
-        </SidebarFooter>
       </Sidebar>
     </>
   );
