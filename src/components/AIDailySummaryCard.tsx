@@ -70,28 +70,28 @@ const AIDailySummaryCard: React.FC<AIDailySummaryCardProps> = ({ trades }) => {
             <div className="text-center">
               <p className={cn(
                 "text-2xl font-display font-bold",
-                summary.todayStats.trades === 0 
+                summary.noActivity 
                   ? "text-muted-foreground"
                   : summary.todayStats.winRate >= 50 
                     ? "text-profit" 
                     : "text-loss"
               )}>
-                {summary.todayStats.trades === 0 ? '-' : `${summary.todayStats.winRate}%`}
+                {summary.todayStats.winRateDisplay}
               </p>
               <p className="text-xs text-muted-foreground">Winrate</p>
             </div>
             <div className="text-center">
               <p className={cn(
                 "text-2xl font-display font-bold",
-                summary.todayStats.pnl === 0 
+                summary.noActivity 
                   ? "text-muted-foreground"
                   : summary.todayStats.pnl > 0 
                     ? "text-profit" 
-                    : "text-loss"
+                    : summary.todayStats.pnl < 0
+                      ? "text-loss"
+                      : "text-foreground"
               )}>
-                {summary.todayStats.pnl === 0 && summary.todayStats.trades === 0 
-                  ? '-' 
-                  : formatAmount(summary.todayStats.pnl, true)}
+                {summary.todayStats.pnlDisplay}
               </p>
               <p className="text-xs text-muted-foreground">PnL</p>
             </div>

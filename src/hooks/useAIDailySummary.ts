@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Trade } from './useTrades';
-import { format, isToday, startOfDay, endOfDay, parseISO, isWithinInterval } from 'date-fns';
+import { format, startOfDay, endOfDay, parseISO, isWithinInterval } from 'date-fns';
 
 export interface DailySummary {
   strengths: string[];
@@ -10,10 +10,13 @@ export interface DailySummary {
   todayStats: {
     trades: number;
     winRate: number;
+    winRateDisplay: string;
     pnl: number;
+    pnlDisplay: string;
     bestTrade: number;
     worstTrade: number;
   };
+  noActivity: boolean;
 }
 
 export const useAIDailySummary = (trades: Trade[], language: string = 'fr') => {
@@ -53,19 +56,59 @@ export const useAIDailySummary = (trades: Trade[], language: string = 'fr') => {
       const worstTrade = pnls.filter(p => p < 0).length > 0 ? Math.min(...pnls.filter(p => p < 0)) : 0;
 
       // Winrate is calculated on closed trades only
+      const winRate = closedTrades.length > 0 ? Math.round((wins / closedTrades.length) * 100) : 0;
+      
       const todayStats = {
         trades: todayTrades.length,
-        winRate: closedTrades.length > 0 ? Math.round((wins / closedTrades.length) * 100) : 0,
+        winRate,
+        winRateDisplay: closedTrades.length > 0 ? `${winRate}%` : '--',
         pnl: Math.round(pnl * 100) / 100,
+        pnlDisplay: tradesWithPnl.length > 0 
+          ? `${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)}` 
+          : '--',
         bestTrade: Math.round(bestTrade * 100) / 100,
         worstTrade: Math.round(worstTrade * 100) / 100,
       };
 
-      // Build context for AI
-      const emotions = todayTrades.map(t => t.emotions).filter(Boolean);
+      // CRITICAL: If no trades, return a specific message
+      if (todayTrades.length === 0) {
+        const noActivityMessage = language === 'fr'
+          ? "Aucune activité de trading enregistrée pour cette période."
+          : "No trading activity recorded for this period.";
+        
+        setSummary({
+          strengths: [],
+          improvements: [],
+          encouragement: noActivityMessage,
+          todayStats: {
+            trades: 0,
+            winRate: 0,
+            winRateDisplay: '--',
+            pnl: 0,
+            pnlDisplay: '--',
+            bestTrade: 0,
+            worstTrade: 0,
+          },
+          noActivity: true,
+        });
+        return;
+      }
+
+      // Extract improvement points from trade notes and emotions
+      const tradeNotes = todayTrades
+        .map(t => t.notes)
+        .filter((note): note is string => !!note && note.trim().length > 0);
+      
+      const tradeEmotions = todayTrades
+        .map(t => t.emotions)
+        .filter((emotion): emotion is string => !!emotion && emotion.trim().length > 0);
+
       const setups = todayTrades.map(t => t.setup || t.custom_setup).filter(Boolean);
       const hasStopLoss = todayTrades.filter(t => t.stop_loss !== null).length;
       const hasTakeProfit = todayTrades.filter(t => t.take_profit !== null).length;
+      const disciplineRate = todayTrades.length > 0 
+        ? Math.round(((hasStopLoss + hasTakeProfit) / (todayTrades.length * 2)) * 100) 
+        : 0;
 
       const contextData = {
         trades: todayStats.trades,
@@ -73,39 +116,53 @@ export const useAIDailySummary = (trades: Trade[], language: string = 'fr') => {
         losses,
         winRate: todayStats.winRate,
         pnl: todayStats.pnl,
-        emotions: emotions.join(', '),
+        emotions: tradeEmotions.join(', '),
+        notes: tradeNotes.slice(0, 5).join(' | '), // Limit notes to avoid too long context
         setups: setups.join(', '),
-        disciplineRate: todayTrades.length > 0 
-          ? Math.round(((hasStopLoss + hasTakeProfit) / (todayTrades.length * 2)) * 100) 
-          : 0,
+        disciplineRate,
         bestTrade,
         worstTrade,
       };
 
       const systemPrompt = language === 'fr' 
         ? `Tu es un coach de trading bienveillant. Analyse les performances de trading du jour et donne un résumé en français.
+           
+           RÈGLES IMPORTANTES:
+           - Les "improvements" doivent être extraits des notes et émotions RÉELLES des trades si disponibles
+           - Si les notes mentionnent des erreurs, les inclure dans "improvements"
+           - Sois spécifique basé sur les données réelles, pas générique
+           
            Format ta réponse en JSON avec:
-           - "strengths": array de 2-3 points forts (commence par "Aujourd'hui tu as bien fait...")
-           - "improvements": array de 2-3 axes d'amélioration (commence par "À améliorer demain...")
+           - "strengths": array de 2-3 points forts basés sur les stats réelles
+           - "improvements": array de 2-3 axes d'amélioration basés sur les notes/émotions
            - "encouragement": une phrase motivante personnalisée
-           Sois spécifique et constructif.`
+           
+           Si les notes sont vides, base-toi sur les stats (winrate, discipline, etc.)`
         : `You are a supportive trading coach. Analyze today's trading performance and provide a summary in English.
+           
+           IMPORTANT RULES:
+           - "improvements" must be extracted from REAL trade notes and emotions if available
+           - If notes mention errors, include them in "improvements"
+           - Be specific based on real data, not generic
+           
            Format your response as JSON with:
-           - "strengths": array of 2-3 strengths (start with "Today you did well...")
-           - "improvements": array of 2-3 improvements (start with "To improve tomorrow...")
+           - "strengths": array of 2-3 strengths based on real stats
+           - "improvements": array of 2-3 improvements based on notes/emotions
            - "encouragement": a personalized motivational phrase
-           Be specific and constructive.`;
+           
+           If notes are empty, base on stats (winrate, discipline, etc.)`;
 
-      const userPrompt = `Voici les données de trading du jour:
+      const userPrompt = `Données de trading du jour:
 - Trades: ${contextData.trades}
 - Gains: ${contextData.wins}, Pertes: ${contextData.losses}
 - Winrate: ${contextData.winRate}%
 - PnL total: ${contextData.pnl}$
 - Meilleur trade: ${contextData.bestTrade}$
 - Pire trade: ${contextData.worstTrade}$
-- Émotions: ${contextData.emotions || 'Non renseignées'}
-- Setups utilisés: ${contextData.setups || 'Non renseignés'}
-- Score discipline (SL/TP): ${contextData.disciplineRate}%`;
+- Score discipline (SL/TP): ${contextData.disciplineRate}%
+- Émotions ressenties: ${contextData.emotions || 'Non renseignées'}
+- Notes des trades: ${contextData.notes || 'Aucune note'}
+- Setups utilisés: ${contextData.setups || 'Non renseignés'}`;
 
       const { data, error: fnError } = await supabase.functions.invoke('ai-chat', {
         body: {
@@ -121,7 +178,6 @@ export const useAIDailySummary = (trades: Trade[], language: string = 'fr') => {
       // Parse AI response
       let aiResponse;
       try {
-        // Extract JSON from response
         const jsonMatch = data.response?.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
           aiResponse = JSON.parse(jsonMatch[0]);
@@ -129,23 +185,26 @@ export const useAIDailySummary = (trades: Trade[], language: string = 'fr') => {
           throw new Error('No JSON found in response');
         }
       } catch {
-        // Fallback if parsing fails
+        // Fallback based on actual stats
         aiResponse = {
           strengths: todayStats.winRate >= 50 
-            ? [language === 'fr' ? 'Bon taux de réussite aujourd\'hui' : 'Good win rate today']
-            : [language === 'fr' ? 'Tu as tradé avec discipline' : 'You traded with discipline'],
-          improvements: [
-            language === 'fr' ? 'Continue à respecter ton plan' : 'Keep following your plan',
-          ],
+            ? [language === 'fr' ? `Bon winrate de ${todayStats.winRate}%` : `Good win rate of ${todayStats.winRate}%`]
+            : disciplineRate >= 80
+              ? [language === 'fr' ? 'Bonne discipline avec SL/TP' : 'Good discipline with SL/TP']
+              : [language === 'fr' ? 'Tu as tradé aujourd\'hui' : 'You traded today'],
+          improvements: tradeNotes.length > 0
+            ? [language === 'fr' ? 'Analyse tes notes pour identifier les patterns' : 'Analyze your notes to identify patterns']
+            : [language === 'fr' ? 'Ajoute des notes à tes trades' : 'Add notes to your trades'],
           encouragement: language === 'fr' 
-            ? 'Chaque jour est une opportunité d\'apprentissage!' 
-            : 'Every day is a learning opportunity!',
+            ? 'Chaque trade est une leçon!' 
+            : 'Every trade is a lesson!',
         };
       }
 
       setSummary({
         ...aiResponse,
         todayStats,
+        noActivity: false,
       });
     } catch (err) {
       console.error('Error generating summary:', err);
@@ -161,17 +220,24 @@ export const useAIDailySummary = (trades: Trade[], language: string = 'fr') => {
         });
       });
 
+      const noActivity = todayTrades.length === 0;
+
       setSummary({
-        strengths: [language === 'fr' ? 'Tu as tradé aujourd\'hui' : 'You traded today'],
-        improvements: [language === 'fr' ? 'Continue demain' : 'Keep going tomorrow'],
-        encouragement: language === 'fr' ? 'Reste discipliné!' : 'Stay disciplined!',
+        strengths: noActivity ? [] : [language === 'fr' ? 'Tu as tradé aujourd\'hui' : 'You traded today'],
+        improvements: noActivity ? [] : [language === 'fr' ? 'Continue demain' : 'Keep going tomorrow'],
+        encouragement: noActivity 
+          ? (language === 'fr' ? 'Aucune activité enregistrée.' : 'No activity recorded.')
+          : (language === 'fr' ? 'Reste discipliné!' : 'Stay disciplined!'),
         todayStats: {
           trades: todayTrades.length,
           winRate: 0,
+          winRateDisplay: '--',
           pnl: 0,
+          pnlDisplay: '--',
           bestTrade: 0,
           worstTrade: 0,
         },
+        noActivity,
       });
     } finally {
       setIsLoading(false);

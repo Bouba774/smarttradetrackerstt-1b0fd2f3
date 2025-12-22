@@ -15,11 +15,13 @@ export interface AdvancedStats {
   
   // Win rate
   winrate: number;
+  winrateDisplay: string; // Display format: "65.5%" or "--"
   
   // Profit/Loss
   totalProfit: number;
   totalLoss: number;
   netProfit: number;
+  netProfitDisplay: string; // Display format: "+$500" or "--"
   
   // Best/Worst
   bestProfit: number;
@@ -33,11 +35,12 @@ export interface AdvancedStats {
   
   // Risk metrics
   profitFactor: number | null; // null = infinity (no losses)
-  profitFactorDisplay: string;
+  profitFactorDisplay: string; // "1.50", "∞", or "N/A"
   expectancy: number;
+  expectancyDisplay: string; // "$15.50" or "--"
   expectancyPercent: number;
   avgRiskReward: number | null; // null = N/A
-  avgRiskRewardDisplay: string;
+  avgRiskRewardDisplay: string; // "1:2.5" or "N/A"
   
   // Streaks
   longestWinStreak: number;
@@ -47,10 +50,14 @@ export interface AdvancedStats {
   // Drawdown
   maxDrawdown: number;
   maxDrawdownPercent: number;
+  maxDrawdownDisplay: string; // "-$500 (5.0%)" or "--"
   
   // Time metrics
   avgTradeDuration: string;
   totalTimeInPosition: string;
+  
+  // Flag to indicate if there are any trades
+  hasTrades: boolean;
 }
 
 // Utility: Round to specified decimals
@@ -389,6 +396,29 @@ export const useAdvancedStats = (trades: Trade[]): AdvancedStats => {
     const totalTimeInPosition = formatDurationFromSeconds(totalDurationSeconds);
 
     // ==========================================
+    // BUILD DISPLAY STRINGS
+    // ==========================================
+    const hasTrades = totalTrades > 0;
+    
+    // Winrate display
+    const winrateDisplay = hasTrades ? `${winrate.toFixed(1)}%` : '--';
+    
+    // Net profit display
+    const netProfitDisplay = hasTrades 
+      ? `${netProfit >= 0 ? '+' : ''}$${netProfit.toFixed(2)}` 
+      : '--';
+    
+    // Expectancy display
+    const expectancyDisplay = hasTrades 
+      ? `$${expectancy.toFixed(2)}` 
+      : '--';
+    
+    // Max drawdown display
+    const maxDrawdownDisplay = drawdown.amount > 0 
+      ? `-$${drawdown.amount.toFixed(2)} (${clamp(drawdown.percent, 0, 100).toFixed(1)}%)`
+      : '--';
+
+    // ==========================================
     // RETURN FINAL STATS
     // ==========================================
     return {
@@ -400,9 +430,11 @@ export const useAdvancedStats = (trades: Trade[]): AdvancedStats => {
       buyPositions,
       sellPositions,
       winrate,
+      winrateDisplay,
       totalProfit,
       totalLoss,
       netProfit,
+      netProfitDisplay,
       bestProfit,
       worstLoss,
       avgProfitPerTrade,
@@ -412,6 +444,7 @@ export const useAdvancedStats = (trades: Trade[]): AdvancedStats => {
       profitFactor: profitFactor ?? 0,
       profitFactorDisplay,
       expectancy,
+      expectancyDisplay,
       expectancyPercent,
       avgRiskReward: avgRiskReward ?? 0,
       avgRiskRewardDisplay,
@@ -420,8 +453,10 @@ export const useAdvancedStats = (trades: Trade[]): AdvancedStats => {
       currentStreak: streaks.current,
       maxDrawdown: drawdown.amount,
       maxDrawdownPercent: clamp(drawdown.percent, 0, 100),
+      maxDrawdownDisplay,
       avgTradeDuration,
       totalTimeInPosition,
+      hasTrades,
     };
   }, [trades]);
 };

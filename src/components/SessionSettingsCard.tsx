@@ -1,9 +1,16 @@
 import React, { useState } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { useSessionSettings, DEFAULT_SESSION_HOURS, SessionHours } from '@/hooks/useSessionSettings';
+import { 
+  useSessionSettings, 
+  DEFAULT_SESSION_SETTINGS,
+  SessionMode,
+  ClassicSessions,
+  KillzoneSessions,
+  SessionRange 
+} from '@/hooks/useSessionSettings';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Clock, RotateCcw, Settings2 } from 'lucide-react';
+import { Clock, RotateCcw, Settings2, Zap, TrendingUp } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   Dialog,
@@ -21,6 +28,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface SessionSettingsCardProps {
   onUpdate?: () => void;
@@ -28,59 +36,137 @@ interface SessionSettingsCardProps {
 
 const SessionSettingsCard: React.FC<SessionSettingsCardProps> = ({ onUpdate }) => {
   const { language } = useLanguage();
-  const { sessionHours, saveSessionHours, resetSessionHours } = useSessionSettings();
+  const { settings, saveSettings, resetSettings } = useSessionSettings();
   const [open, setOpen] = useState(false);
-  const [localHours, setLocalHours] = useState<SessionHours>(sessionHours);
+  const [localSettings, setLocalSettings] = useState(settings);
 
-  const sessions = [
-    { 
-      key: 'asia' as const, 
-      label: language === 'fr' ? 'Asie' : 'Asia',
-      color: 'bg-yellow-500'
-    },
-    { 
-      key: 'london' as const, 
-      label: language === 'fr' ? 'Londres' : 'London',
-      color: 'bg-blue-500'
-    },
-    { 
-      key: 'newYork' as const, 
-      label: 'New York',
-      color: 'bg-green-500'
-    },
+  const classicSessions: { key: keyof ClassicSessions; label: string; color: string }[] = [
+    { key: 'sydney', label: 'Sydney', color: 'bg-purple-500' },
+    { key: 'tokyo', label: 'Tokyo', color: 'bg-yellow-500' },
+    { key: 'london', label: language === 'fr' ? 'Londres' : 'London', color: 'bg-blue-500' },
+    { key: 'newYork', label: 'New York', color: 'bg-green-500' },
   ];
 
-  // Generate hours array (0-23)
+  const killzoneSessions: { key: keyof KillzoneSessions; label: string; color: string }[] = [
+    { key: 'asia', label: language === 'fr' ? 'Asie KZ' : 'Asia KZ', color: 'bg-yellow-500' },
+    { key: 'london', label: language === 'fr' ? 'Londres KZ' : 'London KZ', color: 'bg-blue-500' },
+    { key: 'newYork', label: 'NY KZ', color: 'bg-green-500' },
+    { key: 'londonClose', label: 'London Close', color: 'bg-orange-500' },
+  ];
+
   const hours = Array.from({ length: 24 }, (_, i) => i);
 
-  const formatHour = (hour: number) => {
-    return `${hour.toString().padStart(2, '0')}:00`;
-  };
+  const formatHour = (hour: number) => `${hour.toString().padStart(2, '0')}:00`;
 
   const handleSave = () => {
-    saveSessionHours(localHours);
+    saveSettings(localSettings);
     setOpen(false);
     toast.success(language === 'fr' 
-      ? 'Horaires des sessions mis à jour' 
-      : 'Session hours updated');
+      ? 'Paramètres de session mis à jour' 
+      : 'Session settings updated');
     onUpdate?.();
   };
 
   const handleReset = () => {
-    setLocalHours(DEFAULT_SESSION_HOURS);
-    resetSessionHours();
+    setLocalSettings(DEFAULT_SESSION_SETTINGS);
+    resetSettings();
     toast.success(language === 'fr' 
-      ? 'Horaires réinitialisés par défaut' 
-      : 'Hours reset to defaults');
+      ? 'Paramètres réinitialisés' 
+      : 'Settings reset to defaults');
     onUpdate?.();
   };
 
   const handleOpenChange = (newOpen: boolean) => {
     if (newOpen) {
-      setLocalHours(sessionHours);
+      setLocalSettings(settings);
     }
     setOpen(newOpen);
   };
+
+  const updateClassicRange = (session: keyof ClassicSessions, field: 'start' | 'end', value: number) => {
+    setLocalSettings({
+      ...localSettings,
+      classic: {
+        ...localSettings.classic,
+        [session]: {
+          ...localSettings.classic[session],
+          [field]: value,
+        },
+      },
+    });
+  };
+
+  const updateKillzoneRange = (session: keyof KillzoneSessions, field: 'start' | 'end', value: number) => {
+    setLocalSettings({
+      ...localSettings,
+      killzones: {
+        ...localSettings.killzones,
+        [session]: {
+          ...localSettings.killzones[session],
+          [field]: value,
+        },
+      },
+    });
+  };
+
+  const renderSessionRow = (
+    session: { key: string; label: string; color: string },
+    range: SessionRange,
+    onChange: (field: 'start' | 'end', value: number) => void
+  ) => (
+    <div key={session.key} className="space-y-2">
+      <div className="flex items-center gap-2">
+        <div className={`w-3 h-3 rounded-full ${session.color}`} />
+        <Label className="font-medium">{session.label}</Label>
+      </div>
+      <div className="flex items-center gap-3">
+        <div className="flex-1">
+          <Label className="text-xs text-muted-foreground mb-1 block">
+            {language === 'fr' ? 'Début' : 'Start'}
+          </Label>
+          <Select
+            value={range.start.toString()}
+            onValueChange={(value) => onChange('start', parseInt(value))}
+          >
+            <SelectTrigger className="w-full">
+              <Clock className="w-4 h-4 mr-2 text-muted-foreground" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {hours.map((hour) => (
+                <SelectItem key={hour} value={hour.toString()}>
+                  {formatHour(hour)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <span className="text-muted-foreground pt-5">→</span>
+        <div className="flex-1">
+          <Label className="text-xs text-muted-foreground mb-1 block">
+            {language === 'fr' ? 'Fin' : 'End'}
+          </Label>
+          <Select
+            value={range.end.toString()}
+            onValueChange={(value) => onChange('end', parseInt(value))}
+          >
+            <SelectTrigger className="w-full">
+              <Clock className="w-4 h-4 mr-2 text-muted-foreground" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {hours.map((hour) => (
+                <SelectItem key={hour} value={hour.toString()}>
+                  {formatHour(hour)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <span className="text-xs text-muted-foreground pt-5 font-medium">NY</span>
+      </div>
+    </div>
+  );
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -89,98 +175,68 @@ const SessionSettingsCard: React.FC<SessionSettingsCardProps> = ({ onUpdate }) =
           <Settings2 className="w-4 h-4" />
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Clock className="w-5 h-5 text-primary" />
-            {language === 'fr' ? 'Horaires des Sessions' : 'Session Hours'}
+            {language === 'fr' ? 'Sessions de Trading' : 'Trading Sessions'}
           </DialogTitle>
           <DialogDescription>
             {language === 'fr' 
-              ? 'Personnalisez les plages horaires des sessions de marché (UTC)' 
-              : 'Customize market session time ranges (UTC)'}
+              ? 'Horaires basés sur New York Time (EST/EDT) comme référence' 
+              : 'Times are based on New York Time (EST/EDT) as reference'}
           </DialogDescription>
         </DialogHeader>
         
-        <div className="space-y-4 py-4">
-          {sessions.map((session) => (
-            <div key={session.key} className="space-y-2">
-              <div className="flex items-center gap-2">
-                <div className={`w-3 h-3 rounded-full ${session.color}`} />
-                <Label className="font-medium">{session.label}</Label>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="flex-1">
-                  <Label className="text-xs text-muted-foreground mb-1 block">
-                    {language === 'fr' ? 'Début' : 'Start'}
-                  </Label>
-                  <Select
-                    value={localHours[session.key].start.toString()}
-                    onValueChange={(value) => setLocalHours({
-                      ...localHours,
-                      [session.key]: {
-                        ...localHours[session.key],
-                        start: parseInt(value),
-                      },
-                    })}
-                  >
-                    <SelectTrigger className="w-full">
-                      <Clock className="w-4 h-4 mr-2 text-muted-foreground" />
-                      <SelectValue placeholder="00:00" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {hours.map((hour) => (
-                        <SelectItem key={hour} value={hour.toString()}>
-                          {formatHour(hour)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <span className="text-muted-foreground pt-5">→</span>
-                <div className="flex-1">
-                  <Label className="text-xs text-muted-foreground mb-1 block">
-                    {language === 'fr' ? 'Fin' : 'End'}
-                  </Label>
-                  <Select
-                    value={localHours[session.key].end.toString()}
-                    onValueChange={(value) => setLocalHours({
-                      ...localHours,
-                      [session.key]: {
-                        ...localHours[session.key],
-                        end: parseInt(value),
-                      },
-                    })}
-                  >
-                    <SelectTrigger className="w-full">
-                      <Clock className="w-4 h-4 mr-2 text-muted-foreground" />
-                      <SelectValue placeholder="00:00" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {hours.map((hour) => (
-                        <SelectItem key={hour} value={hour.toString()}>
-                          {formatHour(hour)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <span className="text-xs text-muted-foreground pt-5 font-medium">UTC</span>
-              </div>
+        <Tabs 
+          value={localSettings.mode} 
+          onValueChange={(v) => setLocalSettings({ ...localSettings, mode: v as SessionMode })}
+          className="mt-4"
+        >
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="classic" className="gap-2">
+              <TrendingUp className="w-4 h-4" />
+              {language === 'fr' ? 'Classique' : 'Classic'}
+            </TabsTrigger>
+            <TabsTrigger value="killzones" className="gap-2">
+              <Zap className="w-4 h-4" />
+              ICT Killzones
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="classic" className="space-y-4 mt-4">
+            <div className="p-3 rounded-lg bg-secondary/30 text-sm text-muted-foreground mb-4">
+              {language === 'fr' 
+                ? 'Sessions de marché classiques avec détection automatique des chevauchements.' 
+                : 'Classic market sessions with automatic overlap detection.'}
             </div>
-          ))}
+            {classicSessions.map((session) => 
+              renderSessionRow(
+                session,
+                localSettings.classic[session.key],
+                (field, value) => updateClassicRange(session.key, field, value)
+              )
+            )}
+          </TabsContent>
+          
+          <TabsContent value="killzones" className="space-y-4 mt-4">
+            <div className="p-3 rounded-lg bg-primary/10 text-sm mb-4">
+              <p className="font-medium text-primary mb-1">ICT Killzones</p>
+              {language === 'fr' 
+                ? 'Plages horaires optimales pour le trading institutionnel selon la méthodologie ICT.' 
+                : 'Optimal trading windows based on ICT (Inner Circle Trader) methodology.'}
+            </div>
+            {killzoneSessions.map((session) => 
+              renderSessionRow(
+                session,
+                localSettings.killzones[session.key],
+                (field, value) => updateKillzoneRange(session.key, field, value)
+              )
+            )}
+          </TabsContent>
+        </Tabs>
 
-          <div className="p-3 rounded-lg bg-secondary/30 text-sm text-muted-foreground">
-            <p className="font-medium text-foreground mb-1">
-              {language === 'fr' ? 'Chevauchement' : 'Overlap'}
-            </p>
-            {language === 'fr' 
-              ? 'Les périodes où deux sessions se chevauchent seront automatiquement détectées.' 
-              : 'Periods where two sessions overlap will be automatically detected.'}
-          </div>
-        </div>
-
-        <DialogFooter className="flex gap-2">
+        <DialogFooter className="flex gap-2 mt-6">
           <Button variant="outline" onClick={handleReset} className="gap-2">
             <RotateCcw className="w-4 h-4" />
             {language === 'fr' ? 'Défaut' : 'Reset'}

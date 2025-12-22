@@ -1,11 +1,19 @@
 import { useMemo } from 'react';
 import { Trade } from '@/hooks/useTrades';
 import { parseISO, getHours } from 'date-fns';
+import { 
+  useSessionSettings, 
+  SessionType, 
+  utcToNYTime,
+  SessionMode,
+  DEFAULT_SESSION_SETTINGS 
+} from './useSessionSettings';
 
-export type MarketSession = 'london' | 'newYork' | 'asia' | 'overlap';
+export type MarketSession = SessionType;
 
 export interface SessionStats {
-  session: MarketSession;
+  session: SessionType;
+  sessionLabel: string;
   trades: number;
   winRate: number;
   pnl: number;
@@ -16,77 +24,66 @@ export interface SessionStats {
 
 export interface SessionAnalysis {
   sessions: SessionStats[];
-  bestSession: MarketSession | null;
+  bestSession: SessionType | null;
   bestSessionBadge: string;
-  totalBySession: Record<MarketSession, number>;
+  totalBySession: Record<string, number>;
+  mode: SessionMode;
 }
 
-export interface SessionHoursConfig {
-  asia: { start: number; end: number };
-  london: { start: number; end: number };
-  newYork: { start: number; end: number };
-}
-
-// Default session hours in UTC
-const DEFAULT_SESSION_HOURS: SessionHoursConfig = {
-  asia: { start: 0, end: 8 },      // 00:00 - 08:00 UTC
-  london: { start: 7, end: 16 },   // 07:00 - 16:00 UTC
-  newYork: { start: 12, end: 21 }, // 12:00 - 21:00 UTC
-};
-
-const getSession = (hour: number, sessionHours: SessionHoursConfig): MarketSession => {
-  const { asia, london, newYork } = sessionHours;
-  
-  // Check for overlap periods first
-  const inLondon = hour >= london.start && hour < london.end;
-  const inNewYork = hour >= newYork.start && hour < newYork.end;
-  const inAsia = hour >= asia.start && hour < asia.end;
-  
-  // London-NY overlap
-  if (inLondon && inNewYork) return 'overlap';
-  // Asia-London overlap  
-  if (inAsia && inLondon) return 'overlap';
-  
-  if (inLondon) return 'london';
-  if (inNewYork) return 'newYork';
-  if (inAsia) return 'asia';
-  
-  // Default to asia for hours outside defined sessions
-  return 'asia';
+// Session labels by mode and language
+const SESSION_LABELS: Record<SessionMode, Record<string, { fr: string; en: string }>> = {
+  classic: {
+    sydney: { fr: 'Sydney', en: 'Sydney' },
+    tokyo: { fr: 'Tokyo', en: 'Tokyo' },
+    london: { fr: 'Londres', en: 'London' },
+    newYork: { fr: 'New York', en: 'New York' },
+    overlap: { fr: 'Chevauchement', en: 'Overlap' },
+    none: { fr: 'Hors session', en: 'Off session' },
+  },
+  killzones: {
+    asia: { fr: 'Killzone Asie', en: 'Asia Killzone' },
+    london: { fr: 'Killzone Londres', en: 'London Killzone' },
+    newYork: { fr: 'Killzone NY', en: 'NY Killzone' },
+    londonClose: { fr: 'London Close', en: 'London Close' },
+    none: { fr: 'Hors killzone', en: 'Outside Killzone' },
+  },
 };
 
 export const useSessionAnalysis = (
-  trades: Trade[], 
-  language: string = 'fr',
-  customSessionHours?: SessionHoursConfig
+  trades: Trade[],
+  language: string = 'fr'
 ): SessionAnalysis => {
+  const { settings, getSessionForDate } = useSessionSettings();
+  
   return useMemo(() => {
-    // Use custom hours or defaults
-    const sessionHours = customSessionHours || (() => {
-      // Try to load from localStorage
-      try {
-        const saved = localStorage.getItem('smart-trade-tracker-session-hours');
-        if (saved) {
-          return { ...DEFAULT_SESSION_HOURS, ...JSON.parse(saved) };
-        }
-      } catch (e) {
-        console.error('Error loading session hours:', e);
-      }
-      return DEFAULT_SESSION_HOURS;
-    })();
+    const { mode } = settings;
+    
+    // Define which sessions to track based on mode
+    const sessionsToTrack: SessionType[] = mode === 'classic'
+      ? ['sydney', 'tokyo', 'london', 'newYork', 'overlap', 'none']
+      : ['asia', 'london', 'newYork', 'londonClose', 'none'];
+    
+    // Initialize data structure
+    const sessionData: Record<SessionType, { 
+      trades: Trade[]; 
+      pnl: number; 
+      wins: number; 
+      losses: number;
+    }> = {} as any;
+    
+    sessionsToTrack.forEach(session => {
+      sessionData[session] = { trades: [], pnl: 0, wins: 0, losses: 0 };
+    });
 
-    const sessionData: Record<MarketSession, { trades: Trade[]; pnl: number; wins: number; losses: number }> = {
-      london: { trades: [], pnl: 0, wins: 0, losses: 0 },
-      newYork: { trades: [], pnl: 0, wins: 0, losses: 0 },
-      asia: { trades: [], pnl: 0, wins: 0, losses: 0 },
-      overlap: { trades: [], pnl: 0, wins: 0, losses: 0 },
-    };
-
-    // Categorize trades by session
+    // Categorize trades by session using NY Time reference
     trades.forEach(trade => {
       const tradeDate = parseISO(trade.trade_date);
-      const hour = getHours(tradeDate);
-      const session = getSession(hour, sessionHours);
+      const session = getSessionForDate(tradeDate);
+      
+      // Ensure session exists in our data structure
+      if (!sessionData[session]) {
+        sessionData[session] = { trades: [], pnl: 0, wins: 0, losses: 0 };
+      }
       
       sessionData[session].trades.push(trade);
       sessionData[session].pnl += trade.profit_loss || 0;
@@ -95,68 +92,83 @@ export const useSessionAnalysis = (
     });
 
     // Calculate stats for each session
-    const sessions: SessionStats[] = (['london', 'newYork', 'asia', 'overlap'] as MarketSession[]).map(session => {
-      const data = sessionData[session];
-      const totalTrades = data.trades.length;
-      const winRate = totalTrades > 0 ? Math.round((data.wins / totalTrades) * 100) : 0;
-      
-      // Calculate drawdown
-      let maxDrawdown = 0;
-      let peak = 0;
-      let runningPnl = 0;
-      data.trades
-        .sort((a, b) => new Date(a.trade_date).getTime() - new Date(b.trade_date).getTime())
-        .forEach(trade => {
-          runningPnl += trade.profit_loss || 0;
-          if (runningPnl > peak) peak = runningPnl;
-          const drawdown = peak - runningPnl;
-          if (drawdown > maxDrawdown) maxDrawdown = drawdown;
-        });
+    const labels = SESSION_LABELS[mode];
+    const sessions: SessionStats[] = sessionsToTrack
+      .filter(session => sessionData[session].trades.length > 0 || session !== 'none')
+      .map(session => {
+        const data = sessionData[session];
+        const totalTrades = data.trades.length;
+        
+        // Winrate calculation: wins / total closed trades
+        const closedTrades = data.trades.filter(t => 
+          t.result === 'win' || t.result === 'loss' || t.result === 'breakeven'
+        );
+        const winRate = closedTrades.length > 0 
+          ? Math.round((data.wins / closedTrades.length) * 100) 
+          : 0;
+        
+        // Calculate drawdown
+        let maxDrawdown = 0;
+        let peak = 0;
+        let runningPnl = 0;
+        data.trades
+          .sort((a, b) => new Date(a.trade_date).getTime() - new Date(b.trade_date).getTime())
+          .forEach(trade => {
+            runningPnl += trade.profit_loss || 0;
+            if (runningPnl > peak) peak = runningPnl;
+            const drawdown = peak - runningPnl;
+            if (drawdown > maxDrawdown) maxDrawdown = drawdown;
+          });
 
-      return {
-        session,
-        trades: totalTrades,
-        winRate,
-        pnl: Math.round(data.pnl * 100) / 100,
-        drawdown: Math.round(maxDrawdown * 100) / 100,
-        wins: data.wins,
-        losses: data.losses,
-      };
-    });
+        const label = labels[session] || labels.none;
+        
+        return {
+          session,
+          sessionLabel: language === 'fr' ? label.fr : label.en,
+          trades: totalTrades,
+          winRate,
+          pnl: Math.round(data.pnl * 100) / 100,
+          drawdown: Math.round(maxDrawdown * 100) / 100,
+          wins: data.wins,
+          losses: data.losses,
+        };
+      });
 
     // Find best session (highest win rate with at least 3 trades)
-    let bestSession: MarketSession | null = null;
+    let bestSession: SessionType | null = null;
     let bestWinRate = 0;
     sessions.forEach(s => {
-      if (s.trades >= 3 && s.winRate > bestWinRate) {
+      if (s.trades >= 3 && s.winRate > bestWinRate && s.session !== 'none') {
         bestWinRate = s.winRate;
         bestSession = s.session;
       }
     });
 
-    const sessionNames: Record<MarketSession, { fr: string; en: string }> = {
-      london: { fr: 'Londres', en: 'London' },
-      newYork: { fr: 'New York', en: 'New York' },
-      asia: { fr: 'Asie', en: 'Asia' },
-      overlap: { fr: 'Chevauchement', en: 'Overlap' },
-    };
-
     const bestSessionBadge = bestSession 
       ? language === 'fr' 
-        ? `🏆 Meilleur trader session ${sessionNames[bestSession].fr}`
-        : `🏆 Best ${sessionNames[bestSession].en} Session Trader`
+        ? `🏆 Meilleur trader ${labels[bestSession]?.fr || bestSession}`
+        : `🏆 Best ${labels[bestSession]?.en || bestSession} Trader`
       : '';
+
+    // Build total by session
+    const totalBySession: Record<string, number> = {};
+    sessionsToTrack.forEach(session => {
+      totalBySession[session] = sessionData[session]?.trades.length || 0;
+    });
 
     return {
       sessions,
       bestSession,
       bestSessionBadge,
-      totalBySession: {
-        london: sessionData.london.trades.length,
-        newYork: sessionData.newYork.trades.length,
-        asia: sessionData.asia.trades.length,
-        overlap: sessionData.overlap.trades.length,
-      },
+      totalBySession,
+      mode,
     };
-  }, [trades, language]);
+  }, [trades, language, settings, getSessionForDate]);
 };
+
+// Legacy export for backward compatibility
+export interface SessionHoursConfig {
+  asia: { start: number; end: number };
+  london: { start: number; end: number };
+  newYork: { start: number; end: number };
+}
