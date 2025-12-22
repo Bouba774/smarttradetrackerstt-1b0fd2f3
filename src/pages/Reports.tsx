@@ -48,6 +48,26 @@ type ViewMode = 'week' | 'month';
 const DAYS_FR = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
 const DAYS_EN = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
+// Session display config for each mode
+const SESSION_CONFIG = {
+  classic: {
+    sydney: { fr: 'Sydney', en: 'Sydney', color: 'hsl(45, 93%, 47%)' },
+    tokyo: { fr: 'Tokyo', en: 'Tokyo', color: 'hsl(0, 84%, 60%)' },
+    london: { fr: 'Londres', en: 'London', color: 'hsl(var(--primary))' },
+    newYork: { fr: 'New York', en: 'New York', color: 'hsl(var(--profit))' },
+    overlap: { fr: 'Chevauche.', en: 'Overlap', color: 'hsl(280, 70%, 50%)' },
+    none: { fr: 'Hors session', en: 'Off session', color: 'hsl(var(--muted-foreground))' },
+  },
+  killzones: {
+    asia: { fr: 'KZ Asie', en: 'Asia KZ', color: 'hsl(217, 91%, 60%)' },
+    london: { fr: 'KZ Londres', en: 'London KZ', color: 'hsl(var(--primary))' },
+    newYork: { fr: 'KZ New York', en: 'NY KZ', color: 'hsl(var(--profit))' },
+    londonClose: { fr: 'London Close', en: 'London Close', color: 'hsl(180, 70%, 45%)' },
+    none: { fr: 'Hors KZ', en: 'Outside KZ', color: 'hsl(var(--muted-foreground))' },
+  },
+} as const;
+
+// Flat version for backward compatibility
 const SESSION_NAMES: Record<string, { fr: string; en: string; color: string }> = {
   london: { fr: 'Londres', en: 'London', color: 'hsl(var(--primary))' },
   newYork: { fr: 'New York', en: 'New York', color: 'hsl(var(--profit))' },
@@ -370,6 +390,9 @@ const Reports: React.FC = () => {
               <div className="flex items-center gap-2">
                 <Globe className="w-5 h-5 text-primary" />
                 <h3 className="font-display font-semibold text-foreground">{t('sessionAnalysis')}</h3>
+                <span className="text-xs bg-secondary text-muted-foreground px-2 py-0.5 rounded">
+                  {sessionAnalysis.mode === 'killzones' ? 'ICT Killzones' : 'Sessions classiques'}
+                </span>
                 <SessionSettingsCard />
               </div>
               {sessionAnalysis.bestSessionBadge && (
@@ -378,32 +401,90 @@ const Reports: React.FC = () => {
                 </span>
               )}
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {sessionAnalysis.sessions.map(session => (
-                <div key={session.session} className="p-3 rounded-lg bg-secondary/30">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: SESSION_NAMES[session.session].color }} />
-                    <span className="text-sm font-medium text-foreground">
-                      {SESSION_NAMES[session.session][language as 'fr' | 'en']}
-                    </span>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+              {sessionAnalysis.sessions.map(session => {
+                const config = SESSION_CONFIG[sessionAnalysis.mode];
+                const sessionInfo = (config as any)[session.session] || SESSION_NAMES[session.session] || SESSION_NAMES.none;
+                return (
+                  <div key={session.session} className="p-3 rounded-lg bg-secondary/30">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-2 h-2 rounded-full" style={{ backgroundColor: sessionInfo.color }} />
+                      <span className="text-sm font-medium text-foreground">
+                        {sessionInfo[language as 'fr' | 'en']}
+                      </span>
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-xs">
+                        <span className="text-muted-foreground">Winrate</span>
+                        <span className={cn(session.winRate >= 50 ? "text-profit" : "text-loss")}>{session.winRate}%</span>
+                      </div>
+                      <div className="flex justify-between text-xs">
+                        <span className="text-muted-foreground">PnL</span>
+                        <span className={cn(session.pnl >= 0 ? "text-profit" : "text-loss")}><ConfidentialValue>{formatAmount(session.pnl, true)}</ConfidentialValue></span>
+                      </div>
+                      <div className="flex justify-between text-xs">
+                        <span className="text-muted-foreground">Trades</span>
+                        <span className="text-foreground">{session.trades}</span>
+                      </div>
+                    </div>
                   </div>
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-xs">
-                      <span className="text-muted-foreground">Winrate</span>
-                      <span className={cn(session.winRate >= 50 ? "text-profit" : "text-loss")}>{session.winRate}%</span>
-                    </div>
-                    <div className="flex justify-between text-xs">
-                      <span className="text-muted-foreground">PnL</span>
-                      <span className={cn(session.pnl >= 0 ? "text-profit" : "text-loss")}><ConfidentialValue>{formatAmount(session.pnl, true)}</ConfidentialValue></span>
-                    </div>
-                    <div className="flex justify-between text-xs">
-                      <span className="text-muted-foreground">Trades</span>
-                      <span className="text-foreground">{session.trades}</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
+            
+            {/* Session Distribution Chart */}
+            {sessionAnalysis.sessions.filter(s => s.trades > 0).length > 0 && (
+              <div>
+                <h4 className="text-sm font-medium text-muted-foreground mb-3">
+                  {language === 'fr' ? 'Distribution des trades' : 'Trade Distribution'}
+                </h4>
+                <div className="h-[200px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={sessionAnalysis.sessions.filter(s => s.trades > 0).map(s => {
+                        const config = SESSION_CONFIG[sessionAnalysis.mode];
+                        const sessionInfo = (config as any)[s.session] || SESSION_NAMES[s.session] || SESSION_NAMES.none;
+                        return {
+                          name: sessionInfo[language as 'fr' | 'en'],
+                          trades: s.trades,
+                          wins: s.wins,
+                          losses: s.losses,
+                          winRate: s.winRate,
+                          color: sessionInfo.color,
+                        };
+                      })}
+                      layout="vertical"
+                      margin={{ top: 5, right: 20, left: 70, bottom: 5 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
+                      <XAxis type="number" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} />
+                      <YAxis 
+                        type="category" 
+                        dataKey="name" 
+                        tick={{ fontSize: 11, fill: 'hsl(var(--foreground))' }}
+                        width={65}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: 'hsl(var(--popover))',
+                          border: '1px solid hsl(var(--border))',
+                          borderRadius: '8px',
+                          fontSize: '12px',
+                        }}
+                        labelStyle={{ color: 'hsl(var(--foreground))' }}
+                        formatter={(value: number, name: string) => {
+                          if (name === 'wins') return [value, language === 'fr' ? 'Gains' : 'Wins'];
+                          if (name === 'losses') return [value, language === 'fr' ? 'Pertes' : 'Losses'];
+                          return [value, name];
+                        }}
+                      />
+                      <Bar dataKey="wins" stackId="a" fill="hsl(var(--profit))" name="wins" radius={[0, 0, 0, 0]} />
+                      <Bar dataKey="losses" stackId="a" fill="hsl(var(--loss))" name="losses" radius={[0, 4, 4, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Strategy Analysis */}
