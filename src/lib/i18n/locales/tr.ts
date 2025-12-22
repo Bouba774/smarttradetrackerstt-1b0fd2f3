@@ -833,4 +833,13 @@ export const tr = {
   landingNavFeatures: 'Özellikler',
   landingNavBenefits: 'Avantajlar',
   landingNavTrust: 'Güven',
+  
+  // AI Chat translations
+  'chat.title': 'Yapay Zeka Asistanı',
+  'chat.greeting': 'Merhaba! 👋',
+  'chat.intro': "Ben yapay zeka trading asistanınızım. Performansınız hakkında soru sorun, tavsiye alın veya işlemlerinizi birlikte analiz edelim!",
+  'chat.placeholder': 'Sorunuzu yazın...',
+  'chat.suggestions.analyzeStats': 'İstatistiklerimi analiz et',
+  'chat.suggestions.dailyTips': 'Günün ipuçları',
+  'chat.suggestions.bestSetup': 'En iyi setup?',
 };

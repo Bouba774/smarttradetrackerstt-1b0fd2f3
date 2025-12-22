@@ -833,4 +833,13 @@ export const de = {
   landingNavFeatures: 'Funktionen',
   landingNavBenefits: 'Vorteile',
   landingNavTrust: 'Vertrauen',
+  
+  // AI Chat translations
+  'chat.title': 'KI-Assistent',
+  'chat.greeting': 'Hallo! 👋',
+  'chat.intro': "Ich bin Ihr KI-Trading-Assistent. Fragen Sie mich nach Ihrer Performance, holen Sie sich Tipps oder analysieren wir gemeinsam Ihre Trades!",
+  'chat.placeholder': 'Stellen Sie Ihre Frage...',
+  'chat.suggestions.analyzeStats': 'Analysiere meine Stats',
+  'chat.suggestions.dailyTips': 'Tipps des Tages',
+  'chat.suggestions.bestSetup': 'Bestes Setup?',
 };

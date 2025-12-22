@@ -833,4 +833,13 @@ export const ar = {
   landingNavFeatures: 'المميزات',
   landingNavBenefits: 'الفوائد',
   landingNavTrust: 'الثقة',
+  
+  // AI Chat translations
+  'chat.title': 'مساعد الذكاء الاصطناعي',
+  'chat.greeting': 'مرحباً! 👋',
+  'chat.intro': "أنا مساعد التداول بالذكاء الاصطناعي. اسألني عن أدائك، احصل على نصائح، أو دعنا نحلل صفقاتك معاً!",
+  'chat.placeholder': 'اطرح سؤالك...',
+  'chat.suggestions.analyzeStats': 'حلل إحصائياتي',
+  'chat.suggestions.dailyTips': 'نصائح اليوم',
+  'chat.suggestions.bestSetup': 'أفضل إعداد؟',
 };

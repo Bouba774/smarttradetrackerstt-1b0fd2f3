@@ -833,4 +833,13 @@ export const it = {
   landingNavFeatures: 'Funzionalità',
   landingNavBenefits: 'Vantaggi',
   landingNavTrust: 'Fiducia',
+  
+  // AI Chat translations
+  'chat.title': 'Assistente IA',
+  'chat.greeting': 'Ciao! 👋',
+  'chat.intro': "Sono il tuo assistente di trading IA. Chiedimi delle tue performance, ottieni consigli o analizziamo insieme le tue operazioni!",
+  'chat.placeholder': 'Fai la tua domanda...',
+  'chat.suggestions.analyzeStats': 'Analizza le mie statistiche',
+  'chat.suggestions.dailyTips': 'Consigli del giorno',
+  'chat.suggestions.bestSetup': 'Miglior setup?',
 };

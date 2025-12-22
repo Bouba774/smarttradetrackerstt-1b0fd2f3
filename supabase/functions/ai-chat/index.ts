@@ -55,45 +55,25 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    const isFrench = validatedLanguage === 'fr';
+    // Language-specific instructions
+    const languageInstructions: Record<string, string> = {
+      en: 'ALWAYS respond in English',
+      fr: 'Réponds TOUJOURS en français',
+      es: 'Responde SIEMPRE en español',
+      pt: 'Responda SEMPRE em português',
+      de: 'Antworte IMMER auf Deutsch',
+      it: 'Rispondi SEMPRE in italiano',
+      tr: 'Her zaman Türkçe cevap ver',
+      ar: 'أجب دائماً باللغة العربية',
+    };
 
-    const systemPrompt = isFrench 
-      ? `Tu es un assistant IA de trading intelligent et expert, intégré dans l'application Smart Trade Tracker.
-Tu aides les traders à améliorer leurs performances en analysant leurs données réelles et en leur donnant des conseils personnalisés.
+    const responseLanguage = languageInstructions[validatedLanguage] || languageInstructions.en;
 
-=== DONNÉES DE L'UTILISATEUR ===
-${JSON.stringify(userData, null, 2)}
-
-=== TES CAPACITÉS ===
-Tu as accès aux données suivantes:
-- Profil utilisateur: nom, niveau, points totaux
-- Statistiques complètes: trades total, gagnants, perdants, winrate, profit net, profit factor, espérance, etc.
-- Trades récents avec détails (asset, direction, P&L, setup, émotions)
-- Meilleures et pires heures de trading
-- Setup le plus profitable
-- Statistiques par setup
-- Séries gagnantes/perdantes actuelles et record
-- Drawdown maximum
-
-=== TES INSTRUCTIONS ===
-1. Réponds TOUJOURS en français
-2. Analyse les données RÉELLES de l'utilisateur pour donner des conseils personnalisés
-3. Identifie les patterns de trading (meilleures heures, setups les plus rentables)
-4. Détecte les erreurs récurrentes basées sur les données
-5. Calcule et explique les métriques importantes (profit factor, espérance, R:R)
-6. Encourage le trader quand les stats sont bonnes
-7. Donne des avertissements constructifs si nécessaire (ex: série perdante)
-8. Sois concis, direct et professionnel
-9. Utilise des emojis pour rendre la conversation engageante
-10. Si l'utilisateur n'a pas de trades, encourage-le à commencer
-
-=== EXEMPLES DE RÉPONSES ===
-- "📊 Ton winrate de 67% est excellent! Continue sur cette lancée."
-- "⚠️ Attention, tu es sur une série de 3 pertes. Prends peut-être une pause."
-- "💡 Ton setup Breakout a un profit de +$450. C'est ton point fort!"
-- "📈 Tes meilleures heures sont 9h-11h. Concentre-toi sur ces créneaux."`
-      : `You are an intelligent and expert AI trading assistant, integrated into the Smart Trade Tracker application.
+    const systemPrompt = `You are an intelligent and expert AI trading assistant, integrated into the Smart Trade Tracker application.
 You help traders improve their performance by analyzing their real data and giving them personalized advice.
+
+=== CRITICAL LANGUAGE INSTRUCTION ===
+${responseLanguage}
 
 === USER DATA ===
 ${JSON.stringify(userData, null, 2)}
@@ -110,7 +90,7 @@ You have access to the following data:
 - Maximum drawdown
 
 === YOUR INSTRUCTIONS ===
-1. ALWAYS respond in English
+1. ${responseLanguage}
 2. Analyze the user's REAL data to give personalized advice
 3. Identify trading patterns (best hours, most profitable setups)
 4. Detect recurring errors based on data

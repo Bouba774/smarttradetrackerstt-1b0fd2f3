@@ -844,4 +844,13 @@ export const en = {
   copyFailed: 'Copy failed',
   copyAnswer: 'Copy answer',
   copied: 'Copied',
+  
+  // AI Chat translations
+  'chat.title': 'AI Assistant',
+  'chat.greeting': 'Hello! 👋',
+  'chat.intro': "I'm your AI trading assistant. Ask me about your performance, get advice, or let's analyze your trades together!",
+  'chat.placeholder': 'Ask your question...',
+  'chat.suggestions.analyzeStats': 'Analyze my stats',
+  'chat.suggestions.dailyTips': 'Daily tips',
+  'chat.suggestions.bestSetup': 'Best setup?',
 };

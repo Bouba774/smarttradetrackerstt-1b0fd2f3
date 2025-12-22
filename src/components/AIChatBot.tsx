@@ -15,7 +15,7 @@ interface Message {
 }
 
 const AIChatBot: React.FC = () => {
-  const { language } = useLanguage();
+  const { t, language } = useLanguage();
   const { trades } = useTrades();
   const userData = useTraderUserData(trades);
 
@@ -84,9 +84,9 @@ const AIChatBot: React.FC = () => {
   };
 
   const suggestions = [
-    language === 'fr' ? 'Analyse mes stats' : 'Analyze my stats',
-    language === 'fr' ? 'Conseils du jour' : 'Daily tips',
-    language === 'fr' ? 'Meilleur setup?' : 'Best setup?',
+    t('chat.suggestions.analyzeStats'),
+    t('chat.suggestions.dailyTips'),
+    t('chat.suggestions.bestSetup'),
   ];
 
   return (
@@ -121,7 +121,7 @@ const AIChatBot: React.FC = () => {
               </div>
               <div>
                 <h3 className="font-display font-semibold text-primary-foreground text-sm">
-                  Assistant IA
+                  {t('chat.title')}
                 </h3>
                 <p className="text-primary-foreground/70 text-xs">
                   Smart Trade Tracker
@@ -146,12 +146,10 @@ const AIChatBot: React.FC = () => {
                   <Bot className="w-8 h-8 text-primary" />
                 </div>
                 <h4 className="font-display font-semibold text-foreground mb-2">
-                  {language === 'fr' ? 'Bonjour! 👋' : 'Hello! 👋'}
+                  {t('chat.greeting')}
                 </h4>
                 <p className="text-sm text-muted-foreground">
-                  {language === 'fr'
-                    ? "Je suis votre assistant IA de trading. Posez-moi des questions sur vos performances, demandez des conseils, ou analysons ensemble vos trades!"
-                    : "I'm your AI trading assistant. Ask me about your performance, get advice, or let's analyze your trades together!"}
+                  {t('chat.intro')}
                 </p>
                 <div className="flex flex-wrap gap-2 mt-4">
                   {suggestions.map((suggestion) => (
@@ -226,7 +224,7 @@ const AIChatBot: React.FC = () => {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder={language === 'fr' ? 'Posez votre question...' : 'Ask your question...'}
+                placeholder={t('chat.placeholder')}
                 disabled={isLoading}
                 className="flex-1"
               />
