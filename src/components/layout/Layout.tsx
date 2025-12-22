@@ -4,6 +4,7 @@ import AppSidebar from './AppSidebar';
 import Footer from './Footer';
 import AdBanner from '@/components/AdBanner';
 import NavigationProgress from '@/components/NavigationProgress';
+import PageTransition from '@/components/PageTransition';
 import { useLocation } from 'react-router-dom';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 
@@ -32,10 +33,12 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           <Header />
           
           <main className="flex-1 pt-16 sm:pt-20 pb-4 sm:pb-6 px-3 sm:px-4 md:px-6 relative z-10 overflow-x-hidden overflow-y-auto">
-            <div className="w-full max-w-7xl mx-auto">
-              {children}
-            </div>
-            {isDashboard && <Footer />}
+            <PageTransition>
+              <div className="w-full max-w-7xl mx-auto">
+                {children}
+              </div>
+              {isDashboard && <Footer />}
+            </PageTransition>
           </main>
           
           {/* Ad Banner at bottom - hidden on auth page */}
