@@ -835,7 +835,7 @@ export const de = {
   landingNavTrust: 'Vertrauen',
   
   // AI Chat translations
-  'chat.title': 'KI-Assistent',
+  'chat.title': 'Smart Trade Tracker AI',
   'chat.greeting': 'Hallo! 👋',
   'chat.intro': "Ich bin Ihr KI-Trading-Assistent. Fragen Sie mich nach Ihrer Performance, holen Sie sich Tipps oder analysieren wir gemeinsam Ihre Trades!",
   'chat.placeholder': 'Stellen Sie Ihre Frage...',

@@ -2,17 +2,21 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 // Get allowed origins from environment or use defaults
 const getAllowedOrigin = (origin: string): string => {
-  const allowedOrigins = [
-    'https://sfdudueswogeusuofbbi.lovableproject.com',
-    'https://smarttradetracker.app',
-    'https://www.smarttradetracker.app',
-    'http://localhost:5173',
-    'http://localhost:3000',
+  // Allow all Lovable preview domains and production domains
+  const allowedPatterns = [
+    /^https:\/\/.*\.lovable\.app$/,
+    /^https:\/\/.*\.lovableproject\.com$/,
+    /^https:\/\/smarttradetracker\.app$/,
+    /^https:\/\/www\.smarttradetracker\.app$/,
+    /^http:\/\/localhost:\d+$/,
   ];
   
-  if (allowedOrigins.includes(origin)) {
-    return origin;
+  for (const pattern of allowedPatterns) {
+    if (pattern.test(origin)) {
+      return origin;
+    }
   }
+  
   return 'https://sfdudueswogeusuofbbi.lovableproject.com';
 };
 

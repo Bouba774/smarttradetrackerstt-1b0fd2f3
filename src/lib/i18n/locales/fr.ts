@@ -846,7 +846,7 @@ export const fr = {
   copied: 'Copié',
   
   // AI Chat translations
-  'chat.title': 'Assistant IA',
+  'chat.title': 'Smart Trade Tracker AI',
   'chat.greeting': 'Bonjour! 👋',
   'chat.intro': "Je suis votre assistant IA de trading. Posez-moi des questions sur vos performances, demandez des conseils, ou analysons ensemble vos trades!",
   'chat.placeholder': 'Posez votre question...',

@@ -835,7 +835,7 @@ export const tr = {
   landingNavTrust: 'Güven',
   
   // AI Chat translations
-  'chat.title': 'Yapay Zeka Asistanı',
+  'chat.title': 'Smart Trade Tracker AI',
   'chat.greeting': 'Merhaba! 👋',
   'chat.intro': "Ben yapay zeka trading asistanınızım. Performansınız hakkında soru sorun, tavsiye alın veya işlemlerinizi birlikte analiz edelim!",
   'chat.placeholder': 'Sorunuzu yazın...',
