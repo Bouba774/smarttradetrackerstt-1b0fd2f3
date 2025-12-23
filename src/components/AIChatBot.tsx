@@ -228,11 +228,18 @@ const AIChatBot: React.FC = () => {
       {/* Chat Window */}
       <div
         className={cn(
-          "fixed bottom-6 right-6 z-50 w-[400px] max-w-[calc(100vw-48px)] transition-all duration-300 transform origin-bottom-right",
-          isOpen ? "scale-100 opacity-100" : "scale-0 opacity-0 pointer-events-none"
+          "fixed bottom-6 right-6 z-50 w-[400px] max-w-[calc(100vw-48px)] transform origin-bottom-right",
+          "transition-all duration-500 ease-out",
+          isOpen 
+            ? "scale-100 opacity-100 translate-y-0" 
+            : "scale-75 opacity-0 translate-y-8 pointer-events-none"
         )}
       >
-        <div className="glass-card border border-primary/30 rounded-2xl overflow-hidden shadow-2xl flex flex-col h-[550px]">
+        <div className={cn(
+          "glass-card border border-primary/30 rounded-2xl overflow-hidden shadow-2xl flex flex-col h-[550px]",
+          "transition-shadow duration-500",
+          isOpen && "shadow-neon"
+        )}>
           {/* Header */}
           <div className="bg-gradient-primary p-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
