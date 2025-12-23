@@ -14,7 +14,7 @@ import { Input } from '@/components/ui/input';
 import { supabase } from '@/integrations/supabase/client';
 import { useFeedback } from '@/hooks/useFeedback';
 import { ProfilePhotoUploader } from '@/components/ProfilePhotoUploader';
-import MetaTraderConnection from '@/components/MetaTraderConnection';
+import MTTradeImporter from '@/components/MTTradeImporter';
 import { format } from 'date-fns';
 import { fr, enUS } from 'date-fns/locale';
 import { formatPrice, formatPriceForExport } from '@/lib/utils';
@@ -451,9 +451,9 @@ const Profile: React.FC = () => {
         />
       </div>
 
-      {/* MetaTrader Connection Card */}
+      {/* MetaTrader Import Card */}
       <div className="glass-card p-6 animate-fade-in" style={{ animationDelay: '75ms' }}>
-        <MetaTraderConnection />
+        <MTTradeImporter />
       </div>
 
       {/* Actions Card */}
