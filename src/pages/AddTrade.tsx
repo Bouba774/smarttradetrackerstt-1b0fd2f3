@@ -36,13 +36,6 @@ import { ASSET_CATEGORIES } from '@/data/assets';
 import { validateTradeForm, sanitizeText } from '@/lib/tradeValidation';
 import { PENDING_TRADE_KEY } from './Calculator';
 
-const DEFAULT_SETUPS = [
-  'Breakout', 'Pullback', 'Reversal', 'Range', 'Trend Following',
-  'Support/Resistance', 'Fibonacci', 'Moving Average', 'RSI Divergence',
-  'MACD Cross', 'Supply & Demand', 'Order Block', 'Fair Value Gap',
-  'Liquidity Sweep', 'Change of Character', 'Break of Structure',
-];
-
 const TIMEFRAMES = ['M1', 'M5', 'M15', 'M30', 'M45', 'H1', 'H2', 'H3', 'H4', 'D1', 'W1', 'MN'];
 
 const EMOTIONS = [
@@ -831,67 +824,46 @@ const AddTrade: React.FC = () => {
             </div>
             <div className="space-y-2">
               <Label>{t('setup')}</Label>
-              <Select
-                value={formData.setup}
-                onValueChange={(v) => {
-                  handleInputChange('setup', v);
-                  setCustomSetup('');
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={language === 'fr' ? 'Sélectionner' : 'Select'} />
-                </SelectTrigger>
-                <SelectContent className="bg-popover border-border max-h-60">
-                  {DEFAULT_SETUPS.map(setup => (
-                    <SelectItem key={setup} value={setup}>{setup}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Input
+                placeholder={language === 'fr' ? 'Ex: Breakout, Pullback...' : 'Ex: Breakout, Pullback...'}
+                value={customSetup}
+                onChange={(e) => setCustomSetup(e.target.value)}
+              />
             </div>
           </div>
 
-          {/* Custom Setup & Timeframe Row */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>{language === 'fr' ? 'Setup Personnalisé' : 'Custom Setup'}</Label>
+          {/* Timeframe Row */}
+          <div className="space-y-2">
+            <Label>{t('timeframe')}</Label>
+            <Select
+              value={formData.timeframe || customTimeframe}
+              onValueChange={(v) => {
+                if (v === 'custom') {
+                  handleInputChange('timeframe', '');
+                } else {
+                  handleInputChange('timeframe', v);
+                  setCustomTimeframe('');
+                }
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder={language === 'fr' ? 'Sélectionner' : 'Select'} />
+              </SelectTrigger>
+              <SelectContent className="bg-popover border-border">
+                {TIMEFRAMES.map(tf => (
+                  <SelectItem key={tf} value={tf}>{tf}</SelectItem>
+                ))}
+                <SelectItem value="custom">{language === 'fr' ? '+ Autre...' : '+ Other...'}</SelectItem>
+              </SelectContent>
+            </Select>
+            {(formData.timeframe === '' && !TIMEFRAMES.includes(customTimeframe)) && customTimeframe === '' && (
               <Input
-                placeholder={language === 'fr' ? 'Ex: Mon setup' : 'Ex: My setup'}
-                value={customSetup}
-                onChange={(e) => {
-                  setCustomSetup(e.target.value);
-                  if (e.target.value) handleInputChange('setup', '');
-                }}
+                placeholder={language === 'fr' ? 'Timeframe personnalisée' : 'Custom timeframe'}
+                value={customTimeframe}
+                onChange={(e) => setCustomTimeframe(e.target.value)}
+                className="mt-2"
               />
-            </div>
-            <div className="space-y-2">
-              <Label>{t('timeframe')}</Label>
-              <div className="grid grid-cols-2 gap-2">
-                <Select
-                  value={formData.timeframe}
-                  onValueChange={(v) => {
-                    handleInputChange('timeframe', v);
-                    setCustomTimeframe('');
-                  }}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="TF" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-popover border-border">
-                    {TIMEFRAMES.map(tf => (
-                      <SelectItem key={tf} value={tf}>{tf}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Input
-                  placeholder={language === 'fr' ? 'Autre' : 'Other'}
-                  value={customTimeframe}
-                  onChange={(e) => {
-                    setCustomTimeframe(e.target.value);
-                    if (e.target.value) handleInputChange('timeframe', '');
-                  }}
-                />
-              </div>
-            </div>
+            )}
           </div>
         </div>
 

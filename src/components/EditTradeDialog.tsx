@@ -33,7 +33,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { sanitizeText } from '@/lib/tradeValidation';
-import { DEFAULT_SETUPS, TIMEFRAMES, EMOTIONS } from '@/data/tradeFormOptions';
+import { TIMEFRAMES, EMOTIONS } from '@/data/tradeFormOptions';
 import { MediaSection } from '@/components/EditTradeDialog/MediaSection';
 
 interface ExistingMedia {
@@ -412,16 +412,11 @@ const EditTradeDialog: React.FC<EditTradeDialogProps> = ({
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>{t('setup')}</Label>
-              <Select value={formData.setup} onValueChange={(v) => handleInputChange('setup', v)}>
-                <SelectTrigger>
-                  <SelectValue placeholder={t('selectSetup')} />
-                </SelectTrigger>
-                <SelectContent className="bg-popover border-border">
-                  {DEFAULT_SETUPS.map(setup => (
-                    <SelectItem key={setup} value={setup}>{setup}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Input
+                placeholder={language === 'fr' ? 'Ex: Breakout, Pullback...' : 'Ex: Breakout, Pullback...'}
+                value={formData.setup}
+                onChange={(e) => handleInputChange('setup', e.target.value)}
+              />
             </div>
             <div className="space-y-2">
               <Label>{t('timeframe')}</Label>
