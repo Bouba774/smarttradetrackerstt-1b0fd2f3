@@ -1319,6 +1319,36 @@ export type Database = {
         Returns: Json
       }
       export_user_data: { Args: { p_user_id: string }; Returns: Json }
+      get_own_pin_status: {
+        Args: never
+        Returns: {
+          biometric_enabled: boolean
+          has_pin: boolean
+          max_attempts: number
+          pin_length: number
+          user_id: string
+          wipe_on_max_attempts: boolean
+        }[]
+      }
+      get_own_sessions_masked: {
+        Args: never
+        Returns: {
+          browser_name: string
+          browser_version: string
+          country: string
+          country_code: string
+          created_at: string
+          device_type: string
+          id: string
+          is_mobile: boolean
+          os_name: string
+          os_version: string
+          session_end: string
+          session_start: string
+          updated_at: string
+          user_id: string
+        }[]
+      }
       get_user_anomalies_count: { Args: { p_user_id: string }; Returns: number }
       get_user_pin_status: { Args: { p_user_id: string }; Returns: Json }
       get_user_role_for_security: {
