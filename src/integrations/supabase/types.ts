@@ -525,7 +525,6 @@ export type Database = {
           initial_balance: number
           is_connected: boolean
           last_sync_at: string | null
-          login: string
           login_encrypted: string | null
           metaapi_account_id: string | null
           platform: string
@@ -541,7 +540,6 @@ export type Database = {
           initial_balance?: number
           is_connected?: boolean
           last_sync_at?: string | null
-          login: string
           login_encrypted?: string | null
           metaapi_account_id?: string | null
           platform: string
@@ -557,7 +555,6 @@ export type Database = {
           initial_balance?: number
           is_connected?: boolean
           last_sync_at?: string | null
-          login?: string
           login_encrypted?: string | null
           metaapi_account_id?: string | null
           platform?: string
