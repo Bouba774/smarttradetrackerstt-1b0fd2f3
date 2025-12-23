@@ -691,16 +691,16 @@ const AddTrade: React.FC = () => {
           </div>
 
           {/* Exit Section */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-secondary/30 rounded-lg border border-border">
-            <div className="space-y-2">
-              <Label>{language === 'fr' ? 'Date/Heure de Sortie' : 'Exit Date/Time'}</Label>
-              <div className="flex gap-2">
+          <div className="space-y-4 p-4 bg-secondary/30 rounded-lg border border-border">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>{language === 'fr' ? 'Date de Sortie' : 'Exit Date'}</Label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
                       className={cn(
-                        "flex-1 justify-start text-left font-normal",
+                        "w-full justify-start text-left font-normal",
                         !exitDate && "text-muted-foreground"
                       )}
                     >
@@ -718,56 +718,62 @@ const AddTrade: React.FC = () => {
                     />
                   </PopoverContent>
                 </Popover>
+              </div>
+              <div className="space-y-2">
+                <Label>{language === 'fr' ? 'Heure de Sortie' : 'Exit Time'}</Label>
                 <Input 
                   type="time" 
                   value={exitTime}
                   onChange={(e) => setExitTime(e.target.value)}
-                  className="w-24"
+                  className="w-full"
                 />
               </div>
             </div>
             
-            <div className="space-y-2">
-              <Label>{language === 'fr' ? 'Méthode de Sortie' : 'Exit Method'}</Label>
-              <Select value={exitMethod} onValueChange={(v: 'sl' | 'tp' | 'manual') => setExitMethod(v)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="bg-popover border-border">
-                  <SelectItem value="manual">{language === 'fr' ? 'Personnalisé' : 'Manual'}</SelectItem>
-                  <SelectItem value="sl">{language === 'fr' ? 'Lié au SL' : 'Linked to SL'}</SelectItem>
-                  <SelectItem value="tp">{language === 'fr' ? 'Lié au TP' : 'Linked to TP'}</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="space-y-2">
-              <Label>{language === 'fr' ? 'Prix de Sortie' : 'Exit Price'}</Label>
-              <Input
-                type="number"
-                step="any"
-                placeholder={
-                  exitMethod === 'sl' ? (formData.stopLoss || 'SL') :
-                  exitMethod === 'tp' ? (formData.takeProfit || 'TP') : '1.0900'
-                }
-                value={
-                  exitMethod === 'sl' ? formData.stopLoss :
-                  exitMethod === 'tp' ? formData.takeProfit : formData.exitPrice
-                }
-                onChange={(e) => {
-                  if (exitMethod === 'manual') {
-                    handleInputChange('exitPrice', e.target.value);
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>{language === 'fr' ? 'Méthode de Sortie' : 'Exit Method'}</Label>
+                <Select value={exitMethod} onValueChange={(v: 'sl' | 'tp' | 'manual') => setExitMethod(v)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-popover border-border">
+                    <SelectItem value="manual">{language === 'fr' ? 'Personnalisé' : 'Manual'}</SelectItem>
+                    <SelectItem value="sl">{language === 'fr' ? 'Lié au SL' : 'Linked to SL'}</SelectItem>
+                    <SelectItem value="tp">{language === 'fr' ? 'Lié au TP' : 'Linked to TP'}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <Label>{language === 'fr' ? 'Prix de Sortie' : 'Exit Price'}</Label>
+                <Input
+                  type="number"
+                  step="any"
+                  placeholder={
+                    exitMethod === 'sl' ? (formData.stopLoss || 'SL') :
+                    exitMethod === 'tp' ? (formData.takeProfit || 'TP') : '1.0900'
                   }
-                }}
-                disabled={exitMethod !== 'manual'}
-                className={cn(
-                  exitMethod !== 'manual' && "bg-muted cursor-not-allowed"
-                )}
-              />
+                  value={
+                    exitMethod === 'sl' ? formData.stopLoss :
+                    exitMethod === 'tp' ? formData.takeProfit : formData.exitPrice
+                  }
+                  onChange={(e) => {
+                    if (exitMethod === 'manual') {
+                      handleInputChange('exitPrice', e.target.value);
+                    }
+                  }}
+                  disabled={exitMethod !== 'manual'}
+                  className={cn(
+                    exitMethod !== 'manual' && "bg-muted cursor-not-allowed"
+                  )}
+                />
+              </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {/* Capital & Risk Row */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>{t('capital')} ({getCurrencySymbol()})</Label>
               <Input
@@ -788,23 +794,27 @@ const AddTrade: React.FC = () => {
                     placeholder="1.0"
                     value={formData.risk}
                     onChange={(e) => handleRiskPercentChange(e.target.value)}
-                    className="pr-8"
+                    className="pr-6"
                   />
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">%</span>
+                  <span className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">%</span>
                 </div>
                 <div className="relative">
                   <Input
                     type="number"
                     step="0.01"
-                    placeholder="100.00"
+                    placeholder="100"
                     value={formData.riskCash}
                     onChange={(e) => handleRiskCashChange(e.target.value)}
-                    className="pr-8"
+                    className="pr-6"
                   />
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">{getCurrencySymbol()}</span>
+                  <span className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">{getCurrencySymbol()}</span>
                 </div>
               </div>
             </div>
+          </div>
+
+          {/* PnL & Setup Row */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>{t('pnl')} ({getCurrencySymbol()})</Label>
               <Input
@@ -821,37 +831,41 @@ const AddTrade: React.FC = () => {
             </div>
             <div className="space-y-2">
               <Label>{t('setup')}</Label>
-              <div className="flex gap-2">
-                <Select
-                  value={formData.setup}
-                  onValueChange={(v) => {
-                    handleInputChange('setup', v);
-                    setCustomSetup('');
-                  }}
-                >
-                  <SelectTrigger className="flex-1">
-                    <SelectValue placeholder="Sélectionner" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-popover border-border max-h-60">
-                    {DEFAULT_SETUPS.map(setup => (
-                      <SelectItem key={setup} value={setup}>{setup}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Input
-                  placeholder="Personnalisé"
-                  className="w-28"
-                  value={customSetup}
-                  onChange={(e) => {
-                    setCustomSetup(e.target.value);
-                    if (e.target.value) handleInputChange('setup', '');
-                  }}
-                />
-              </div>
+              <Select
+                value={formData.setup}
+                onValueChange={(v) => {
+                  handleInputChange('setup', v);
+                  setCustomSetup('');
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={language === 'fr' ? 'Sélectionner' : 'Select'} />
+                </SelectTrigger>
+                <SelectContent className="bg-popover border-border max-h-60">
+                  {DEFAULT_SETUPS.map(setup => (
+                    <SelectItem key={setup} value={setup}>{setup}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Custom Setup & Timeframe Row */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>{language === 'fr' ? 'Setup Personnalisé' : 'Custom Setup'}</Label>
+              <Input
+                placeholder={language === 'fr' ? 'Ex: Mon setup' : 'Ex: My setup'}
+                value={customSetup}
+                onChange={(e) => {
+                  setCustomSetup(e.target.value);
+                  if (e.target.value) handleInputChange('setup', '');
+                }}
+              />
             </div>
             <div className="space-y-2">
               <Label>{t('timeframe')}</Label>
-              <div className="flex gap-2">
+              <div className="grid grid-cols-2 gap-2">
                 <Select
                   value={formData.timeframe}
                   onValueChange={(v) => {
@@ -859,7 +873,7 @@ const AddTrade: React.FC = () => {
                     setCustomTimeframe('');
                   }}
                 >
-                  <SelectTrigger className="flex-1">
+                  <SelectTrigger>
                     <SelectValue placeholder="TF" />
                   </SelectTrigger>
                   <SelectContent className="bg-popover border-border">
@@ -869,8 +883,7 @@ const AddTrade: React.FC = () => {
                   </SelectContent>
                 </Select>
                 <Input
-                  placeholder="Autre"
-                  className="w-20"
+                  placeholder={language === 'fr' ? 'Autre' : 'Other'}
                   value={customTimeframe}
                   onChange={(e) => {
                     setCustomTimeframe(e.target.value);
