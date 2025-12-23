@@ -40,12 +40,10 @@ import {
   ChevronDown,
   ChevronUp,
   Upload,
-  Cloud,
   Zap,
 } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import MTTradeImporter from '@/components/MTTradeImporter';
-import MTAutoSyncFree from '@/components/MTAutoSyncFree';
 
 interface MTAccount {
   id: string;
@@ -131,10 +129,10 @@ const MetaTraderConnection: React.FC = () => {
       loadingStats: 'Chargement...',
       autoSync: 'Sync auto toutes les heures',
       tabManual: 'Import manuel',
-      tabAuto: 'Sync auto (Gratuit)',
-      tabMetaApi: 'MetaAPI (Avancé)',
+      tabAuto: 'Connexion directe',
       manualDesc: 'Importez vos trades depuis un fichier exporté de MT4/MT5',
-      autoDesc: 'Connexion directe à MetaTrader via MetaAPI (nécessite une clé API)',
+      autoDesc: 'Connectez votre compte MT4/MT5 pour synchroniser automatiquement vos trades',
+      freeNote: '100% gratuit • Synchronisation automatique',
     },
     en: {
       connectMT: 'MetaTrader Connection',
@@ -174,10 +172,10 @@ const MetaTraderConnection: React.FC = () => {
       loadingStats: 'Loading...',
       autoSync: 'Auto-sync every hour',
       tabManual: 'Manual Import',
-      tabAuto: 'Auto Sync (Free)',
-      tabMetaApi: 'MetaAPI (Advanced)',
+      tabAuto: 'Direct Connection',
       manualDesc: 'Import your trades from an exported MT4/MT5 file',
-      autoDesc: 'Direct connection to MetaTrader via MetaAPI (requires API key)',
+      autoDesc: 'Connect your MT4/MT5 account to automatically sync your trades',
+      freeNote: '100% free • Automatic synchronization',
     },
   };
 
@@ -346,7 +344,7 @@ const MetaTraderConnection: React.FC = () => {
     <div className="space-y-6">
       {/* Tabs for Manual vs Auto Import */}
       <Tabs defaultValue="auto" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="auto" className="gap-2">
             <Zap className="w-4 h-4" />
             {texts.tabAuto}
@@ -355,24 +353,15 @@ const MetaTraderConnection: React.FC = () => {
             <Upload className="w-4 h-4" />
             {texts.tabManual}
           </TabsTrigger>
-          <TabsTrigger value="metaapi" className="gap-2">
-            <Cloud className="w-4 h-4" />
-            {texts.tabMetaApi}
-          </TabsTrigger>
         </TabsList>
         
-        {/* Free Auto Sync Tab */}
-        <TabsContent value="auto" className="mt-4">
-          <MTAutoSyncFree />
-        </TabsContent>
-        
-        {/* Manual Import Tab */}
-        <TabsContent value="manual" className="mt-4">
-          <MTTradeImporter onImportComplete={fetchAccounts} />
-        </TabsContent>
-        
-        {/* MetaAPI Tab (Advanced) */}
-        <TabsContent value="metaapi" className="mt-4 space-y-4">
+        {/* Direct Connection Tab */}
+        <TabsContent value="auto" className="mt-4 space-y-4">
+          {/* Free badge */}
+          <div className="flex items-center gap-2 text-sm text-emerald-600 dark:text-emerald-400">
+            <CheckCircle2 className="w-4 h-4" />
+            {texts.freeNote}
+          </div>
           {/* Header */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -732,6 +721,11 @@ const MetaTraderConnection: React.FC = () => {
           ))}
         </div>
       )}
+        </TabsContent>
+        
+        {/* Manual Import Tab */}
+        <TabsContent value="manual" className="mt-4">
+          <MTTradeImporter onImportComplete={fetchAccounts} />
         </TabsContent>
       </Tabs>
     </div>
