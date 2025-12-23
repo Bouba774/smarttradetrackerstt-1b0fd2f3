@@ -1201,33 +1201,7 @@ export type Database = {
       }
     }
     Views: {
-      user_pin_status: {
-        Row: {
-          biometric_enabled: boolean | null
-          has_pin: boolean | null
-          max_attempts: number | null
-          pin_length: number | null
-          user_id: string | null
-          wipe_on_max_attempts: boolean | null
-        }
-        Insert: {
-          biometric_enabled?: boolean | null
-          has_pin?: never
-          max_attempts?: number | null
-          pin_length?: number | null
-          user_id?: string | null
-          wipe_on_max_attempts?: boolean | null
-        }
-        Update: {
-          biometric_enabled?: boolean | null
-          has_pin?: never
-          max_attempts?: number | null
-          pin_length?: number | null
-          user_id?: string | null
-          wipe_on_max_attempts?: boolean | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
       check_rate_limit: {
