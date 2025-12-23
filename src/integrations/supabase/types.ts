@@ -526,6 +526,7 @@ export type Database = {
           is_connected: boolean
           last_sync_at: string | null
           login: string
+          login_encrypted: string | null
           metaapi_account_id: string | null
           platform: string
           server: string
@@ -541,6 +542,7 @@ export type Database = {
           is_connected?: boolean
           last_sync_at?: string | null
           login: string
+          login_encrypted?: string | null
           metaapi_account_id?: string | null
           platform: string
           server: string
@@ -556,6 +558,7 @@ export type Database = {
           is_connected?: boolean
           last_sync_at?: string | null
           login?: string
+          login_encrypted?: string | null
           metaapi_account_id?: string | null
           platform?: string
           server?: string
@@ -1242,6 +1245,10 @@ export type Database = {
         Args: { p_minutes?: number; p_user_id: string }
         Returns: number
       }
+      decrypt_mt_login: {
+        Args: { p_encrypted: string; p_user_id: string }
+        Returns: string
+      }
       delete_admin_secret: { Args: { p_admin_id: string }; Returns: boolean }
       detect_session_anomaly: {
         Args: {
@@ -1252,6 +1259,10 @@ export type Database = {
           p_user_id: string
         }
         Returns: Json
+      }
+      encrypt_mt_login: {
+        Args: { p_login: string; p_user_id: string }
+        Returns: string
       }
       export_user_data: { Args: { p_user_id: string }; Returns: Json }
       get_own_pin_status: {
