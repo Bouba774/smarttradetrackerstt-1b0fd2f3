@@ -7,6 +7,7 @@ import { useAdvancedStats } from '@/hooks/useAdvancedStats';
 import { useCurrency } from '@/hooks/useCurrency';
 import { useTradeFocus } from '@/hooks/useTradeFocus';
 import { APP_VERSION } from '@/lib/version';
+import { getAssetCategory } from '@/data/assets';
 import StatCard from '@/components/ui/StatCard';
 import GaugeChart from '@/components/ui/GaugeChart';
 import TradeFocusMode from '@/components/TradeFocusMode';
@@ -31,6 +32,7 @@ import {
   Flame,
   Award,
   Focus,
+  PieChart as PieChartIcon,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -135,6 +137,59 @@ const Dashboard: React.FC = () => {
     { name: t('losers'), value: stats.losingTrades || 0.1, actualValue: stats.losingTrades, color: 'hsl(var(--loss))' },
     { name: t('breakeven'), value: stats.breakevenTrades || 0.1, actualValue: stats.breakevenTrades, color: 'hsl(var(--muted-foreground))' },
   ];
+
+  // Market distribution colors
+  const marketColors: { [key: string]: string } = {
+    'Forex Majors': '#22c55e',
+    'Forex Crosses': '#16a34a',
+    'Forex Exotics': '#15803d',
+    'Crypto': '#3b82f6',
+    'Indices US': '#ef4444',
+    'Indices Europe': '#dc2626',
+    'Indices Asie': '#b91c1c',
+    'Métaux': '#f59e0b',
+    'Énergies': '#d97706',
+    'Actions US Tech': '#8b5cf6',
+    'Actions US Finance': '#7c3aed',
+    'Actions US Autres': '#6d28d9',
+    'Other': '#6b7280',
+  };
+
+  // Market distribution data
+  const marketDistribution = React.useMemo(() => {
+    if (trades.length === 0) return [];
+    
+    const marketCounts: { [key: string]: number } = {};
+    
+    trades.forEach(trade => {
+      const category = getAssetCategory(trade.asset);
+      // Group Forex categories
+      let marketGroup = category;
+      if (category.startsWith('Forex')) {
+        marketGroup = 'Forex';
+      } else if (category.startsWith('Indices')) {
+        marketGroup = 'Indices';
+      } else if (category.startsWith('Actions')) {
+        marketGroup = 'Stocks';
+      }
+      
+      marketCounts[marketGroup] = (marketCounts[marketGroup] || 0) + 1;
+    });
+
+    return Object.entries(marketCounts)
+      .map(([name, count]) => ({
+        name,
+        value: count,
+        color: name === 'Forex' ? '#f59e0b' :
+               name === 'Crypto' ? '#22c55e' :
+               name === 'Indices' ? '#ef4444' :
+               name === 'Stocks' ? '#3b82f6' :
+               name === 'Métaux' ? '#eab308' :
+               name === 'Énergies' ? '#f97316' :
+               '#6b7280'
+      }))
+      .sort((a, b) => b.value - a.value);
+  }, [trades]);
 
   // Radar chart data for performance overview - all values clamped 0-100
   const clamp = (val: number, min: number, max: number) => Math.min(Math.max(val, min), max);
@@ -499,7 +554,7 @@ const Dashboard: React.FC = () => {
       </div>
 
       {/* Distribution Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-6">
         {/* Position Distribution */}
         <div className="glass-card p-6 animate-fade-in" style={{ animationDelay: '1850ms' }}>
           <h3 className="font-display font-semibold text-foreground mb-4 flex items-center gap-2">
@@ -533,14 +588,14 @@ const Dashboard: React.FC = () => {
               </PieChart>
             </ResponsiveContainer>
           </div>
-          <div className="flex justify-center gap-6 mt-2">
+          <div className="flex justify-center gap-4 mt-2 flex-wrap">
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full bg-profit" />
-              <span className="text-sm text-muted-foreground">{t('longPositions')} ({stats.buyPositions})</span>
+              <span className="text-xs text-muted-foreground">{t('longPositions')} ({stats.buyPositions})</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full bg-loss" />
-              <span className="text-sm text-muted-foreground">{t('shortPositions')} ({stats.sellPositions})</span>
+              <span className="text-xs text-muted-foreground">{t('shortPositions')} ({stats.sellPositions})</span>
             </div>
           </div>
         </div>
@@ -591,6 +646,59 @@ const Dashboard: React.FC = () => {
               <div className="w-3 h-3 rounded-full bg-muted-foreground" />
               <span className="text-xs text-muted-foreground">{t('breakeven')} ({stats.breakevenTrades})</span>
             </div>
+          </div>
+        </div>
+
+        {/* Market Distribution */}
+        <div className="glass-card p-6 animate-fade-in" style={{ animationDelay: '1925ms' }}>
+          <h3 className="font-display font-semibold text-foreground mb-4 flex items-center gap-2">
+            <PieChartIcon className="w-5 h-5 text-primary" />
+            {language === 'fr' ? 'Répartition par Marché' : 'Market Distribution'}
+          </h3>
+          <div className="h-48">
+            {marketDistribution.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={marketDistribution}
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={70}
+                    paddingAngle={2}
+                    dataKey="value"
+                  >
+                    {marketDistribution.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: 'hsl(var(--card))',
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px',
+                    }}
+                    formatter={(value: number, name: string) => [value, name]}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
+                {t('noDataYet')}
+              </div>
+            )}
+          </div>
+          <div className="flex justify-center gap-3 mt-2 flex-wrap">
+            {marketDistribution.slice(0, 4).map((market) => (
+              <div key={market.name} className="flex items-center gap-1.5">
+                <div 
+                  className="w-3 h-3 rounded-full" 
+                  style={{ backgroundColor: market.color }} 
+                />
+                <span className="text-xs text-muted-foreground">
+                  {market.value} {market.name}
+                </span>
+              </div>
+            ))}
           </div>
         </div>
 
