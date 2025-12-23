@@ -1,4 +1,4 @@
-import { Suspense, lazy } from "react";
+import { Suspense, lazy, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -14,65 +14,66 @@ import { CookieConsent } from "@/components/CookieConsent";
 import LockScreen from "@/components/LockScreen";
 import { useSessionTracking } from "@/hooks/useSessionTracking";
 import ChunkErrorBoundary from "@/components/ChunkErrorBoundary";
+import { usePrefetchOnAuth } from "@/hooks/useRoutePrefetch";
+import PageSkeleton from "@/components/ui/PageSkeleton";
 
 // Critical pages loaded immediately
 import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
-// Lazy load non-critical pages
-const Dashboard = lazy(() => import("./pages/Dashboard"));
-const AddTrade = lazy(() => import("./pages/AddTrade"));
-const History = lazy(() => import("./pages/History"));
-const Reports = lazy(() => import("./pages/Reports"));
-const PeriodComparison = lazy(() => import("./pages/PeriodComparison"));
-const PsychologicalAnalysis = lazy(() => import("./pages/PsychologicalAnalysis"));
-const Journal = lazy(() => import("./pages/Journal"));
-const Calculator = lazy(() => import("./pages/Calculator"));
-const CurrencyConversion = lazy(() => import("./pages/CurrencyConversion"));
-const Challenges = lazy(() => import("./pages/Challenges"));
-const Profile = lazy(() => import("./pages/Profile"));
-const Settings = lazy(() => import("./pages/Settings"));
-const SessionsAdmin = lazy(() => import("./pages/SessionsAdmin"));
-const AdminRoles = lazy(() => import("./pages/AdminRoles"));
-const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
-const TermsOfUse = lazy(() => import("./pages/TermsOfUse"));
-const About = lazy(() => import("./pages/About"));
-const PrivacyCenter = lazy(() => import("./pages/PrivacyCenter"));
-const ResetPassword = lazy(() => import("./pages/ResetPassword"));
-const ResetPin = lazy(() => import("./pages/ResetPin"));
-const Help = lazy(() => import("./pages/Help"));
-const AIChatBot = lazy(() => import("@/components/AIChatBot"));
-const ChangelogModal = lazy(() => import("@/components/ChangelogModal"));
+// Lazy load non-critical pages with webpackChunkName for better caching
+const Dashboard = lazy(() => import(/* webpackChunkName: "dashboard" */ "./pages/Dashboard"));
+const AddTrade = lazy(() => import(/* webpackChunkName: "add-trade" */ "./pages/AddTrade"));
+const History = lazy(() => import(/* webpackChunkName: "history" */ "./pages/History"));
+const Reports = lazy(() => import(/* webpackChunkName: "reports" */ "./pages/Reports"));
+const PeriodComparison = lazy(() => import(/* webpackChunkName: "comparison" */ "./pages/PeriodComparison"));
+const PsychologicalAnalysis = lazy(() => import(/* webpackChunkName: "psychology" */ "./pages/PsychologicalAnalysis"));
+const Journal = lazy(() => import(/* webpackChunkName: "journal" */ "./pages/Journal"));
+const Calculator = lazy(() => import(/* webpackChunkName: "calculator" */ "./pages/Calculator"));
+const CurrencyConversion = lazy(() => import(/* webpackChunkName: "currency" */ "./pages/CurrencyConversion"));
+const Challenges = lazy(() => import(/* webpackChunkName: "challenges" */ "./pages/Challenges"));
+const Profile = lazy(() => import(/* webpackChunkName: "profile" */ "./pages/Profile"));
+const Settings = lazy(() => import(/* webpackChunkName: "settings" */ "./pages/Settings"));
+const SessionsAdmin = lazy(() => import(/* webpackChunkName: "sessions" */ "./pages/SessionsAdmin"));
+const AdminRoles = lazy(() => import(/* webpackChunkName: "admin-roles" */ "./pages/AdminRoles"));
+const PrivacyPolicy = lazy(() => import(/* webpackChunkName: "legal" */ "./pages/PrivacyPolicy"));
+const TermsOfUse = lazy(() => import(/* webpackChunkName: "legal" */ "./pages/TermsOfUse"));
+const About = lazy(() => import(/* webpackChunkName: "about" */ "./pages/About"));
+const PrivacyCenter = lazy(() => import(/* webpackChunkName: "privacy" */ "./pages/PrivacyCenter"));
+const ResetPassword = lazy(() => import(/* webpackChunkName: "auth" */ "./pages/ResetPassword"));
+const ResetPin = lazy(() => import(/* webpackChunkName: "auth" */ "./pages/ResetPin"));
+const Help = lazy(() => import(/* webpackChunkName: "help" */ "./pages/Help"));
+const AIChatBot = lazy(() => import(/* webpackChunkName: "ai-chat" */ "@/components/AIChatBot"));
+const ChangelogModal = lazy(() => import(/* webpackChunkName: "changelog" */ "@/components/ChangelogModal"));
 
 // Admin pages
-const AdminSecretValidation = lazy(() => import("./pages/AdminSecretValidation"));
-const AdminLayout = lazy(() => import("./components/layout/AdminLayout"));
+const AdminSecretValidation = lazy(() => import(/* webpackChunkName: "admin" */ "./pages/AdminSecretValidation"));
+const AdminLayout = lazy(() => import(/* webpackChunkName: "admin" */ "./components/layout/AdminLayout"));
 
-// Admin page wrappers
-const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
-const AdminAddTrade = lazy(() => import("./pages/admin/AdminAddTrade"));
-const AdminHistory = lazy(() => import("./pages/admin/AdminHistory"));
-const AdminReports = lazy(() => import("./pages/admin/AdminReports"));
-const AdminComparison = lazy(() => import("./pages/admin/AdminComparison"));
-const AdminPsychology = lazy(() => import("./pages/admin/AdminPsychology"));
-const AdminJournal = lazy(() => import("./pages/admin/AdminJournal"));
-const AdminCalculator = lazy(() => import("./pages/admin/AdminCalculator"));
-const AdminCurrencyConversion = lazy(() => import("./pages/admin/AdminCurrencyConversion"));
-const AdminChallenges = lazy(() => import("./pages/admin/AdminChallenges"));
-const AdminSessions = lazy(() => import("./pages/admin/AdminSessions"));
-const AdminRolesPage = lazy(() => import("./pages/admin/AdminRolesPage"));
-const AdminAuditHistory = lazy(() => import("./pages/admin/AdminAuditHistory"));
-const AdminProfile = lazy(() => import("./pages/admin/AdminProfile"));
-const AdminSettings = lazy(() => import("./pages/admin/AdminSettings"));
-const AdminAbout = lazy(() => import("./pages/admin/AdminAbout"));
+// Admin page wrappers - grouped in same chunk
+const AdminDashboard = lazy(() => import(/* webpackChunkName: "admin-pages" */ "./pages/admin/AdminDashboard"));
+const AdminAddTrade = lazy(() => import(/* webpackChunkName: "admin-pages" */ "./pages/admin/AdminAddTrade"));
+const AdminHistory = lazy(() => import(/* webpackChunkName: "admin-pages" */ "./pages/admin/AdminHistory"));
+const AdminReports = lazy(() => import(/* webpackChunkName: "admin-pages" */ "./pages/admin/AdminReports"));
+const AdminComparison = lazy(() => import(/* webpackChunkName: "admin-pages" */ "./pages/admin/AdminComparison"));
+const AdminPsychology = lazy(() => import(/* webpackChunkName: "admin-pages" */ "./pages/admin/AdminPsychology"));
+const AdminJournal = lazy(() => import(/* webpackChunkName: "admin-pages" */ "./pages/admin/AdminJournal"));
+const AdminCalculator = lazy(() => import(/* webpackChunkName: "admin-pages" */ "./pages/admin/AdminCalculator"));
+const AdminCurrencyConversion = lazy(() => import(/* webpackChunkName: "admin-pages" */ "./pages/admin/AdminCurrencyConversion"));
+const AdminChallenges = lazy(() => import(/* webpackChunkName: "admin-pages" */ "./pages/admin/AdminChallenges"));
+const AdminSessions = lazy(() => import(/* webpackChunkName: "admin-pages" */ "./pages/admin/AdminSessions"));
+const AdminRolesPage = lazy(() => import(/* webpackChunkName: "admin-pages" */ "./pages/admin/AdminRolesPage"));
+const AdminAuditHistory = lazy(() => import(/* webpackChunkName: "admin-pages" */ "./pages/admin/AdminAuditHistory"));
+const AdminProfile = lazy(() => import(/* webpackChunkName: "admin-pages" */ "./pages/admin/AdminProfile"));
+const AdminSettings = lazy(() => import(/* webpackChunkName: "admin-pages" */ "./pages/admin/AdminSettings"));
+const AdminAbout = lazy(() => import(/* webpackChunkName: "admin-pages" */ "./pages/admin/AdminAbout"));
 
-// Loading fallback component
-const PageLoader = () => (
-  <div className="min-h-screen bg-background flex items-center justify-center">
-    <div className="animate-pulse text-primary">Loading...</div>
-  </div>
-);
+// Improved loading fallback with skeleton
+const PageLoader = () => <PageSkeleton type="default" />;
+const DashboardLoader = () => <PageSkeleton type="dashboard" />;
+const ListLoader = () => <PageSkeleton type="list" />;
+const FormLoader = () => <PageSkeleton type="form" />;
 
 const queryClient = new QueryClient();
 
@@ -101,6 +102,9 @@ const AppContent = () => {
   
   // Track user sessions
   useSessionTracking();
+  
+  // Prefetch priority routes after authentication
+  usePrefetchOnAuth(!!user);
 
   return (
     <>
