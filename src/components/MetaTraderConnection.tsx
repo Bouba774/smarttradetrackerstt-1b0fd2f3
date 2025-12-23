@@ -41,9 +41,11 @@ import {
   ChevronUp,
   Upload,
   Cloud,
+  Zap,
 } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import MTTradeImporter from '@/components/MTTradeImporter';
+import MTAutoSyncFree from '@/components/MTAutoSyncFree';
 
 interface MTAccount {
   id: string;
@@ -128,8 +130,9 @@ const MetaTraderConnection: React.FC = () => {
       hideStats: 'Masquer les statistiques',
       loadingStats: 'Chargement...',
       autoSync: 'Sync auto toutes les heures',
-      tabManual: 'Import manuel (Gratuit)',
-      tabAuto: 'Sync automatique (MetaAPI)',
+      tabManual: 'Import manuel',
+      tabAuto: 'Sync auto (Gratuit)',
+      tabMetaApi: 'MetaAPI (Avancé)',
       manualDesc: 'Importez vos trades depuis un fichier exporté de MT4/MT5',
       autoDesc: 'Connexion directe à MetaTrader via MetaAPI (nécessite une clé API)',
     },
@@ -170,8 +173,9 @@ const MetaTraderConnection: React.FC = () => {
       hideStats: 'Hide statistics',
       loadingStats: 'Loading...',
       autoSync: 'Auto-sync every hour',
-      tabManual: 'Manual Import (Free)',
-      tabAuto: 'Auto Sync (MetaAPI)',
+      tabManual: 'Manual Import',
+      tabAuto: 'Auto Sync (Free)',
+      tabMetaApi: 'MetaAPI (Advanced)',
       manualDesc: 'Import your trades from an exported MT4/MT5 file',
       autoDesc: 'Direct connection to MetaTrader via MetaAPI (requires API key)',
     },
@@ -341,25 +345,34 @@ const MetaTraderConnection: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Tabs for Manual vs Auto Import */}
-      <Tabs defaultValue="manual" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
+      <Tabs defaultValue="auto" className="w-full">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="auto" className="gap-2">
+            <Zap className="w-4 h-4" />
+            {texts.tabAuto}
+          </TabsTrigger>
           <TabsTrigger value="manual" className="gap-2">
             <Upload className="w-4 h-4" />
             {texts.tabManual}
           </TabsTrigger>
-          <TabsTrigger value="auto" className="gap-2">
+          <TabsTrigger value="metaapi" className="gap-2">
             <Cloud className="w-4 h-4" />
-            {texts.tabAuto}
+            {texts.tabMetaApi}
           </TabsTrigger>
         </TabsList>
+        
+        {/* Free Auto Sync Tab */}
+        <TabsContent value="auto" className="mt-4">
+          <MTAutoSyncFree />
+        </TabsContent>
         
         {/* Manual Import Tab */}
         <TabsContent value="manual" className="mt-4">
           <MTTradeImporter onImportComplete={fetchAccounts} />
         </TabsContent>
         
-        {/* Auto Sync Tab */}
-        <TabsContent value="auto" className="mt-4 space-y-4">
+        {/* MetaAPI Tab (Advanced) */}
+        <TabsContent value="metaapi" className="mt-4 space-y-4">
           {/* Header */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
