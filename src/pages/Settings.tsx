@@ -317,7 +317,7 @@ const Settings: React.FC = () => {
   ];
 
   return (
-    <div className="py-4 max-w-2xl mx-auto space-y-6">
+    <div className="py-4 max-w-2xl lg:max-w-4xl xl:max-w-5xl mx-auto space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
