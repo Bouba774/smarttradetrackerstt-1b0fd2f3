@@ -219,14 +219,13 @@ const AIChatBot: React.FC = () => {
 
   return (
     <>
-      {/* Floating Button with bounce animation */}
+      {/* Floating Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
           "fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full shadow-lg",
           "bg-gradient-primary hover:scale-110 flex items-center justify-center",
           "shadow-neon transition-all duration-300",
-          !isOpen && "animate-bounce-gentle",
           isOpen && "scale-0 opacity-0"
         )}
         aria-label="Open AI Chat"
