@@ -17,6 +17,11 @@ import { useConnectionSecurity } from '@/hooks/useConnectionSecurity';
 import { useEmailValidation } from '@/hooks/useEmailValidation';
 
 // Cloudflare Turnstile Site Key (public key, safe to expose in client code)
+// IMPORTANT: For Turnstile to work, these domains MUST be added in Cloudflare dashboard:
+// - *.lovable.app
+// - *.lovableproject.com  
+// - smarttradetracker.app
+// - www.smarttradetracker.app
 const TURNSTILE_SITE_KEY = '0x4AAAAAACG-_s2EZYR5V8_J';
 
 const Auth: React.FC = () => {
@@ -38,14 +43,16 @@ const Auth: React.FC = () => {
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [isBlocked, setIsBlocked] = useState(false);
 
-  // Enable Turnstile on all environments (Cloudflare domains must be configured)
-  // Note: For preview to work, add *.lovable.app to Turnstile allowed domains in Cloudflare dashboard
-  const isLocalhost = (): boolean => {
+  // Check if we're in a development/preview environment
+  // Turnstile only works on domains configured in Cloudflare dashboard
+  const isDevOrPreview = (): boolean => {
     const hostname = window.location.hostname;
-    return hostname === 'localhost' || hostname === '127.0.0.1';
+    return hostname === 'localhost' || 
+           hostname === '127.0.0.1' ||
+           hostname.includes('lovableproject.com'); // Preview environment
   };
   
-  const hasTurnstile = !isLocalhost();
+  const hasTurnstile = !isDevOrPreview();
 
   const emailSchema = z.string().email(t('invalidEmail'));
   const passwordSchema = createPasswordSchema(language);
