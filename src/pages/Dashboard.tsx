@@ -780,12 +780,6 @@ const Dashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* Footer */}
-      <div className="text-center py-6 border-t border-border/50">
-        <p className="text-xs text-muted-foreground">
-          Smart Trade Tracker <span className="text-primary font-semibold">V{APP_VERSION}</span>
-        </p>
-      </div>
     </div>
   );
 };
