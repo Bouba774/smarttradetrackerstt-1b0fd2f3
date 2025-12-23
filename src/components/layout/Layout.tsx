@@ -2,7 +2,6 @@ import React from 'react';
 import Header from './Header';
 import AppSidebar from './AppSidebar';
 import Footer from './Footer';
-import AdBanner from '@/components/AdBanner';
 import NavigationProgress from '@/components/NavigationProgress';
 import PageTransition from '@/components/PageTransition';
 import { useLocation } from 'react-router-dom';
@@ -40,10 +39,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               {isDashboard && <Footer />}
             </PageTransition>
           </main>
-          
-          {/* Ad Banner at bottom - hidden on auth page */}
-          {!isAuthPage && <AdBanner />}
-          
         </SidebarInset>
       </div>
     </SidebarProvider>
