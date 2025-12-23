@@ -19,9 +19,6 @@ import { useEmailValidation } from '@/hooks/useEmailValidation';
 // Cloudflare Turnstile Site Key (public key, safe to expose in client code)
 const TURNSTILE_SITE_KEY = '0x4AAAAAACG-_s2EZYR5V8_J';
 
-// Production domain where Turnstile is properly configured
-const PRODUCTION_DOMAIN = 'smarttradetracker.app';
-
 const Auth: React.FC = () => {
   const { signIn, signUp, user, loading } = useAuth();
   const { language, t } = useLanguage();
@@ -41,14 +38,14 @@ const Auth: React.FC = () => {
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [isBlocked, setIsBlocked] = useState(false);
 
-  // Only enable Turnstile on the production domain where it's properly configured
-  // All preview/development environments bypass captcha verification
-  const isProductionDomain = (): boolean => {
+  // Enable Turnstile on all environments (Cloudflare domains must be configured)
+  // Note: For preview to work, add *.lovable.app to Turnstile allowed domains in Cloudflare dashboard
+  const isLocalhost = (): boolean => {
     const hostname = window.location.hostname;
-    return hostname === PRODUCTION_DOMAIN || hostname === `www.${PRODUCTION_DOMAIN}`;
+    return hostname === 'localhost' || hostname === '127.0.0.1';
   };
   
-  const hasTurnstile = isProductionDomain();
+  const hasTurnstile = !isLocalhost();
 
   const emailSchema = z.string().email(t('invalidEmail'));
   const passwordSchema = createPasswordSchema(language);
