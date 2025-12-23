@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useCurrency } from '@/hooks/useCurrency';
 import { useTrades } from '@/hooks/useTrades';
 import { useTradeMedia } from '@/hooks/useTradeMedia';
 import TradeMediaUploader, { type MediaItem } from '@/components/TradeMediaUploader';
@@ -91,6 +92,7 @@ const TAGS = [
 
 const AddTrade: React.FC = () => {
   const { t, language } = useLanguage();
+  const { getCurrencySymbol } = useCurrency();
   const { addTrade } = useTrades();
   const { uploadMedia } = useTradeMedia();
   const locale = language === 'fr' ? fr : enUS;
@@ -127,6 +129,8 @@ const AddTrade: React.FC = () => {
           lotSize: parsed.lotSize || '',
           pnl: '',
           risk: parsed.risk || '',
+          riskCash: parsed.riskCash || '',
+          capital: parsed.capital || '',
           emotion: '',
           notes: '',
         };
@@ -142,6 +146,8 @@ const AddTrade: React.FC = () => {
           lotSize: '',
           pnl: '',
           risk: '',
+          riskCash: '',
+          capital: '',
           emotion: '',
           notes: '',
         };
@@ -158,10 +164,15 @@ const AddTrade: React.FC = () => {
       lotSize: '',
       pnl: '',
       risk: '',
+      riskCash: '',
+      capital: '',
       emotion: '',
       notes: '',
     };
   });
+
+  // Track which risk field was last modified
+  const [lastModifiedRiskField, setLastModifiedRiskField] = useState<'percent' | 'cash' | null>(null);
 
   // Check if there's pending data on mount
   useEffect(() => {
@@ -205,6 +216,60 @@ const AddTrade: React.FC = () => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  // Bidirectional risk calculation
+  const handleRiskPercentChange = (value: string) => {
+    setFormData(prev => {
+      const newData = { ...prev, risk: value };
+      const capital = parseFloat(prev.capital);
+      const percent = parseFloat(value);
+      
+      if (!isNaN(capital) && !isNaN(percent) && capital > 0) {
+        newData.riskCash = ((capital * percent) / 100).toFixed(2);
+      } else {
+        newData.riskCash = '';
+      }
+      return newData;
+    });
+    setLastModifiedRiskField('percent');
+  };
+
+  const handleRiskCashChange = (value: string) => {
+    setFormData(prev => {
+      const newData = { ...prev, riskCash: value };
+      const capital = parseFloat(prev.capital);
+      const cash = parseFloat(value);
+      
+      if (!isNaN(capital) && !isNaN(cash) && capital > 0) {
+        newData.risk = ((cash / capital) * 100).toFixed(2);
+      } else {
+        newData.risk = '';
+      }
+      return newData;
+    });
+    setLastModifiedRiskField('cash');
+  };
+
+  const handleCapitalChange = (value: string) => {
+    setFormData(prev => {
+      const newData = { ...prev, capital: value };
+      const capital = parseFloat(value);
+      
+      // Recalculate based on last modified field
+      if (lastModifiedRiskField === 'percent' && prev.risk) {
+        const percent = parseFloat(prev.risk);
+        if (!isNaN(capital) && !isNaN(percent) && capital > 0) {
+          newData.riskCash = ((capital * percent) / 100).toFixed(2);
+        }
+      } else if (lastModifiedRiskField === 'cash' && prev.riskCash) {
+        const cash = parseFloat(prev.riskCash);
+        if (!isNaN(capital) && !isNaN(cash) && capital > 0) {
+          newData.risk = ((cash / capital) * 100).toFixed(2);
+        }
+      }
+      return newData;
+    });
+  };
+
   const clearPendingData = () => {
     localStorage.removeItem(PENDING_TRADE_KEY);
     setHasPendingData(false);
@@ -219,6 +284,8 @@ const AddTrade: React.FC = () => {
       lotSize: '',
       pnl: '',
       risk: '',
+      riskCash: '',
+      capital: '',
       emotion: '',
       notes: '',
     });
@@ -344,6 +411,7 @@ const AddTrade: React.FC = () => {
         custom_setup: customSetup ? sanitizeText(customSetup) : null,
         result,
         profit_loss: pnl,
+        risk_amount: formData.riskCash ? parseFloat(formData.riskCash) : null,
         notes: formData.notes ? sanitizeText(formData.notes) : null,
         emotions: formData.emotion || null,
         images: uploadedMedia.images.length > 0 ? uploadedMedia.images : null,
@@ -373,6 +441,8 @@ const AddTrade: React.FC = () => {
         lotSize: '',
         pnl: '',
         risk: '',
+        riskCash: '',
+        capital: '',
         emotion: '',
         notes: '',
       });
@@ -686,17 +756,44 @@ const AddTrade: React.FC = () => {
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="space-y-2">
-              <Label>{t('risk')} (%)</Label>
+              <Label>{t('capital')} ({getCurrencySymbol()})</Label>
               <Input
                 type="number"
-                step="0.1"
-                placeholder="1.0"
-                value={formData.risk}
-                onChange={(e) => handleInputChange('risk', e.target.value)}
+                step="0.01"
+                placeholder="10000"
+                value={formData.capital}
+                onChange={(e) => handleCapitalChange(e.target.value)}
               />
             </div>
             <div className="space-y-2">
-              <Label>{t('pnl')} ($)</Label>
+              <Label>{t('risk')}</Label>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="relative">
+                  <Input
+                    type="number"
+                    step="0.1"
+                    placeholder="1.0"
+                    value={formData.risk}
+                    onChange={(e) => handleRiskPercentChange(e.target.value)}
+                    className="pr-8"
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">%</span>
+                </div>
+                <div className="relative">
+                  <Input
+                    type="number"
+                    step="0.01"
+                    placeholder="100.00"
+                    value={formData.riskCash}
+                    onChange={(e) => handleRiskCashChange(e.target.value)}
+                    className="pr-8"
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">{getCurrencySymbol()}</span>
+                </div>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>{t('pnl')} ({getCurrencySymbol()})</Label>
               <Input
                 type="number"
                 step="0.01"

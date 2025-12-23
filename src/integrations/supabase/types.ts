@@ -788,6 +788,7 @@ export type Database = {
           notes: string | null
           profit_loss: number | null
           result: string | null
+          risk_amount: number | null
           setup: string | null
           stop_loss: number | null
           take_profit: number | null
@@ -815,6 +816,7 @@ export type Database = {
           notes?: string | null
           profit_loss?: number | null
           result?: string | null
+          risk_amount?: number | null
           setup?: string | null
           stop_loss?: number | null
           take_profit?: number | null
@@ -842,6 +844,7 @@ export type Database = {
           notes?: string | null
           profit_loss?: number | null
           result?: string | null
+          risk_amount?: number | null
           setup?: string | null
           stop_loss?: number | null
           take_profit?: number | null

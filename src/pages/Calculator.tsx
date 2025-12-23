@@ -28,11 +28,15 @@ const Calculator: React.FC = () => {
   const [formData, setFormData] = useState({
     capital: '',
     riskPercent: '',
+    riskCash: '',
     entryPrice: '',
     stopLoss: '',
     takeProfit: '',
     asset: 'EUR/USD',
   });
+
+  // Track which field was last modified for bidirectional calculation
+  const [lastModifiedRiskField, setLastModifiedRiskField] = useState<'percent' | 'cash' | null>(null);
 
   const [results, setResults] = useState<{
     riskAmount: number;
@@ -68,6 +72,60 @@ const Calculator: React.FC = () => {
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  // Bidirectional risk calculation
+  const handleRiskPercentChange = (value: string) => {
+    setFormData(prev => {
+      const newData = { ...prev, riskPercent: value };
+      const capital = parseFloat(prev.capital);
+      const percent = parseFloat(value);
+      
+      if (!isNaN(capital) && !isNaN(percent) && capital > 0) {
+        newData.riskCash = ((capital * percent) / 100).toFixed(2);
+      } else {
+        newData.riskCash = '';
+      }
+      return newData;
+    });
+    setLastModifiedRiskField('percent');
+  };
+
+  const handleRiskCashChange = (value: string) => {
+    setFormData(prev => {
+      const newData = { ...prev, riskCash: value };
+      const capital = parseFloat(prev.capital);
+      const cash = parseFloat(value);
+      
+      if (!isNaN(capital) && !isNaN(cash) && capital > 0) {
+        newData.riskPercent = ((cash / capital) * 100).toFixed(2);
+      } else {
+        newData.riskPercent = '';
+      }
+      return newData;
+    });
+    setLastModifiedRiskField('cash');
+  };
+
+  const handleCapitalChange = (value: string) => {
+    setFormData(prev => {
+      const newData = { ...prev, capital: value };
+      const capital = parseFloat(value);
+      
+      // Recalculate based on last modified field
+      if (lastModifiedRiskField === 'percent' && prev.riskPercent) {
+        const percent = parseFloat(prev.riskPercent);
+        if (!isNaN(capital) && !isNaN(percent) && capital > 0) {
+          newData.riskCash = ((capital * percent) / 100).toFixed(2);
+        }
+      } else if (lastModifiedRiskField === 'cash' && prev.riskCash) {
+        const cash = parseFloat(prev.riskCash);
+        if (!isNaN(capital) && !isNaN(cash) && capital > 0) {
+          newData.riskPercent = ((cash / capital) * 100).toFixed(2);
+        }
+      }
+      return newData;
+    });
   };
 
   const calculateLot = () => {
@@ -238,21 +296,38 @@ const Calculator: React.FC = () => {
                   type="number"
                   placeholder="10000"
                   value={formData.capital}
-                  onChange={(e) => handleInputChange('capital', e.target.value)}
+                  onChange={(e) => handleCapitalChange(e.target.value)}
                 />
               </div>
-              <div className="space-y-2">
-                <Label>{t('riskPercent')} (%)</Label>
-                <Input
-                  type="number"
-                  step="0.1"
-                  placeholder="1.0"
-                  value={formData.riskPercent}
-                  onChange={(e) => handleInputChange('riskPercent', e.target.value)}
-                  className={cn(
-                    parseFloat(formData.riskPercent) > 2 && "border-loss/50"
-                  )}
-                />
+              <div className="space-y-2 col-span-2">
+                <Label>{t('risk')}</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="relative">
+                    <Input
+                      type="number"
+                      step="0.1"
+                      placeholder="1.0"
+                      value={formData.riskPercent}
+                      onChange={(e) => handleRiskPercentChange(e.target.value)}
+                      className={cn(
+                        "pr-8",
+                        parseFloat(formData.riskPercent) > 2 && "border-loss/50"
+                      )}
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">%</span>
+                  </div>
+                  <div className="relative">
+                    <Input
+                      type="number"
+                      step="0.01"
+                      placeholder="100.00"
+                      value={formData.riskCash}
+                      onChange={(e) => handleRiskCashChange(e.target.value)}
+                      className="pr-8"
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">{getCurrencySymbol()}</span>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -414,6 +489,8 @@ const Calculator: React.FC = () => {
                     lotSize: results.lotSize.toString(),
                     direction: results.direction,
                     risk: formData.riskPercent,
+                    riskCash: formData.riskCash,
+                    capital: formData.capital,
                   };
                   localStorage.setItem(PENDING_TRADE_KEY, JSON.stringify(pendingTradeData));
                   toast.success(t('dataSentToTrade'));

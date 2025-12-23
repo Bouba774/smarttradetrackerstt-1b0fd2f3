@@ -16,6 +16,7 @@ export interface Trade {
   custom_setup: string | null;
   result: 'win' | 'loss' | 'breakeven' | 'pending' | null;
   profit_loss: number | null;
+  risk_amount: number | null;
   notes: string | null;
   emotions: string | null;
   images: string[] | null;
