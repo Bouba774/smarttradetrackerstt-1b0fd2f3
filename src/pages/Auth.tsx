@@ -17,6 +17,7 @@ import { useConnectionSecurity } from '@/hooks/useConnectionSecurity';
 import { useEmailValidation } from '@/hooks/useEmailValidation';
 
 // Cloudflare Turnstile Site Key (public key, safe to expose in client code)
+// This is the site key from your Cloudflare Turnstile configuration
 const TURNSTILE_SITE_KEY = '0x4AAAAAACG-_s2EZYR5V8_J';
 
 const Auth: React.FC = () => {
@@ -38,8 +39,7 @@ const Auth: React.FC = () => {
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [isBlocked, setIsBlocked] = useState(false);
 
-  // Enable Turnstile on all environments (Cloudflare domains must be configured)
-  // Note: For preview to work, add *.lovable.app to Turnstile allowed domains in Cloudflare dashboard
+  // Enable Turnstile only if not on localhost
   const isLocalhost = (): boolean => {
     const hostname = window.location.hostname;
     return hostname === 'localhost' || hostname === '127.0.0.1';
