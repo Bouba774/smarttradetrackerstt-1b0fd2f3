@@ -382,14 +382,6 @@ const Calculator: React.FC = () => {
             {t('calculate')}
           </Button>
 
-          {/* Formulas Info */}
-          <div className="p-4 bg-secondary/30 rounded-lg text-xs text-muted-foreground space-y-1">
-            <p className="font-semibold text-foreground">{t('formulasUsed')}:</p>
-            <p>• {t('risk')} ($) = {t('capital')} × ({t('risk')}% / 100)</p>
-            <p>• SL (pips) = |{t('entryPrice')} - SL| / Pip Size</p>
-            <p>• Lot = {t('risk')} ($) / (SL pips × Pip Value)</p>
-            <p>• R:R = TP pips / SL pips</p>
-          </div>
         </div>
 
         {/* Results Section */}
