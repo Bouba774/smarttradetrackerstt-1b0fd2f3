@@ -202,22 +202,22 @@ const History: React.FC = () => {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-3 gap-4">
-        <div className="glass-card p-4 text-center animate-fade-in">
-          <p className="text-xs text-muted-foreground uppercase tracking-wide">{t('totalGains')}</p>
-          <p className="font-display text-xl font-bold profit-text">
+      <div className="grid grid-cols-3 gap-2 sm:gap-4">
+        <div className="glass-card p-3 sm:p-4 text-center animate-fade-in overflow-hidden">
+          <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wide truncate">{t('totalGains')}</p>
+          <p className="font-display text-sm sm:text-xl font-bold profit-text truncate">
             <ConfidentialValue>{formatAmount(totalGains)}</ConfidentialValue>
           </p>
         </div>
-        <div className="glass-card p-4 text-center animate-fade-in" style={{ animationDelay: '50ms' }}>
-          <p className="text-xs text-muted-foreground uppercase tracking-wide">{t('totalLosses')}</p>
-          <p className="font-display text-xl font-bold loss-text">
+        <div className="glass-card p-3 sm:p-4 text-center animate-fade-in overflow-hidden" style={{ animationDelay: '50ms' }}>
+          <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wide truncate">{t('totalLosses')}</p>
+          <p className="font-display text-sm sm:text-xl font-bold loss-text truncate">
             <ConfidentialValue>{formatAmount(totalLosses)}</ConfidentialValue>
           </p>
         </div>
-        <div className="glass-card p-4 text-center animate-fade-in" style={{ animationDelay: '100ms' }}>
-          <p className="text-xs text-muted-foreground uppercase tracking-wide">{t('breakeven')}</p>
-          <p className="font-display text-xl font-bold text-muted-foreground">{totalBreakeven}</p>
+        <div className="glass-card p-3 sm:p-4 text-center animate-fade-in overflow-hidden" style={{ animationDelay: '100ms' }}>
+          <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wide truncate">{t('breakeven')}</p>
+          <p className="font-display text-sm sm:text-xl font-bold text-muted-foreground">{totalBreakeven}</p>
         </div>
       </div>
 
