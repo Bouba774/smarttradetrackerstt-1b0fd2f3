@@ -307,13 +307,6 @@ export type Database = {
             referencedRelation: "user_sessions"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "connection_logs_session_id_fkey"
-            columns: ["session_id"]
-            isOneToOne: false
-            referencedRelation: "user_sessions_masked"
-            referencedColumns: ["id"]
-          },
         ]
       }
       data_processing_registry: {
@@ -758,13 +751,6 @@ export type Database = {
             columns: ["session_id"]
             isOneToOne: false
             referencedRelation: "user_sessions"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "session_anomalies_session_id_fkey"
-            columns: ["session_id"]
-            isOneToOne: false
-            referencedRelation: "user_sessions_masked"
             referencedColumns: ["id"]
           },
         ]
@@ -1239,57 +1225,6 @@ export type Database = {
         }
         Relationships: []
       }
-      user_sessions_masked: {
-        Row: {
-          browser_name: string | null
-          browser_version: string | null
-          country: string | null
-          country_code: string | null
-          created_at: string | null
-          device_type: string | null
-          id: string | null
-          is_mobile: boolean | null
-          os_name: string | null
-          os_version: string | null
-          session_end: string | null
-          session_start: string | null
-          updated_at: string | null
-          user_id: string | null
-        }
-        Insert: {
-          browser_name?: string | null
-          browser_version?: string | null
-          country?: string | null
-          country_code?: string | null
-          created_at?: string | null
-          device_type?: string | null
-          id?: string | null
-          is_mobile?: boolean | null
-          os_name?: string | null
-          os_version?: string | null
-          session_end?: string | null
-          session_start?: string | null
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          browser_name?: string | null
-          browser_version?: string | null
-          country?: string | null
-          country_code?: string | null
-          created_at?: string | null
-          device_type?: string | null
-          id?: string | null
-          is_mobile?: boolean | null
-          os_name?: string | null
-          os_version?: string | null
-          session_end?: string | null
-          session_start?: string | null
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Relationships: []
-      }
     }
     Functions: {
       check_rate_limit: {
@@ -1354,6 +1289,25 @@ export type Database = {
       get_user_role_for_security: {
         Args: { p_user_id: string }
         Returns: string
+      }
+      get_user_sessions_masked: {
+        Args: { target_user_id?: string }
+        Returns: {
+          browser_name: string
+          browser_version: string
+          country: string
+          country_code: string
+          created_at: string
+          device_type: string
+          id: string
+          is_mobile: boolean
+          os_name: string
+          os_version: string
+          session_end: string
+          session_start: string
+          updated_at: string
+          user_id: string
+        }[]
       }
       has_role: {
         Args: {
