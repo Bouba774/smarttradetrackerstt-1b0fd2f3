@@ -17,12 +17,10 @@ import { useConnectionSecurity } from '@/hooks/useConnectionSecurity';
 import { useEmailValidation } from '@/hooks/useEmailValidation';
 
 // Cloudflare Turnstile Site Key (public key, safe to expose in client code)
-// IMPORTANT: For Turnstile to work, these domains MUST be added in Cloudflare dashboard:
-// - *.lovable.app
-// - *.lovableproject.com  
-// - smarttradetracker.app
-// - www.smarttradetracker.app
 const TURNSTILE_SITE_KEY = '0x4AAAAAACG-_s2EZYR5V8_J';
+
+// Production domain where Turnstile is properly configured
+const PRODUCTION_DOMAIN = 'smarttradetracker.app';
 
 const Auth: React.FC = () => {
   const { signIn, signUp, user, loading } = useAuth();
@@ -43,16 +41,14 @@ const Auth: React.FC = () => {
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [isBlocked, setIsBlocked] = useState(false);
 
-  // Check if we're in a development/preview environment
-  // Turnstile only works on domains configured in Cloudflare dashboard
-  const isDevOrPreview = (): boolean => {
+  // Only enable Turnstile on the production domain where it's properly configured
+  // All preview/development environments bypass captcha verification
+  const isProductionDomain = (): boolean => {
     const hostname = window.location.hostname;
-    return hostname === 'localhost' || 
-           hostname === '127.0.0.1' ||
-           hostname.includes('lovableproject.com'); // Preview environment
+    return hostname === PRODUCTION_DOMAIN || hostname === `www.${PRODUCTION_DOMAIN}`;
   };
   
-  const hasTurnstile = !isDevOrPreview();
+  const hasTurnstile = isProductionDomain();
 
   const emailSchema = z.string().email(t('invalidEmail'));
   const passwordSchema = createPasswordSchema(language);
