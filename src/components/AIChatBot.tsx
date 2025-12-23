@@ -16,6 +16,7 @@ import { streamChat, fileToBase64, createImageMessage, MessageContent } from '@/
 import { format } from 'date-fns';
 import { fr, enUS } from 'date-fns/locale';
 import { useLocation } from 'react-router-dom';
+import TypingAnimation from './TypingAnimation';
 
 interface ChatMessage {
   role: 'user' | 'assistant';
@@ -421,9 +422,17 @@ const AIChatBot: React.FC = () => {
                               className="max-w-full rounded-lg mb-2 max-h-32 object-cover"
                             />
                           )}
-                          {/* Show text */}
-                          {(typeof msg.content === 'string' ? msg.content : getMessageText(msg.content)) || (
-                            <Loader2 className="w-4 h-4 animate-spin" />
+                          {/* Show text with typing animation for assistant */}
+                          {msg.role === 'assistant' ? (
+                            <TypingAnimation 
+                              text={typeof msg.content === 'string' ? msg.content : getMessageText(msg.content)}
+                              isComplete={!isLoading || idx !== localMessages.length - 1}
+                              speed={10}
+                            />
+                          ) : (
+                            (typeof msg.content === 'string' ? msg.content : getMessageText(msg.content)) || (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            )
                           )}
                         </div>
                         {msg.role === 'user' && (
