@@ -12,7 +12,6 @@ import StatCard from '@/components/ui/StatCard';
 import GaugeChart from '@/components/ui/GaugeChart';
 import TradeFocusMode from '@/components/TradeFocusMode';
 import ConfidentialValue from '@/components/ConfidentialValue';
-import MonthlyPerformanceCalendar from '@/components/MonthlyPerformanceCalendar';
 import {
   TrendingUp,
   TrendingDown,
@@ -400,12 +399,6 @@ const Dashboard: React.FC = () => {
             delay={950}
           />
         </div>
-      </div>
-
-      {/* Section: Calendrier Performance Mensuelle */}
-      <div>
-        <SectionHeader icon={Calendar} title={language === 'fr' ? 'Performance Mensuelle' : 'Monthly Performance'} delay={975} />
-        <MonthlyPerformanceCalendar trades={trades} />
       </div>
 
       {/* Section: Indicateurs de Performance */}

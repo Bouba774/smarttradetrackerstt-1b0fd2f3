@@ -35,6 +35,7 @@ import { toast } from 'sonner';
 import EditTradeDialog from '@/components/EditTradeDialog';
 import ConfidentialValue from '@/components/ConfidentialValue';
 import TradeMediaDisplay from '@/components/TradeMediaDisplay';
+import MonthlyPerformanceCalendar from '@/components/MonthlyPerformanceCalendar';
 
 const History: React.FC = () => {
   const { t, language } = useLanguage();
@@ -200,6 +201,9 @@ const History: React.FC = () => {
           </p>
         </div>
       </div>
+
+      {/* Monthly Performance Calendar */}
+      <MonthlyPerformanceCalendar trades={trades} />
 
       {/* Summary Cards */}
       <div className="grid grid-cols-3 gap-2 sm:gap-4">
