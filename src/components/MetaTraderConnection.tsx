@@ -21,6 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { 
@@ -38,8 +39,11 @@ import {
   Activity,
   ChevronDown,
   ChevronUp,
+  Upload,
+  Cloud,
 } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import MTTradeImporter from '@/components/MTTradeImporter';
 
 interface MTAccount {
   id: string;
@@ -124,6 +128,10 @@ const MetaTraderConnection: React.FC = () => {
       hideStats: 'Masquer les statistiques',
       loadingStats: 'Chargement...',
       autoSync: 'Sync auto toutes les heures',
+      tabManual: 'Import manuel (Gratuit)',
+      tabAuto: 'Sync automatique (MetaAPI)',
+      manualDesc: 'Importez vos trades depuis un fichier exporté de MT4/MT5',
+      autoDesc: 'Connexion directe à MetaTrader via MetaAPI (nécessite une clé API)',
     },
     en: {
       connectMT: 'MetaTrader Connection',
@@ -162,6 +170,10 @@ const MetaTraderConnection: React.FC = () => {
       hideStats: 'Hide statistics',
       loadingStats: 'Loading...',
       autoSync: 'Auto-sync every hour',
+      tabManual: 'Manual Import (Free)',
+      tabAuto: 'Auto Sync (MetaAPI)',
+      manualDesc: 'Import your trades from an exported MT4/MT5 file',
+      autoDesc: 'Direct connection to MetaTrader via MetaAPI (requires API key)',
     },
   };
 
@@ -327,32 +339,52 @@ const MetaTraderConnection: React.FC = () => {
   };
 
   return (
-    <div className="space-y-4">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <TrendingUp className="w-5 h-5 text-primary" />
-          <h3 className="font-display font-semibold text-foreground">
-            {texts.connectMT}
-          </h3>
-        </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button variant="outline" size="sm" className="gap-2">
-              <Link2 className="w-4 h-4" />
-              {texts.addAccount}
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px]">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <TrendingUp className="w-5 h-5 text-primary" />
+    <div className="space-y-6">
+      {/* Tabs for Manual vs Auto Import */}
+      <Tabs defaultValue="manual" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="manual" className="gap-2">
+            <Upload className="w-4 h-4" />
+            {texts.tabManual}
+          </TabsTrigger>
+          <TabsTrigger value="auto" className="gap-2">
+            <Cloud className="w-4 h-4" />
+            {texts.tabAuto}
+          </TabsTrigger>
+        </TabsList>
+        
+        {/* Manual Import Tab */}
+        <TabsContent value="manual" className="mt-4">
+          <MTTradeImporter onImportComplete={fetchAccounts} />
+        </TabsContent>
+        
+        {/* Auto Sync Tab */}
+        <TabsContent value="auto" className="mt-4 space-y-4">
+          {/* Header */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <TrendingUp className="w-5 h-5 text-primary" />
+              <h3 className="font-display font-semibold text-foreground">
                 {texts.connectMT}
-              </DialogTitle>
-              <DialogDescription>
-                {texts.connectMTDesc}
-              </DialogDescription>
-            </DialogHeader>
+              </h3>
+            </div>
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-2">
+                  <Link2 className="w-4 h-4" />
+                  {texts.addAccount}
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                    <TrendingUp className="w-5 h-5 text-primary" />
+                    {texts.connectMT}
+                  </DialogTitle>
+                  <DialogDescription>
+                    {texts.connectMTDesc}
+                  </DialogDescription>
+                </DialogHeader>
 
             <div className="space-y-4 py-4">
               {/* Platform Select */}
@@ -687,6 +719,8 @@ const MetaTraderConnection: React.FC = () => {
           ))}
         </div>
       )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
