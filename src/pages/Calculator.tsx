@@ -334,11 +334,14 @@ const Calculator: React.FC = () => {
             <div className="space-y-2">
               <Label>{t('entryPrice')}</Label>
               <Input
-                type="number"
-                step="any"
+                type="text"
+                inputMode="decimal"
                 placeholder="1.08500"
                 value={formData.entryPrice}
-                onChange={(e) => handleInputChange('entryPrice', e.target.value)}
+                onChange={(e) => {
+                  const value = e.target.value.replace(/[^0-9.,]/g, '').replace(',', '.');
+                  handleInputChange('entryPrice', value);
+                }}
               />
             </div>
 
@@ -349,11 +352,14 @@ const Calculator: React.FC = () => {
                   <span className="text-xs text-loss">({t('required')})</span>
                 </Label>
                 <Input
-                  type="number"
-                  step="any"
+                  type="text"
+                  inputMode="decimal"
                   placeholder="1.08000"
                   value={formData.stopLoss}
-                  onChange={(e) => handleInputChange('stopLoss', e.target.value)}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/[^0-9.,]/g, '').replace(',', '.');
+                    handleInputChange('stopLoss', value);
+                  }}
                   className="border-loss/30 focus:border-loss"
                 />
               </div>
@@ -363,11 +369,14 @@ const Calculator: React.FC = () => {
                   <span className="text-xs text-muted-foreground">({t('optional')})</span>
                 </Label>
                 <Input
-                  type="number"
-                  step="any"
+                  type="text"
+                  inputMode="decimal"
                   placeholder="1.09500"
                   value={formData.takeProfit}
-                  onChange={(e) => handleInputChange('takeProfit', e.target.value)}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/[^0-9.,]/g, '').replace(',', '.');
+                    handleInputChange('takeProfit', value);
+                  }}
                   className="border-profit/30 focus:border-profit"
                 />
               </div>
