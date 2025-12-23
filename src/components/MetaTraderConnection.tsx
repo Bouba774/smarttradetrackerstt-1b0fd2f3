@@ -44,6 +44,7 @@ import {
 } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import MTTradeImporter from '@/components/MTTradeImporter';
+import MetaStatsMetrics from '@/components/MetaStatsMetrics';
 
 interface MTAccount {
   id: string;
@@ -584,99 +585,13 @@ const MetaTraderConnection: React.FC = () => {
 
                   {/* Stats Panel */}
                   <CollapsibleContent>
-                    {loadingStats === account.id ? (
-                      <div className="flex items-center justify-center py-4">
-                        <Loader2 className="w-5 h-5 animate-spin text-primary" />
-                        <span className="ml-2 text-sm text-muted-foreground">{texts.loadingStats}</span>
-                      </div>
-                    ) : accountStats[account.id] ? (
-                      <div className="grid grid-cols-2 gap-3 p-3 bg-muted/30 rounded-lg">
-                        {/* Balance */}
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                            <DollarSign className="w-4 h-4 text-primary" />
-                          </div>
-                          <div>
-                            <p className="text-xs text-muted-foreground">{texts.balance}</p>
-                            <p className="font-semibold text-sm">
-                              {formatCurrency(accountStats[account.id].balance, accountStats[account.id].currency)}
-                            </p>
-                          </div>
-                        </div>
-
-                        {/* Equity */}
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center">
-                            <Activity className="w-4 h-4 text-blue-500" />
-                          </div>
-                          <div>
-                            <p className="text-xs text-muted-foreground">{texts.equity}</p>
-                            <p className="font-semibold text-sm">
-                              {formatCurrency(accountStats[account.id].equity, accountStats[account.id].currency)}
-                            </p>
-                          </div>
-                        </div>
-
-                        {/* Margin */}
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-full bg-orange-500/10 flex items-center justify-center">
-                            <Wallet className="w-4 h-4 text-orange-500" />
-                          </div>
-                          <div>
-                            <p className="text-xs text-muted-foreground">{texts.margin}</p>
-                            <p className="font-semibold text-sm">
-                              {formatCurrency(accountStats[account.id].margin, accountStats[account.id].currency)}
-                            </p>
-                          </div>
-                        </div>
-
-                        {/* Free Margin */}
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-full bg-green-500/10 flex items-center justify-center">
-                            <Wallet className="w-4 h-4 text-green-500" />
-                          </div>
-                          <div>
-                            <p className="text-xs text-muted-foreground">{texts.freeMargin}</p>
-                            <p className="font-semibold text-sm">
-                              {formatCurrency(accountStats[account.id].freeMargin, accountStats[account.id].currency)}
-                            </p>
-                          </div>
-                        </div>
-
-                        {/* Open P&L */}
-                        <div className="flex items-center gap-2">
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                            accountStats[account.id].profit >= 0 ? 'bg-profit/10' : 'bg-loss/10'
-                          }`}>
-                            <TrendingUp className={`w-4 h-4 ${
-                              accountStats[account.id].profit >= 0 ? 'text-profit' : 'text-loss'
-                            }`} />
-                          </div>
-                          <div>
-                            <p className="text-xs text-muted-foreground">{texts.profit}</p>
-                            <p className={`font-semibold text-sm ${
-                              accountStats[account.id].profit >= 0 ? 'text-profit' : 'text-loss'
-                            }`}>
-                              {accountStats[account.id].profit >= 0 ? '+' : ''}
-                              {formatCurrency(accountStats[account.id].profit, accountStats[account.id].currency)}
-                            </p>
-                          </div>
-                        </div>
-
-                        {/* Leverage */}
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-full bg-purple-500/10 flex items-center justify-center">
-                            <BarChart3 className="w-4 h-4 text-purple-500" />
-                          </div>
-                          <div>
-                            <p className="text-xs text-muted-foreground">{texts.leverage}</p>
-                            <p className="font-semibold text-sm">
-                              1:{accountStats[account.id].leverage}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    ) : null}
+                    {/* MetaStats Metrics Component */}
+                    {account.login && (
+                      <MetaStatsMetrics 
+                        metaApiAccountId={account.login}
+                        accountName={account.account_name}
+                      />
+                    )}
                   </CollapsibleContent>
 
                   {/* Actions */}
