@@ -1,6 +1,6 @@
 /**
  * MetaTrader Trade History Parser
- * Supports CSV and HTML exports from MT4/MT5
+ * Supports CSV, HTML, XML, JSON, and XLS exports from MT4/MT5
  */
 
 export interface ParsedMTTrade {
@@ -26,334 +26,50 @@ export interface ParseResult {
   errors: string[];
   totalTrades: number;
   importedTrades: number;
+  format: string;
 }
 
-/**
- * Parse MT4/MT5 CSV export file
- * Format: Ticket;Open Time;Type;Size;Item;Price;S / L;T / P;Close Time;Price;Commission;Taxes;Swap;Profit
- */
-export function parseCSVFile(content: string): ParseResult {
-  const errors: string[] = [];
-  const trades: ParsedMTTrade[] = [];
-  
-  try {
-    // Detect delimiter (comma or semicolon)
-    const firstLine = content.split('\n')[0];
-    const delimiter = firstLine.includes(';') ? ';' : ',';
-    
-    const lines = content.trim().split('\n');
-    
-    // Skip header line if present
-    let startIndex = 0;
-    const headerIndicators = ['ticket', 'open time', 'type', 'symbol', 'item', 'size', 'volume'];
-    if (headerIndicators.some(h => lines[0].toLowerCase().includes(h))) {
-      startIndex = 1;
-    }
-    
-    for (let i = startIndex; i < lines.length; i++) {
-      const line = lines[i].trim();
-      if (!line) continue;
-      
-      try {
-        const columns = parseCSVLine(line, delimiter);
-        const trade = parseCSVTrade(columns);
-        if (trade) {
-          trades.push(trade);
-        }
-      } catch (e) {
-        errors.push(`Line ${i + 1}: ${e instanceof Error ? e.message : 'Parse error'}`);
-      }
-    }
-    
-    return {
-      success: trades.length > 0,
-      trades,
-      errors,
-      totalTrades: lines.length - startIndex,
-      importedTrades: trades.length
-    };
-  } catch (e) {
-    return {
-      success: false,
-      trades: [],
-      errors: [e instanceof Error ? e.message : 'Unknown error'],
-      totalTrades: 0,
-      importedTrades: 0
-    };
-  }
-}
-
-/**
- * Parse a single CSV line handling quoted values
- */
-function parseCSVLine(line: string, delimiter: string): string[] {
-  const result: string[] = [];
-  let current = '';
-  let inQuotes = false;
-  
-  for (let i = 0; i < line.length; i++) {
-    const char = line[i];
-    
-    if (char === '"') {
-      inQuotes = !inQuotes;
-    } else if (char === delimiter && !inQuotes) {
-      result.push(current.trim());
-      current = '';
-    } else {
-      current += char;
-    }
-  }
-  
-  result.push(current.trim());
-  return result;
-}
-
-/**
- * Parse a CSV trade row into structured data
- */
-function parseCSVTrade(columns: string[]): ParsedMTTrade | null {
-  // MT4/MT5 export typically has these columns:
-  // Ticket, Open Time, Type, Size/Volume, Item/Symbol, Price, S/L, T/P, Close Time, Close Price, Commission, Taxes, Swap, Profit
-  
-  if (columns.length < 10) return null;
-  
-  // Skip balance operations, deposits, withdrawals
-  const type = columns[2]?.toLowerCase() || '';
-  if (!type.includes('buy') && !type.includes('sell')) {
-    return null;
-  }
-  
-  const ticket = columns[0]?.replace(/[^0-9]/g, '') || '';
-  if (!ticket) return null;
-  
-  // Parse dates - handle various formats
-  const openTime = parseTradeDate(columns[1]);
-  const closeTime = parseTradeDate(columns[8]);
-  
-  if (!openTime) return null;
-  
-  // Parse numeric values
-  const volume = parseNumber(columns[3]);
-  const symbol = columns[4]?.trim().toUpperCase() || '';
-  const openPrice = parseNumber(columns[5]);
-  const stopLoss = parseNumber(columns[6]);
-  const takeProfit = parseNumber(columns[7]);
-  const closePrice = parseNumber(columns[9]);
-  const commission = parseNumber(columns[10]);
-  const swap = parseNumber(columns[12] || columns[11]);
-  const profit = parseNumber(columns[13] || columns[12] || columns[11]);
-  const comment = columns[14]?.trim() || '';
-  
-  if (!symbol || volume <= 0) return null;
-  
-  return {
-    ticket,
-    openTime,
-    closeTime,
-    type: type.includes('buy') ? 'buy' : 'sell',
-    symbol,
-    volume,
-    openPrice,
-    closePrice,
-    stopLoss: stopLoss || null,
-    takeProfit: takeProfit || null,
-    profit,
-    swap,
-    commission,
-    comment
-  };
-}
-
-/**
- * Parse MT4/MT5 HTML Statement export
- */
-export function parseHTMLFile(content: string): ParseResult {
-  const errors: string[] = [];
-  const trades: ParsedMTTrade[] = [];
-  
-  try {
-    // Create a DOM parser
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(content, 'text/html');
-    
-    // Find all tables (MT exports typically have multiple tables)
-    const tables = doc.querySelectorAll('table');
-    
-    for (const table of tables) {
-      const rows = table.querySelectorAll('tr');
-      
-      // Skip if too few rows
-      if (rows.length < 2) continue;
-      
-      // Check if this is a trades table by looking at headers
-      const headerRow = rows[0];
-      const headerText = headerRow.textContent?.toLowerCase() || '';
-      
-      if (!headerText.includes('ticket') && !headerText.includes('symbol') && !headerText.includes('order')) {
-        continue;
-      }
-      
-      // Parse each row (skip header)
-      for (let i = 1; i < rows.length; i++) {
-        try {
-          const cells = rows[i].querySelectorAll('td');
-          if (cells.length < 8) continue;
-          
-          const cellValues = Array.from(cells).map(c => c.textContent?.trim() || '');
-          const trade = parseHTMLTrade(cellValues);
-          if (trade) {
-            trades.push(trade);
-          }
-        } catch (e) {
-          errors.push(`Row ${i + 1}: ${e instanceof Error ? e.message : 'Parse error'}`);
-        }
-      }
-    }
-    
-    return {
-      success: trades.length > 0,
-      trades,
-      errors,
-      totalTrades: trades.length + errors.length,
-      importedTrades: trades.length
-    };
-  } catch (e) {
-    return {
-      success: false,
-      trades: [],
-      errors: [e instanceof Error ? e.message : 'Unknown error'],
-      totalTrades: 0,
-      importedTrades: 0
-    };
-  }
-}
-
-/**
- * Parse HTML table row into trade
- */
-function parseHTMLTrade(cells: string[]): ParsedMTTrade | null {
-  // MT HTML format varies but typically:
-  // Ticket, Open Time, Type, Volume, Symbol, Price, S/L, T/P, Close Time, Close Price, Commission, Swap, Profit
-  
-  if (cells.length < 8) return null;
-  
-  // Find type column
-  let typeIndex = -1;
-  for (let i = 0; i < Math.min(5, cells.length); i++) {
-    if (cells[i].toLowerCase().includes('buy') || cells[i].toLowerCase().includes('sell')) {
-      typeIndex = i;
-      break;
-    }
-  }
-  
-  if (typeIndex === -1) return null;
-  
-  const type = cells[typeIndex].toLowerCase();
-  if (!type.includes('buy') && !type.includes('sell')) return null;
-  
-  // Ticket is usually first numeric column
-  let ticket = '';
-  for (let i = 0; i < typeIndex; i++) {
-    if (/^\d+$/.test(cells[i].trim())) {
-      ticket = cells[i].trim();
-      break;
-    }
-  }
-  
-  if (!ticket) ticket = Date.now().toString();
-  
-  // Find dates - look for date patterns
-  let openTime: Date | null = null;
-  let closeTime: Date | null = null;
-  
-  for (let i = 0; i < cells.length; i++) {
-    const date = parseTradeDate(cells[i]);
-    if (date) {
-      if (!openTime) openTime = date;
-      else if (!closeTime) closeTime = date;
-    }
-  }
-  
-  if (!openTime) openTime = new Date();
-  
-  // Extract numeric values
-  const numericValues: number[] = [];
-  const symbolCandidates: string[] = [];
-  
-  for (let i = typeIndex + 1; i < cells.length; i++) {
-    const num = parseNumber(cells[i]);
-    if (num !== 0 || cells[i].includes('0.0')) {
-      numericValues.push(num);
-    }
-    
-    // Check for symbol pattern (letters only, 3-10 chars)
-    if (/^[A-Z]{3,10}$/i.test(cells[i].replace(/[^A-Za-z]/g, ''))) {
-      symbolCandidates.push(cells[i].replace(/[^A-Za-z]/g, '').toUpperCase());
-    }
-  }
-  
-  const symbol = symbolCandidates[0] || 'UNKNOWN';
-  const volume = numericValues[0] || 0.01;
-  const openPrice = numericValues[1] || 0;
-  const stopLoss = numericValues.length > 3 ? numericValues[2] : null;
-  const takeProfit = numericValues.length > 4 ? numericValues[3] : null;
-  const closePrice = numericValues.length > 2 ? numericValues[numericValues.length - 3] : openPrice;
-  const swap = numericValues.length > 2 ? numericValues[numericValues.length - 2] : 0;
-  const profit = numericValues.length > 0 ? numericValues[numericValues.length - 1] : 0;
-  
-  return {
-    ticket,
-    openTime,
-    closeTime,
-    type: type.includes('buy') ? 'buy' : 'sell',
-    symbol,
-    volume,
-    openPrice,
-    closePrice,
-    stopLoss,
-    takeProfit,
-    profit,
-    swap,
-    commission: 0,
-    comment: ''
-  };
-}
+// Date parsing patterns for various MT export formats
+const DATE_PATTERNS = [
+  // 2024.01.15 10:30:00 or 2024.01.15 10:30
+  /^(\d{4})\.(\d{2})\.(\d{2})\s+(\d{2}):(\d{2}):?(\d{2})?$/,
+  // 2024-01-15 10:30:00
+  /^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2}):?(\d{2})?$/,
+  // 2024/01/15 10:30:00
+  /^(\d{4})\/(\d{2})\/(\d{2})\s+(\d{2}):(\d{2}):?(\d{2})?$/,
+  // 15.01.2024 10:30:00
+  /^(\d{2})\.(\d{2})\.(\d{4})\s+(\d{2}):(\d{2}):?(\d{2})?$/,
+  // 15-01-2024 10:30:00
+  /^(\d{2})-(\d{2})-(\d{4})\s+(\d{2}):(\d{2}):?(\d{2})?$/,
+  // 01/15/2024 10:30:00
+  /^(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2}):?(\d{2})?$/,
+  // 2024.01.15 (date only)
+  /^(\d{4})\.(\d{2})\.(\d{2})$/,
+  // 15.01.2024 (date only)
+  /^(\d{2})\.(\d{2})\.(\d{4})$/,
+];
 
 /**
  * Parse various date formats from MT exports
  */
-function parseTradeDate(dateStr: string): Date | null {
+export function parseTradeDate(dateStr: string): Date | null {
   if (!dateStr) return null;
   
   const cleaned = dateStr.trim();
   if (!cleaned) return null;
   
-  // Try various formats
-  const formats = [
-    // 2024.01.15 10:30:00
-    /^(\d{4})\.(\d{2})\.(\d{2})\s+(\d{2}):(\d{2}):?(\d{2})?$/,
-    // 2024-01-15 10:30:00
-    /^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2}):?(\d{2})?$/,
-    // 15.01.2024 10:30:00
-    /^(\d{2})\.(\d{2})\.(\d{4})\s+(\d{2}):(\d{2}):?(\d{2})?$/,
-    // 01/15/2024 10:30:00
-    /^(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2}):?(\d{2})?$/,
-  ];
-  
-  for (const format of formats) {
-    const match = cleaned.match(format);
+  for (const pattern of DATE_PATTERNS) {
+    const match = cleaned.match(pattern);
     if (match) {
       try {
         let year: number, month: number, day: number;
         
         if (match[1].length === 4) {
-          // YYYY.MM.DD format
           year = parseInt(match[1]);
           month = parseInt(match[2]) - 1;
           day = parseInt(match[3]);
         } else if (match[3].length === 4) {
-          // DD.MM.YYYY or MM/DD/YYYY
-          if (format.source.includes('/')) {
+          if (pattern.source.includes('/')) {
             month = parseInt(match[1]) - 1;
             day = parseInt(match[2]);
           } else {
@@ -373,9 +89,17 @@ function parseTradeDate(dateStr: string): Date | null {
         if (!isNaN(date.getTime())) {
           return date;
         }
-      } catch (e) {
+      } catch {
         continue;
       }
+    }
+  }
+  
+  // Try ISO 8601 format
+  if (cleaned.includes('T')) {
+    const date = new Date(cleaned);
+    if (!isNaN(date.getTime())) {
+      return date;
     }
   }
   
@@ -391,22 +115,17 @@ function parseTradeDate(dateStr: string): Date | null {
 /**
  * Parse a number from string, handling various locales
  */
-function parseNumber(str: string): number {
+export function parseNumber(str: string): number {
   if (!str) return 0;
   
-  // Remove spaces and common currency symbols
-  let cleaned = str.replace(/\s+/g, '').replace(/[$€£¥]/g, '');
+  let cleaned = str.replace(/\s+/g, '').replace(/[$€£¥₽₿]/g, '');
   
-  // Handle both comma and period as decimal separator
-  // If there's both, assume the last one is decimal
   const lastComma = cleaned.lastIndexOf(',');
   const lastPeriod = cleaned.lastIndexOf('.');
   
   if (lastComma > lastPeriod) {
-    // European format: 1.234,56
     cleaned = cleaned.replace(/\./g, '').replace(',', '.');
   } else {
-    // US format: 1,234.56
     cleaned = cleaned.replace(/,/g, '');
   }
   
@@ -415,11 +134,580 @@ function parseNumber(str: string): number {
 }
 
 /**
+ * Detect CSV delimiter
+ */
+function detectDelimiter(content: string): string {
+  const firstLines = content.split('\n').slice(0, 5).join('\n');
+  const tabCount = (firstLines.match(/\t/g) || []).length;
+  const semicolonCount = (firstLines.match(/;/g) || []).length;
+  const commaCount = (firstLines.match(/,/g) || []).length;
+  
+  if (tabCount > semicolonCount && tabCount > commaCount) return '\t';
+  if (semicolonCount > commaCount) return ';';
+  return ',';
+}
+
+/**
+ * Parse a single CSV line handling quoted values
+ */
+function parseCSVLine(line: string, delimiter: string): string[] {
+  const result: string[] = [];
+  let current = '';
+  let inQuotes = false;
+  
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+    
+    if (char === '"') {
+      if (inQuotes && line[i + 1] === '"') {
+        current += '"';
+        i++;
+      } else {
+        inQuotes = !inQuotes;
+      }
+    } else if (char === delimiter && !inQuotes) {
+      result.push(current.trim());
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+  
+  result.push(current.trim());
+  return result;
+}
+
+/**
+ * Find column index by possible header names
+ */
+function findColumnIndex(headers: string[], possibleNames: string[]): number {
+  const lowerHeaders = headers.map(h => h.toLowerCase().trim());
+  for (const name of possibleNames) {
+    const idx = lowerHeaders.findIndex(h => h.includes(name.toLowerCase()));
+    if (idx !== -1) return idx;
+  }
+  return -1;
+}
+
+/**
+ * Parse a CSV trade row into structured data with flexible column detection
+ */
+function parseCSVTradeFlexible(columns: string[], headers: string[]): ParsedMTTrade | null {
+  const getField = (names: string[]): string => {
+    const idx = findColumnIndex(headers, names);
+    return idx !== -1 && columns[idx] ? columns[idx].trim() : '';
+  };
+  
+  const ticket = getField(['ticket', 'order', '#', 'deal', 'position', 'id']);
+  const typeStr = getField(['type', 'direction', 'action', 'operation', 'side']);
+  const symbol = getField(['symbol', 'instrument', 'pair', 'item', 'asset']);
+  
+  const typeLower = typeStr.toLowerCase();
+  
+  // Skip non-trade entries
+  if (!ticket && !symbol) return null;
+  if (typeLower.includes('balance') || typeLower.includes('deposit') || 
+      typeLower.includes('withdrawal') || typeLower.includes('credit') ||
+      typeLower.includes('transfer')) {
+    return null;
+  }
+  
+  if (!typeLower.includes('buy') && !typeLower.includes('sell') && 
+      !typeLower.includes('long') && !typeLower.includes('short')) {
+    return null;
+  }
+  
+  const openTimeStr = getField(['open time', 'time', 'open', 'entry time', 'entry', 'date']);
+  const closeTimeStr = getField(['close time', 'close', 'exit time', 'exit']);
+  
+  const openTime = parseTradeDate(openTimeStr);
+  if (!openTime) return null;
+  
+  const volume = parseNumber(getField(['volume', 'lots', 'size', 'qty', 'quantity', 'amount']));
+  if (volume <= 0) return null;
+  
+  return {
+    ticket: ticket || `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+    openTime,
+    closeTime: parseTradeDate(closeTimeStr),
+    type: (typeLower.includes('sell') || typeLower.includes('short')) ? 'sell' : 'buy',
+    symbol: symbol.toUpperCase().replace(/[^A-Z0-9]/g, '') || 'UNKNOWN',
+    volume,
+    openPrice: parseNumber(getField(['open price', 'price', 'entry price', 'open'])),
+    closePrice: parseNumber(getField(['close price', 'exit price', 'close'])),
+    stopLoss: parseNumber(getField(['s/l', 'sl', 'stop loss', 'stop', 'stoploss'])) || null,
+    takeProfit: parseNumber(getField(['t/p', 'tp', 'take profit', 'target', 'takeprofit'])) || null,
+    commission: parseNumber(getField(['commission', 'comm', 'fee', 'fees'])),
+    swap: parseNumber(getField(['swap', 'overnight', 'rollover', 'financing'])),
+    profit: parseNumber(getField(['profit', 'p/l', 'pnl', 'result', 'net profit', 'gain'])),
+    comment: getField(['comment', 'note', 'notes', 'remark', 'remarks'])
+  };
+}
+
+/**
+ * Parse MT4/MT5 CSV export file
+ */
+export function parseCSVFile(content: string): ParseResult {
+  const errors: string[] = [];
+  const trades: ParsedMTTrade[] = [];
+  
+  try {
+    const delimiter = detectDelimiter(content);
+    const lines = content.trim().split(/\r?\n/).filter(l => l.trim());
+    
+    if (lines.length < 2) {
+      return {
+        success: false,
+        trades: [],
+        errors: ['File is empty or has no data rows'],
+        totalTrades: 0,
+        importedTrades: 0,
+        format: 'CSV'
+      };
+    }
+    
+    // Find header row
+    const headerKeywords = ['ticket', 'order', 'symbol', 'type', 'profit', 'deal', 'position', 'open', 'close', 'volume', 'lots'];
+    let headerIdx = 0;
+    
+    for (let i = 0; i < Math.min(10, lines.length); i++) {
+      const lowerLine = lines[i].toLowerCase();
+      const matchCount = headerKeywords.filter(k => lowerLine.includes(k)).length;
+      if (matchCount >= 2) {
+        headerIdx = i;
+        break;
+      }
+    }
+    
+    const headers = parseCSVLine(lines[headerIdx], delimiter);
+    
+    for (let i = headerIdx + 1; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (!line) continue;
+      
+      try {
+        const columns = parseCSVLine(line, delimiter);
+        const trade = parseCSVTradeFlexible(columns, headers);
+        
+        if (trade) {
+          trades.push(trade);
+        }
+      } catch (e) {
+        errors.push(`Row ${i + 1}: ${e instanceof Error ? e.message : 'Parse error'}`);
+      }
+    }
+    
+    return {
+      success: trades.length > 0,
+      trades,
+      errors,
+      totalTrades: lines.length - headerIdx - 1,
+      importedTrades: trades.length,
+      format: 'CSV'
+    };
+  } catch (e) {
+    return {
+      success: false,
+      trades: [],
+      errors: [e instanceof Error ? e.message : 'Unknown error'],
+      totalTrades: 0,
+      importedTrades: 0,
+      format: 'CSV'
+    };
+  }
+}
+
+/**
+ * Parse HTML table row into trade
+ */
+function parseHTMLTrade(cells: string[], headers: string[]): ParsedMTTrade | null {
+  const getField = (names: string[]): string => {
+    for (const name of names) {
+      const idx = headers.findIndex(h => h.toLowerCase().includes(name.toLowerCase()));
+      if (idx !== -1 && cells[idx]) {
+        return cells[idx].trim();
+      }
+    }
+    return '';
+  };
+  
+  // Find type by checking all cells if not found by header
+  let typeStr = getField(['type', 'direction', 'action']);
+  let typeIdx = -1;
+  
+  if (!typeStr) {
+    for (let i = 0; i < Math.min(6, cells.length); i++) {
+      const cell = cells[i].toLowerCase();
+      if (cell.includes('buy') || cell.includes('sell')) {
+        typeStr = cell;
+        typeIdx = i;
+        break;
+      }
+    }
+  }
+  
+  if (!typeStr) return null;
+  
+  const typeLower = typeStr.toLowerCase();
+  if (!typeLower.includes('buy') && !typeLower.includes('sell')) return null;
+  if (typeLower.includes('balance') || typeLower.includes('deposit')) return null;
+  
+  // Find ticket
+  let ticket = getField(['ticket', 'order', '#', 'deal']);
+  if (!ticket) {
+    for (let i = 0; i < Math.min(3, cells.length); i++) {
+      if (/^\d{5,}$/.test(cells[i].trim())) {
+        ticket = cells[i].trim();
+        break;
+      }
+    }
+  }
+  
+  // Find dates
+  let openTime: Date | null = null;
+  let closeTime: Date | null = null;
+  
+  const openTimeStr = getField(['open time', 'time', 'open']);
+  const closeTimeStr = getField(['close time', 'close']);
+  
+  openTime = parseTradeDate(openTimeStr);
+  closeTime = parseTradeDate(closeTimeStr);
+  
+  if (!openTime) {
+    for (const cell of cells) {
+      const date = parseTradeDate(cell);
+      if (date) {
+        if (!openTime) openTime = date;
+        else if (!closeTime) closeTime = date;
+      }
+    }
+  }
+  
+  if (!openTime) openTime = new Date();
+  
+  // Find symbol
+  let symbol = getField(['symbol', 'instrument', 'item']);
+  if (!symbol) {
+    for (const cell of cells) {
+      const cleaned = cell.replace(/[^A-Za-z]/g, '').toUpperCase();
+      if (cleaned.length >= 3 && cleaned.length <= 10 && /^[A-Z]+$/.test(cleaned)) {
+        symbol = cleaned;
+        break;
+      }
+    }
+  }
+  
+  // Extract numeric values
+  const volume = parseNumber(getField(['volume', 'lots', 'size']));
+  const openPrice = parseNumber(getField(['open price', 'price']));
+  const closePrice = parseNumber(getField(['close price']));
+  const stopLoss = parseNumber(getField(['s/l', 'sl', 'stop loss']));
+  const takeProfit = parseNumber(getField(['t/p', 'tp', 'take profit']));
+  const commission = parseNumber(getField(['commission', 'comm']));
+  const swap = parseNumber(getField(['swap']));
+  const profit = parseNumber(getField(['profit', 'p/l', 'result']));
+  
+  return {
+    ticket: ticket || `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+    openTime,
+    closeTime,
+    type: typeLower.includes('sell') ? 'sell' : 'buy',
+    symbol: symbol || 'UNKNOWN',
+    volume: volume || 0.01,
+    openPrice,
+    closePrice: closePrice || null,
+    stopLoss: stopLoss || null,
+    takeProfit: takeProfit || null,
+    profit,
+    swap,
+    commission,
+    comment: ''
+  };
+}
+
+/**
+ * Parse MT4/MT5 HTML Statement export
+ */
+export function parseHTMLFile(content: string): ParseResult {
+  const errors: string[] = [];
+  const trades: ParsedMTTrade[] = [];
+  
+  try {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(content, 'text/html');
+    const tables = doc.querySelectorAll('table');
+    
+    if (tables.length === 0) {
+      return {
+        success: false,
+        trades: [],
+        errors: ['No tables found in HTML file'],
+        totalTrades: 0,
+        importedTrades: 0,
+        format: 'HTML'
+      };
+    }
+    
+    let totalRows = 0;
+    
+    for (const table of Array.from(tables)) {
+      const rows = table.querySelectorAll('tr');
+      if (rows.length < 2) continue;
+      
+      // Find header row
+      let headers: string[] = [];
+      let dataStartIdx = 0;
+      
+      for (let i = 0; i < Math.min(5, rows.length); i++) {
+        const row = rows[i];
+        const cells = row.querySelectorAll('th, td');
+        const cellTexts = Array.from(cells).map(c => (c.textContent || '').toLowerCase());
+        const headerKeywords = ['ticket', 'order', 'symbol', 'type', 'profit', 'deal', 'item'];
+        
+        if (headerKeywords.some(k => cellTexts.some(t => t.includes(k)))) {
+          headers = Array.from(cells).map(c => c.textContent?.trim() || '');
+          dataStartIdx = i + 1;
+          break;
+        }
+      }
+      
+      for (let i = dataStartIdx; i < rows.length; i++) {
+        const cells = Array.from(rows[i].querySelectorAll('td'));
+        if (cells.length < 5) continue;
+        
+        totalRows++;
+        
+        try {
+          const cellValues = cells.map(c => c.textContent?.trim() || '');
+          const trade = parseHTMLTrade(cellValues, headers);
+          if (trade) {
+            trades.push(trade);
+          }
+        } catch (e) {
+          errors.push(`Row ${i + 1}: ${e instanceof Error ? e.message : 'Parse error'}`);
+        }
+      }
+    }
+    
+    return {
+      success: trades.length > 0,
+      trades,
+      errors,
+      totalTrades: totalRows,
+      importedTrades: trades.length,
+      format: 'HTML Statement'
+    };
+  } catch (e) {
+    return {
+      success: false,
+      trades: [],
+      errors: [e instanceof Error ? e.message : 'Unknown error'],
+      totalTrades: 0,
+      importedTrades: 0,
+      format: 'HTML'
+    };
+  }
+}
+
+/**
+ * Parse XML file (Excel XML or generic XML)
+ */
+export function parseXMLFile(content: string): ParseResult {
+  const errors: string[] = [];
+  const trades: ParsedMTTrade[] = [];
+  
+  try {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(content, 'text/xml');
+    
+    // Check for Excel XML format
+    const worksheets = doc.querySelectorAll('Worksheet, ss\\:Worksheet');
+    
+    if (worksheets.length > 0) {
+      // Excel XML format
+      for (const ws of Array.from(worksheets)) {
+        const rows = ws.querySelectorAll('Row, ss\\:Row');
+        let headers: string[] = [];
+        let dataStartIdx = 0;
+        
+        for (let i = 0; i < Math.min(5, rows.length); i++) {
+          const cells = rows[i].querySelectorAll('Cell, ss\\:Cell');
+          const cellTexts = Array.from(cells).map(c => 
+            (c.querySelector('Data, ss\\:Data')?.textContent || '').toLowerCase()
+          );
+          
+          if (['ticket', 'order', 'symbol', 'type', 'profit'].some(k => cellTexts.some(t => t.includes(k)))) {
+            headers = Array.from(cells).map(c => c.querySelector('Data, ss\\:Data')?.textContent?.trim() || '');
+            dataStartIdx = i + 1;
+            break;
+          }
+        }
+        
+        for (let i = dataStartIdx; i < rows.length; i++) {
+          const cells = Array.from(rows[i].querySelectorAll('Cell, ss\\:Cell'));
+          const values = cells.map(c => c.querySelector('Data, ss\\:Data')?.textContent?.trim() || '');
+          
+          try {
+            const trade = parseCSVTradeFlexible(values, headers);
+            if (trade) trades.push(trade);
+          } catch (e) {
+            errors.push(`Row ${i + 1}: ${e instanceof Error ? e.message : 'Parse error'}`);
+          }
+        }
+      }
+    } else {
+      // Generic XML format with trade elements
+      const tradeElements = doc.querySelectorAll('trade, Trade, order, Order, deal, Deal, position, Position');
+      
+      for (const el of Array.from(tradeElements)) {
+        try {
+          const getAttr = (names: string[]): string => {
+            for (const name of names) {
+              const attr = el.getAttribute(name) || el.querySelector(name)?.textContent;
+              if (attr) return attr.trim();
+            }
+            return '';
+          };
+          
+          const ticket = getAttr(['ticket', 'id', 'order', 'deal']);
+          const symbol = getAttr(['symbol', 'instrument', 'pair']);
+          const typeStr = getAttr(['type', 'direction', 'side']).toLowerCase();
+          
+          if (!symbol) continue;
+          if (!typeStr.includes('buy') && !typeStr.includes('sell')) continue;
+          
+          const openTime = parseTradeDate(getAttr(['openTime', 'open_time', 'time', 'entry_time', 'entryTime']));
+          if (!openTime) continue;
+          
+          trades.push({
+            ticket: ticket || `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            openTime,
+            closeTime: parseTradeDate(getAttr(['closeTime', 'close_time', 'exit_time', 'exitTime'])),
+            type: typeStr.includes('sell') ? 'sell' : 'buy',
+            symbol: symbol.toUpperCase(),
+            volume: parseNumber(getAttr(['volume', 'lots', 'size', 'quantity'])),
+            openPrice: parseNumber(getAttr(['openPrice', 'open_price', 'entry_price', 'entryPrice'])),
+            closePrice: parseNumber(getAttr(['closePrice', 'close_price', 'exit_price', 'exitPrice'])),
+            stopLoss: parseNumber(getAttr(['stopLoss', 'sl', 'stop_loss'])) || null,
+            takeProfit: parseNumber(getAttr(['takeProfit', 'tp', 'take_profit'])) || null,
+            commission: parseNumber(getAttr(['commission', 'fee'])),
+            swap: parseNumber(getAttr(['swap', 'overnight'])),
+            profit: parseNumber(getAttr(['profit', 'pnl', 'result'])),
+            comment: getAttr(['comment', 'note']) || ''
+          });
+        } catch (e) {
+          errors.push(`Trade element: ${e instanceof Error ? e.message : 'Parse error'}`);
+        }
+      }
+    }
+    
+    return {
+      success: trades.length > 0,
+      trades,
+      errors,
+      totalTrades: trades.length + errors.length,
+      importedTrades: trades.length,
+      format: worksheets.length > 0 ? 'Excel XML' : 'XML'
+    };
+  } catch (e) {
+    return {
+      success: false,
+      trades: [],
+      errors: [e instanceof Error ? e.message : 'Invalid XML'],
+      totalTrades: 0,
+      importedTrades: 0,
+      format: 'XML'
+    };
+  }
+}
+
+/**
+ * Parse JSON file (API exports or custom formats)
+ */
+export function parseJSONFile(content: string): ParseResult {
+  const errors: string[] = [];
+  const trades: ParsedMTTrade[] = [];
+  
+  try {
+    const data = JSON.parse(content);
+    
+    // Find the trades array
+    let tradeArray: any[] = [];
+    if (Array.isArray(data)) {
+      tradeArray = data;
+    } else {
+      // Common property names for trade arrays
+      const arrayProps = ['trades', 'orders', 'deals', 'history', 'positions', 'data', 'results', 'records'];
+      for (const prop of arrayProps) {
+        if (Array.isArray(data[prop])) {
+          tradeArray = data[prop];
+          break;
+        }
+      }
+    }
+    
+    for (let i = 0; i < tradeArray.length; i++) {
+      const t = tradeArray[i];
+      
+      try {
+        const ticket = String(t.ticket || t.id || t.order || t.deal || t.position || i);
+        const symbol = String(t.symbol || t.instrument || t.pair || t.asset || '');
+        const typeStr = String(t.type || t.direction || t.side || t.action || '').toLowerCase();
+        
+        if (!symbol) continue;
+        if (typeStr.includes('balance') || typeStr.includes('deposit') || typeStr.includes('withdrawal')) continue;
+        if (!typeStr.includes('buy') && !typeStr.includes('sell') && !typeStr.includes('long') && !typeStr.includes('short')) continue;
+        
+        const openTime = parseTradeDate(t.openTime || t.open_time || t.time || t.entry_time || t.entryTime || t.date || t.created_at);
+        if (!openTime) continue;
+        
+        trades.push({
+          ticket,
+          openTime,
+          closeTime: parseTradeDate(t.closeTime || t.close_time || t.exit_time || t.exitTime),
+          type: (typeStr.includes('sell') || typeStr.includes('short')) ? 'sell' : 'buy',
+          symbol: symbol.toUpperCase(),
+          volume: parseNumber(String(t.volume || t.lots || t.size || t.quantity || t.amount || 0.01)),
+          openPrice: parseNumber(String(t.openPrice || t.open_price || t.entry_price || t.entryPrice || t.price || 0)),
+          closePrice: parseNumber(String(t.closePrice || t.close_price || t.exit_price || t.exitPrice || 0)),
+          stopLoss: parseNumber(String(t.stopLoss || t.sl || t.stop_loss || 0)) || null,
+          takeProfit: parseNumber(String(t.takeProfit || t.tp || t.take_profit || 0)) || null,
+          commission: parseNumber(String(t.commission || t.fee || t.fees || 0)),
+          swap: parseNumber(String(t.swap || t.overnight || t.financing || 0)),
+          profit: parseNumber(String(t.profit || t.pnl || t.result || t.gain || t.pl || 0)),
+          comment: t.comment || t.note || t.notes || t.remark || ''
+        });
+      } catch (e) {
+        errors.push(`Item ${i}: ${e instanceof Error ? e.message : 'Parse error'}`);
+      }
+    }
+    
+    return {
+      success: trades.length > 0,
+      trades,
+      errors,
+      totalTrades: tradeArray.length,
+      importedTrades: trades.length,
+      format: 'JSON'
+    };
+  } catch (e) {
+    return {
+      success: false,
+      trades: [],
+      errors: [`JSON parse error: ${e instanceof Error ? e.message : 'Invalid JSON'}`],
+      totalTrades: 0,
+      importedTrades: 0,
+      format: 'JSON'
+    };
+  }
+}
+
+/**
  * Convert parsed MT trades to app trade format
  */
 export function convertToAppTrades(mtTrades: ParsedMTTrade[], userId: string): any[] {
   return mtTrades
-    .filter(mt => mt.closeTime !== null) // Only closed trades
+    .filter(mt => mt.closeTime !== null)
     .map(mt => {
       let result: 'win' | 'loss' | 'breakeven' = 'breakeven';
       if (mt.profit > 0) result = 'win';
@@ -448,10 +736,36 @@ export function convertToAppTrades(mtTrades: ParsedMTTrade[], userId: string): a
  */
 export function parseTradeFile(content: string, fileName: string): ParseResult {
   const lowerName = fileName.toLowerCase();
+  const trimmedContent = content.trim();
   
-  if (lowerName.endsWith('.html') || lowerName.endsWith('.htm') || content.trim().startsWith('<')) {
+  // Detect by extension first
+  if (lowerName.endsWith('.json')) {
+    return parseJSONFile(content);
+  }
+  
+  if (lowerName.endsWith('.xml') || lowerName.endsWith('.xls')) {
+    return parseXMLFile(content);
+  }
+  
+  // Detect by content
+  if (trimmedContent.startsWith('{') || trimmedContent.startsWith('[')) {
+    return parseJSONFile(content);
+  }
+  
+  if (trimmedContent.startsWith('<?xml') || trimmedContent.includes('<Workbook') || trimmedContent.includes('<ss:Workbook')) {
+    return parseXMLFile(content);
+  }
+  
+  if (trimmedContent.includes('<!DOCTYPE') || trimmedContent.includes('<html') || 
+      trimmedContent.includes('<HTML') || trimmedContent.includes('<table') || 
+      trimmedContent.includes('<TABLE') || /<tr[>\s]/i.test(trimmedContent)) {
     return parseHTMLFile(content);
   }
   
+  if (lowerName.endsWith('.htm') || lowerName.endsWith('.html')) {
+    return parseHTMLFile(content);
+  }
+  
+  // Default to CSV
   return parseCSVFile(content);
 }
