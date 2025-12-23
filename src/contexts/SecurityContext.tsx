@@ -1,8 +1,23 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from './AuthContext';
-import { useLanguage } from './LanguageContext';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+
+// Try to import useLanguage, but provide a fallback if context isn't ready
+let useLanguageSafe: () => { language: string };
+try {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const langContext = require('./LanguageContext');
+  useLanguageSafe = () => {
+    try {
+      return langContext.useLanguage();
+    } catch {
+      return { language: 'en' };
+    }
+  };
+} catch {
+  useLanguageSafe = () => ({ language: 'en' });
+}
 
 interface SecuritySettings {
   pinEnabled: boolean;
@@ -202,7 +217,7 @@ const generateFingerprint = (): string => {
 
 export const SecurityProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, signOut } = useAuth();
-  const { language } = useLanguage();
+  const { language } = useLanguageSafe();
   const [settings, setSettings] = useState<SecuritySettings>(defaultSettings);
   const [isLocked, setIsLocked] = useState(false);
   const [isSetupMode, setIsSetupMode] = useState(false);
