@@ -3,6 +3,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useCurrency } from '@/hooks/useCurrency';
 import { useTrades } from '@/hooks/useTrades';
 import { useTradeMedia } from '@/hooks/useTradeMedia';
+import { useTradeAutocomplete } from '@/hooks/useTradeAutocomplete';
 import TradeMediaUploader, { type MediaItem } from '@/components/TradeMediaUploader';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -88,6 +89,7 @@ const AddTrade: React.FC = () => {
   const { getCurrencySymbol } = useCurrency();
   const { addTrade } = useTrades();
   const { uploadMedia } = useTradeMedia();
+  const { setups: suggestedSetups, timeframes: suggestedTimeframes } = useTradeAutocomplete();
   const locale = language === 'fr' ? fr : enUS;
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -823,18 +825,40 @@ const AddTrade: React.FC = () => {
               />
             </div>
             <div className="space-y-2">
-              <Label>{t('setup')}</Label>
+              <Label className="flex items-center gap-2">
+                {t('setup')}
+                {suggestedSetups.length > 0 && (
+                  <span className="text-xs text-muted-foreground">
+                    ({suggestedSetups.length} {language === 'fr' ? 'suggestions' : 'suggestions'})
+                  </span>
+                )}
+              </Label>
               <Input
                 placeholder={language === 'fr' ? 'Ex: Breakout, Pullback...' : 'Ex: Breakout, Pullback...'}
                 value={customSetup}
                 onChange={(e) => setCustomSetup(e.target.value)}
+                list="setup-suggestions"
               />
+              {suggestedSetups.length > 0 && (
+                <datalist id="setup-suggestions">
+                  {suggestedSetups.map(setup => (
+                    <option key={setup} value={setup} />
+                  ))}
+                </datalist>
+              )}
             </div>
           </div>
 
           {/* Timeframe Row */}
           <div className="space-y-2">
-            <Label>{t('timeframe')}</Label>
+            <Label className="flex items-center gap-2">
+              {t('timeframe')}
+              {suggestedTimeframes.length > 0 && (
+                <span className="text-xs text-muted-foreground">
+                  (+{suggestedTimeframes.length} {language === 'fr' ? 'perso' : 'custom'})
+                </span>
+              )}
+            </Label>
             <Select
               value={formData.timeframe || customTimeframe}
               onValueChange={(v) => {
@@ -853,6 +877,16 @@ const AddTrade: React.FC = () => {
                 {TIMEFRAMES.map(tf => (
                   <SelectItem key={tf} value={tf}>{tf}</SelectItem>
                 ))}
+                {suggestedTimeframes.length > 0 && (
+                  <>
+                    <div className="px-2 py-1.5 text-xs font-semibold text-primary bg-primary/10 mt-1">
+                      {language === 'fr' ? 'Récemment utilisés' : 'Recently used'}
+                    </div>
+                    {suggestedTimeframes.map(tf => (
+                      <SelectItem key={tf} value={tf}>{tf}</SelectItem>
+                    ))}
+                  </>
+                )}
                 <SelectItem value="custom">{language === 'fr' ? '+ Autre...' : '+ Other...'}</SelectItem>
               </SelectContent>
             </Select>
@@ -861,8 +895,16 @@ const AddTrade: React.FC = () => {
                 placeholder={language === 'fr' ? 'Timeframe personnalisée' : 'Custom timeframe'}
                 value={customTimeframe}
                 onChange={(e) => setCustomTimeframe(e.target.value)}
+                list="timeframe-suggestions"
                 className="mt-2"
               />
+            )}
+            {suggestedTimeframes.length > 0 && (
+              <datalist id="timeframe-suggestions">
+                {suggestedTimeframes.map(tf => (
+                  <option key={tf} value={tf} />
+                ))}
+              </datalist>
             )}
           </div>
         </div>
