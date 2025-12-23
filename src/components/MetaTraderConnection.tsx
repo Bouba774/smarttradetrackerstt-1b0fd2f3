@@ -14,13 +14,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -52,6 +45,7 @@ interface MTAccount {
   platform: 'MT4' | 'MT5';
   server: string;
   login: string;
+  metaapi_account_id: string | null;
   initial_balance: number;
   currency: string;
   is_connected: boolean;
@@ -82,14 +76,8 @@ const MetaTraderConnection: React.FC = () => {
   const [loadingStats, setLoadingStats] = useState<string | null>(null);
   const [expandedAccount, setExpandedAccount] = useState<string | null>(null);
   
-  // Form state
-  const [platform, setPlatform] = useState<'MT4' | 'MT5'>('MT4');
-  const [accountName, setAccountName] = useState('');
-  const [server, setServer] = useState('');
-  const [login, setLogin] = useState('');
-  const [password, setPassword] = useState('');
-  const [initialBalance, setInitialBalance] = useState('');
-  const [currency, setCurrency] = useState('USD');
+  // Form state - simplified for MetaStats (only needs MetaApi Account ID)
+  const [metaApiAccountId, setMetaApiAccountId] = useState('');
 
   const t = {
     fr: {
@@ -202,7 +190,7 @@ const MetaTraderConnection: React.FC = () => {
   }, [user]);
 
   const handleConnect = async () => {
-    if (!accountName || !server || !login || !password) {
+    if (!metaApiAccountId.trim()) {
       toast.error(texts.error);
       return;
     }
@@ -212,13 +200,7 @@ const MetaTraderConnection: React.FC = () => {
       const { data, error } = await supabase.functions.invoke('metatrader-connect', {
         body: {
           action: 'connect',
-          platform,
-          accountName,
-          server,
-          login,
-          password,
-          initialBalance: parseFloat(initialBalance) || 0,
-          currency,
+          metaApiAccountId: metaApiAccountId.trim(),
         },
       });
 
@@ -257,17 +239,25 @@ const MetaTraderConnection: React.FC = () => {
     }
   };
 
-  const handleSync = async (accountId: string) => {
-    setSyncing(accountId);
+  const handleSync = async (account: MTAccount) => {
+    setSyncing(account.id);
     try {
       const { data, error } = await supabase.functions.invoke('metatrader-connect', {
-        body: { action: 'sync', accountId },
+        body: { 
+          action: 'sync', 
+          metaApiAccountId: account.metaapi_account_id || account.login,
+        },
       });
 
       if (error) throw error;
 
       if (data.error) {
         toast.error(data.error);
+        return;
+      }
+
+      if (data.processing) {
+        toast.info(data.message || 'Processing, please try again in a few seconds');
         return;
       }
 
@@ -282,13 +272,7 @@ const MetaTraderConnection: React.FC = () => {
   };
 
   const resetForm = () => {
-    setPlatform('MT4');
-    setAccountName('');
-    setServer('');
-    setLogin('');
-    setPassword('');
-    setInitialBalance('');
-    setCurrency('USD');
+    setMetaApiAccountId('');
   };
 
   const formatDate = (dateStr: string | null) => {
@@ -390,98 +374,23 @@ const MetaTraderConnection: React.FC = () => {
                 </DialogHeader>
 
             <div className="space-y-4 py-4">
-              {/* Platform Select */}
+              {/* MetaApi Account ID */}
               <div className="space-y-2">
-                <Label>{texts.platform}</Label>
-                <Select value={platform} onValueChange={(v) => setPlatform(v as 'MT4' | 'MT5')}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="MT4">MetaTrader 4</SelectItem>
-                    <SelectItem value="MT5">MetaTrader 5</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Account Name */}
-              <div className="space-y-2">
-                <Label>{texts.accountName}</Label>
+                <Label>MetaApi Account ID</Label>
                 <Input
-                  value={accountName}
-                  onChange={(e) => setAccountName(e.target.value)}
-                  placeholder="Mon compte trading"
+                  value={metaApiAccountId}
+                  onChange={(e) => setMetaApiAccountId(e.target.value)}
+                  placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
                 />
               </div>
 
-              {/* Server */}
-              <div className="space-y-2">
-                <Label>{texts.serverLabel}</Label>
-                <Input
-                  value={server}
-                  onChange={(e) => setServer(e.target.value)}
-                  placeholder="ICMarkets-Demo01"
-                />
-              </div>
-
-              {/* Login & Password */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>{texts.loginLabel}</Label>
-                  <Input
-                    value={login}
-                    onChange={(e) => setLogin(e.target.value)}
-                    placeholder="12345678"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>{texts.passwordLabel}</Label>
-                  <Input
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                  />
-                </div>
-              </div>
-
-              {/* Security Warning about password */}
-              <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
-                <p className="text-xs text-amber-600 dark:text-amber-400">
-                  ⚠️ {language === 'fr' 
-                    ? 'Votre mot de passe sera transmis au service MetaApi pour la connexion. Il est recommandé d\'utiliser un compte de trading dédié ou un mot de passe investisseur en lecture seule si possible.' 
-                    : 'Your password will be transmitted to MetaApi service for connection. We recommend using a dedicated trading account or a read-only investor password if possible.'}
+              {/* Info about MetaApi */}
+              <div className="p-3 rounded-lg bg-primary/10 border border-primary/20">
+                <p className="text-xs text-muted-foreground">
+                  {language === 'fr' 
+                    ? 'Pour obtenir votre MetaApi Account ID, créez un compte sur metaapi.cloud et connectez-y votre compte MT4/MT5. L\'ID sera affiché dans votre tableau de bord MetaApi.' 
+                    : 'To get your MetaApi Account ID, create an account on metaapi.cloud and connect your MT4/MT5 account there. The ID will be displayed in your MetaApi dashboard.'}
                 </p>
-              </div>
-
-              {/* Initial Balance & Currency */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>{texts.initialBalanceLabel}</Label>
-                  <Input
-                    type="number"
-                    value={initialBalance}
-                    onChange={(e) => setInitialBalance(e.target.value)}
-                    placeholder="10000"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>{texts.currencyLabel}</Label>
-                  <Select value={currency} onValueChange={setCurrency}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="USD">USD</SelectItem>
-                      <SelectItem value="EUR">EUR</SelectItem>
-                      <SelectItem value="GBP">GBP</SelectItem>
-                      <SelectItem value="JPY">JPY</SelectItem>
-                      <SelectItem value="CHF">CHF</SelectItem>
-                      <SelectItem value="AUD">AUD</SelectItem>
-                      <SelectItem value="CAD">CAD</SelectItem>
-                      <SelectItem value="XOF">XOF</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
               </div>
             </div>
 
@@ -603,7 +512,7 @@ const MetaTraderConnection: React.FC = () => {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => handleSync(account.id)}
+                        onClick={() => handleSync(account)}
                         disabled={isSyncing === account.id}
                         className="gap-1"
                       >
