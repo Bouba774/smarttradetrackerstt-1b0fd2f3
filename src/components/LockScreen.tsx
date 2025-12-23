@@ -1,6 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { useSecurity } from '@/contexts/SecurityContext';
-import { useLanguage } from '@/contexts/LanguageContext';
 import { PINInput } from './PINInput';
 import { Lock, Shield, AlertTriangle, Clock, KeyRound, Mail, Fingerprint } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -14,8 +13,19 @@ import {
   DialogTitle,
 } from './ui/dialog';
 
+// Safe language hook that doesn't throw if context is unavailable
+const useSafeLanguage = () => {
+  try {
+    // Dynamic import to avoid circular dependencies
+    const { useLanguage } = require('@/contexts/LanguageContext');
+    return useLanguage();
+  } catch {
+    return { language: 'en' as const };
+  }
+};
+
 export const LockScreen: React.FC = () => {
-  const { language } = useLanguage();
+  const { language } = useSafeLanguage();
   const { 
     isLocked, 
     isSetupMode, 
