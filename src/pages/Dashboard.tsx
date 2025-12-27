@@ -229,49 +229,9 @@ const Dashboard: React.FC = () => {
     <div className="space-y-6 py-4 w-full max-w-full overflow-x-hidden">
       {/* Welcome Message */}
       <div className="glass-card p-4 sm:p-6 animate-fade-in bg-gradient-to-r from-primary/10 to-profit/10 border-primary/30">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div className="min-w-0">
-            <h1 className="font-display text-lg sm:text-2xl md:text-3xl font-bold text-foreground truncate">
-              {t('welcome')} {userNickname} 👋
-            </h1>
-            <p className="text-primary font-display font-semibold mt-1 neon-text text-sm sm:text-base">
-              {levelTitle} ({t('level')} {userLevel})
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={toggleFocus}
-              className="gap-2"
-            >
-              <Focus className="w-4 h-4" />
-              {language === 'fr' ? 'Mode Focus' : 'Focus Mode'}
-            </Button>
-            <div className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 rounded-lg bg-primary/20 border border-primary/30">
-              <span className="text-xl sm:text-2xl">🏆</span>
-              <div>
-                <p className="text-[10px] sm:text-xs text-muted-foreground">{t('level')}</p>
-                <p className="font-display font-bold text-primary text-sm sm:text-base">{userLevel}</p>
-              </div>
-            </div>
-            {stats.currentStreak.count > 0 && (
-              <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${
-                stats.currentStreak.type === 'win' 
-                  ? 'bg-profit/20 border-profit/30' 
-                  : 'bg-loss/20 border-loss/30'
-              }`}>
-                <Flame className={`w-5 h-5 ${stats.currentStreak.type === 'win' ? 'text-profit' : 'text-loss'}`} />
-                <div>
-                  <p className="text-[10px] text-muted-foreground">{t('streak')}</p>
-                  <p className={`font-bold text-sm ${stats.currentStreak.type === 'win' ? 'text-profit' : 'text-loss'}`}>
-                    {stats.currentStreak.count} {stats.currentStreak.type === 'win' ? 'W' : 'L'}
-                  </p>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
+        <h1 className="font-display text-lg sm:text-2xl md:text-3xl font-bold text-foreground truncate">
+          {t('welcome')} {userNickname} 👋
+        </h1>
       </div>
 
       {/* No data message */}
