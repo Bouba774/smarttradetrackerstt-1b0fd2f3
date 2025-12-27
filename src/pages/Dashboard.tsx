@@ -343,10 +343,9 @@ const Dashboard: React.FC = () => {
             delay={550}
           />
           <StatCard
-            title={t('pending')}
-            value={stats.pendingTrades}
-            icon={Clock}
-            variant="neutral"
+            title={t('totalLots')}
+            value={<ConfidentialValue>{stats.totalLots.toFixed(2)}</ConfidentialValue>}
+            icon={Layers}
             delay={600}
           />
         </div>

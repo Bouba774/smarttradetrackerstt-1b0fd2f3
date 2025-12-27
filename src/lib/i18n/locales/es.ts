@@ -105,6 +105,7 @@ export const es = {
   losingTransactions: 'Trans. Perdedoras',
   victoryRate: 'Tasa de Victoria',
   avgLotSize: 'Tamaño Prom. (Lotes)',
+  totalLots: 'Total de Lotes',
   pending: 'Pendiente',
   worstLoss: 'Peor Pérdida',
   avgProfitPerTrade: 'Beneficio Promedio',

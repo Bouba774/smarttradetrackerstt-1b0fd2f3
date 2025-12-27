@@ -12,6 +12,7 @@ export interface AdvancedStats {
   // Positions
   buyPositions: number;
   sellPositions: number;
+  totalLots: number;
   
   // Win rate
   winrate: number;
@@ -300,12 +301,13 @@ export const useAdvancedStats = (trades: Trade[]): AdvancedStats => {
       ? round(netProfit / totalTrades, 2) 
       : 0;
     
-    // Average lot size (from all trades with valid lot_size)
+    // Average lot size and total lots (from all trades with valid lot_size)
     const tradesWithLots = trades.filter(t => 
       t.lot_size !== null && t.lot_size !== undefined && Number.isFinite(t.lot_size)
     );
+    const totalLots = tradesWithLots.reduce((sum, t) => sum + t.lot_size, 0);
     const avgLotSize = tradesWithLots.length > 0
-      ? round(tradesWithLots.reduce((sum, t) => sum + t.lot_size, 0) / tradesWithLots.length, 2)
+      ? round(totalLots / tradesWithLots.length, 2)
       : 0;
     
     // ==========================================
@@ -380,16 +382,40 @@ export const useAdvancedStats = (trades: Trade[]): AdvancedStats => {
     
     // ==========================================
     // STEP 11: Time Calculations
+    // Calculate duration from exit_timestamp - trade_date if duration_seconds is not set
     // ==========================================
-    const tradesWithDuration = validClosedTrades.filter(t => 
-      t.duration_seconds !== null && 
-      t.duration_seconds !== undefined && 
-      Number.isFinite(t.duration_seconds) && 
-      t.duration_seconds > 0
-    );
+    const calculateTradeDuration = (trade: Trade): number => {
+      // First check if duration_seconds is already set and valid
+      if (trade.duration_seconds !== null && 
+          trade.duration_seconds !== undefined && 
+          Number.isFinite(trade.duration_seconds) && 
+          trade.duration_seconds > 0) {
+        return trade.duration_seconds;
+      }
+      
+      // Otherwise calculate from exit_timestamp and trade_date
+      if (trade.exit_timestamp && trade.trade_date) {
+        try {
+          const exitTime = new Date(trade.exit_timestamp).getTime();
+          const entryTime = new Date(trade.trade_date).getTime();
+          if (!isNaN(exitTime) && !isNaN(entryTime) && exitTime > entryTime) {
+            return Math.floor((exitTime - entryTime) / 1000);
+          }
+        } catch {
+          return 0;
+        }
+      }
+      
+      return 0;
+    };
+    
+    // Only include closed trades with valid duration (either from duration_seconds or calculated)
+    const tradesWithDuration = validClosedTrades
+      .map(t => ({ trade: t, duration: calculateTradeDuration(t) }))
+      .filter(({ duration }) => duration > 0);
     
     const totalDurationSeconds = tradesWithDuration.reduce(
-      (sum, t) => sum + (t.duration_seconds ?? 0), 
+      (sum, { duration }) => sum + duration, 
       0
     );
     
@@ -439,6 +465,7 @@ export const useAdvancedStats = (trades: Trade[]): AdvancedStats => {
       pendingTrades,
       buyPositions,
       sellPositions,
+      totalLots: round(totalLots, 2),
       winrate,
       winrateDisplay,
       totalProfit,

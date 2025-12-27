@@ -105,6 +105,7 @@ export const tr = {
   losingTransactions: 'Kaybeden İşl.',
   victoryRate: 'Zafer Oranı',
   avgLotSize: 'Ort. Lot Boyutu',
+  totalLots: 'Toplam Lot',
   pending: 'Beklemede',
   worstLoss: 'En Kötü Kayıp',
   avgProfitPerTrade: 'Ort. Kar',

@@ -232,7 +232,7 @@ const AdminDashboard: React.FC = () => {
           <StatCard title={t('buyPositions')} value={stats.buyPositions} icon={TrendingUp} variant="profit" delay={450} />
           <StatCard title={t('sellPositions')} value={stats.sellPositions} icon={TrendingDown} variant="loss" delay={500} />
           <StatCard title={t('avgLotSize')} value={<ConfidentialValue>{stats.avgLotSize.toFixed(2)}</ConfidentialValue>} icon={Layers} delay={550} />
-          <StatCard title={t('pending')} value={stats.pendingTrades} icon={Clock} variant="neutral" delay={600} />
+          <StatCard title={t('totalLots')} value={<ConfidentialValue>{stats.totalLots.toFixed(2)}</ConfidentialValue>} icon={Layers} delay={600} />
         </div>
       </div>
 

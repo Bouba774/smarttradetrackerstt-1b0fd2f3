@@ -105,6 +105,7 @@ export const ar = {
   losingTransactions: 'المعاملات الخاسرة',
   victoryRate: 'نسبة الفوز',
   avgLotSize: 'متوسط الحجم (لوت)',
+  totalLots: 'إجمالي اللوتات',
   pending: 'قيد الانتظار',
   worstLoss: 'أسوأ خسارة',
   avgProfitPerTrade: 'متوسط الربح',
