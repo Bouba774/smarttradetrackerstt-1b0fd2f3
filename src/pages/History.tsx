@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Select,
   SelectContent,
@@ -30,6 +30,10 @@ import {
   Trash2,
   FileX,
   Pencil,
+  Filter,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import EditTradeDialog from '@/components/EditTradeDialog';
@@ -66,6 +70,17 @@ const History: React.FC = () => {
   const uniqueAssets = [...new Set(trades.map(t => t.asset))];
   const uniqueSetups = [...new Set(trades.map(t => t.setup).filter(Boolean))];
   const uniqueEmotions = [...new Set(trades.map(t => t.emotions).filter(Boolean))];
+
+  // Count active filters
+  const activeFiltersCount = useMemo(() => {
+    let count = 0;
+    if (periodFilter !== 'all') count++;
+    if (filterDirection !== 'all') count++;
+    if (filterResult !== 'all') count++;
+    if (filterAsset !== 'all') count++;
+    if (filterSetup !== 'all') count++;
+    return count;
+  }, [periodFilter, filterDirection, filterResult, filterAsset, filterSetup]);
 
   const filteredTrades = useMemo(() => {
     let filtered = [...trades];
@@ -135,6 +150,7 @@ const History: React.FC = () => {
       if (sortBy === 'date') return modifier * (new Date(b.trade_date).getTime() - new Date(a.trade_date).getTime());
       if (sortBy === 'pnl') return modifier * ((a.profit_loss || 0) - (b.profit_loss || 0));
       if (sortBy === 'asset') return modifier * a.asset.localeCompare(b.asset);
+      if (sortBy === 'setup') return modifier * ((a.setup || '').localeCompare(b.setup || ''));
       return 0;
     });
 
@@ -225,154 +241,276 @@ const History: React.FC = () => {
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="glass-card p-4 space-y-4 animate-fade-in" style={{ animationDelay: '150ms' }}>
-        {/* Search & Period */}
-        <div className="flex flex-col md:flex-row gap-4">
-          <div className="flex-1 relative">
+      {/* Compact Filter Bar */}
+      <div className="glass-card p-3 animate-fade-in" style={{ animationDelay: '150ms' }}>
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Search */}
+          <div className="flex-1 min-w-[150px] relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
               placeholder={t('search') + '...'}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
+              className="pl-9 h-9"
             />
           </div>
-          
-          <Select value={periodFilter} onValueChange={setPeriodFilter}>
-            <SelectTrigger className="w-full md:w-40">
-              <SelectValue placeholder="Période" />
-            </SelectTrigger>
-            <SelectContent className="bg-popover border-border">
-              <SelectItem value="all">{t('all')}</SelectItem>
-              <SelectItem value="day">{t('today')}</SelectItem>
-              <SelectItem value="week">{t('thisWeek')}</SelectItem>
-              <SelectItem value="month">{t('thisMonth')}</SelectItem>
-              <SelectItem value="year">{t('thisYear')}</SelectItem>
-              <SelectItem value="custom">{t('custom')}</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
 
-        {/* Custom Date Range */}
-        {periodFilter === 'custom' && (
-          <div className="flex flex-wrap gap-4 p-4 bg-secondary/30 rounded-lg">
-            <div className="space-y-2">
-              <Label className="text-xs text-muted-foreground">{language === 'fr' ? 'Date début' : 'Start date'}</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className="gap-2">
-                    <CalendarIcon className="w-4 h-4" />
-                    {startDate ? format(startDate, 'dd/MM/yyyy') : t('select')}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0 bg-card border-border">
-                  <Calendar
-                    mode="single"
-                    selected={startDate}
-                    onSelect={setStartDate}
-                    locale={locale}
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-            <div className="flex items-end pb-2 text-muted-foreground">→</div>
-            <div className="space-y-2">
-              <Label className="text-xs text-muted-foreground">{language === 'fr' ? 'Date fin' : 'End date'}</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className="gap-2">
-                    <CalendarIcon className="w-4 h-4" />
-                    {endDate ? format(endDate, 'dd/MM/yyyy') : t('select')}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0 bg-card border-border">
-                  <Calendar
-                    mode="single"
-                    selected={endDate}
-                    onSelect={setEndDate}
-                    locale={locale}
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-          </div>
-        )}
+          {/* Filters Popover */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-2 h-9">
+                <Filter className="w-4 h-4" />
+                <span className="hidden sm:inline">{language === 'fr' ? 'Filtres' : 'Filters'}</span>
+                {activeFiltersCount > 0 && (
+                  <Badge variant="secondary" className="ml-1 h-5 w-5 p-0 flex items-center justify-center text-xs">
+                    {activeFiltersCount}
+                  </Badge>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-80 p-4 bg-popover border-border" align="start">
+              <div className="space-y-4">
+                {/* Period Section */}
+                <div className="space-y-2">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                    {language === 'fr' ? 'Période' : 'Period'}
+                  </p>
+                  <div className="flex flex-wrap gap-1">
+                    {[
+                      { value: 'all', label: t('all') },
+                      { value: 'day', label: t('today') },
+                      { value: 'week', label: t('thisWeek') },
+                      { value: 'month', label: t('thisMonth') },
+                      { value: 'year', label: t('thisYear') },
+                      { value: 'custom', label: t('custom') },
+                    ].map((option) => (
+                      <Button
+                        key={option.value}
+                        variant={periodFilter === option.value ? 'default' : 'outline'}
+                        size="sm"
+                        className="h-7 text-xs"
+                        onClick={() => setPeriodFilter(option.value)}
+                      >
+                        {option.label}
+                      </Button>
+                    ))}
+                  </div>
+                  
+                  {/* Custom Date Range */}
+                  {periodFilter === 'custom' && (
+                    <div className="flex items-center gap-2 mt-2 p-2 bg-secondary/30 rounded-lg">
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button variant="outline" size="sm" className="gap-1 h-8 text-xs">
+                            <CalendarIcon className="w-3 h-3" />
+                            {startDate ? format(startDate, 'dd/MM/yy') : t('select')}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0 bg-card border-border z-50" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={startDate}
+                            onSelect={setStartDate}
+                            locale={locale}
+                            className="pointer-events-auto"
+                          />
+                        </PopoverContent>
+                      </Popover>
+                      <span className="text-muted-foreground text-xs">→</span>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button variant="outline" size="sm" className="gap-1 h-8 text-xs">
+                            <CalendarIcon className="w-3 h-3" />
+                            {endDate ? format(endDate, 'dd/MM/yy') : t('select')}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0 bg-card border-border z-50" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={endDate}
+                            onSelect={setEndDate}
+                            locale={locale}
+                            className="pointer-events-auto"
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                  )}
+                </div>
 
-        {/* Advanced Filters */}
-        <div className="flex flex-wrap gap-2">
-          <Select value={filterDirection} onValueChange={setFilterDirection}>
-            <SelectTrigger className="w-28">
-              <SelectValue placeholder={t('direction')} />
-            </SelectTrigger>
-            <SelectContent className="bg-popover border-border">
-              <SelectItem value="all">{t('all')}</SelectItem>
-              <SelectItem value="long">Long</SelectItem>
-              <SelectItem value="short">Short</SelectItem>
-            </SelectContent>
-          </Select>
+                {/* Type Section */}
+                <div className="space-y-2">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                    {t('direction')}
+                  </p>
+                  <div className="flex gap-2">
+                    {[
+                      { value: 'all', label: t('all') },
+                      { value: 'long', label: 'Long' },
+                      { value: 'short', label: 'Short' },
+                    ].map((option) => (
+                      <Button
+                        key={option.value}
+                        variant={filterDirection === option.value ? 'default' : 'outline'}
+                        size="sm"
+                        className="h-7 text-xs flex-1"
+                        onClick={() => setFilterDirection(option.value)}
+                      >
+                        {option.label}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
 
-          <Select value={filterResult} onValueChange={setFilterResult}>
-            <SelectTrigger className="w-32">
-              <SelectValue placeholder={language === 'fr' ? 'Résultat' : 'Result'} />
-            </SelectTrigger>
-            <SelectContent className="bg-popover border-border">
-              <SelectItem value="all">{t('all')}</SelectItem>
-              <SelectItem value="win">{language === 'fr' ? 'Gain' : 'Win'}</SelectItem>
-              <SelectItem value="loss">{language === 'fr' ? 'Perte' : 'Loss'}</SelectItem>
-              <SelectItem value="breakeven">{t('breakeven')}</SelectItem>
-              <SelectItem value="pending">{language === 'fr' ? 'En cours' : 'Pending'}</SelectItem>
-            </SelectContent>
-          </Select>
+                {/* Result Section */}
+                <div className="space-y-2">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                    {language === 'fr' ? 'Résultat' : 'Result'}
+                  </p>
+                  <div className="flex flex-wrap gap-1">
+                    {[
+                      { value: 'all', label: t('all') },
+                      { value: 'win', label: language === 'fr' ? 'Gain' : 'Win' },
+                      { value: 'loss', label: language === 'fr' ? 'Perte' : 'Loss' },
+                      { value: 'breakeven', label: t('breakeven') },
+                      { value: 'pending', label: language === 'fr' ? 'En cours' : 'Pending' },
+                    ].map((option) => (
+                      <Button
+                        key={option.value}
+                        variant={filterResult === option.value ? 'default' : 'outline'}
+                        size="sm"
+                        className="h-7 text-xs"
+                        onClick={() => setFilterResult(option.value)}
+                      >
+                        {option.label}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
 
-          <Select value={filterAsset} onValueChange={setFilterAsset}>
-            <SelectTrigger className="w-32">
-              <SelectValue placeholder={t('asset')} />
-            </SelectTrigger>
-            <SelectContent className="bg-popover border-border">
-              <SelectItem value="all">{t('all')}</SelectItem>
-              {uniqueAssets.map(asset => (
-                <SelectItem key={asset} value={asset}>{asset}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+                {/* Assets Section */}
+                {uniqueAssets.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                      {t('asset')}
+                    </p>
+                    <Select value={filterAsset} onValueChange={setFilterAsset}>
+                      <SelectTrigger className="h-8 text-xs">
+                        <SelectValue placeholder={t('all')} />
+                      </SelectTrigger>
+                      <SelectContent className="bg-popover border-border">
+                        <SelectItem value="all">{t('all')}</SelectItem>
+                        {uniqueAssets.map(asset => (
+                          <SelectItem key={asset} value={asset}>{asset}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
 
-          <Select value={filterSetup} onValueChange={setFilterSetup}>
-            <SelectTrigger className="w-36">
-              <SelectValue placeholder={t('setup')} />
-            </SelectTrigger>
-            <SelectContent className="bg-popover border-border">
-              <SelectItem value="all">{t('all')}</SelectItem>
-              {uniqueSetups.map(setup => (
-                <SelectItem key={setup as string} value={setup as string}>{setup}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+                {/* Setups Section */}
+                {uniqueSetups.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                      {t('setup')}
+                    </p>
+                    <Select value={filterSetup} onValueChange={setFilterSetup}>
+                      <SelectTrigger className="h-8 text-xs">
+                        <SelectValue placeholder={t('all')} />
+                      </SelectTrigger>
+                      <SelectContent className="bg-popover border-border">
+                        <SelectItem value="all">{t('all')}</SelectItem>
+                        {uniqueSetups.map(setup => (
+                          <SelectItem key={setup as string} value={setup as string}>{setup}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </div>
+            </PopoverContent>
+          </Popover>
 
+          {/* Sort Menu */}
           <Select value={sortBy} onValueChange={setSortBy}>
-            <SelectTrigger className="w-32">
-              <SelectValue placeholder={language === 'fr' ? 'Trier par' : 'Sort by'} />
+            <SelectTrigger className="w-28 h-9">
+              <ArrowUpDown className="w-4 h-4 mr-1" />
+              <SelectValue />
             </SelectTrigger>
             <SelectContent className="bg-popover border-border">
-              <SelectItem value="date">{language === 'fr' ? 'Date' : 'Date'}</SelectItem>
+              <SelectItem value="date">Date</SelectItem>
               <SelectItem value="pnl">PnL</SelectItem>
               <SelectItem value="asset">{t('asset')}</SelectItem>
+              <SelectItem value="setup">{t('setup')}</SelectItem>
             </SelectContent>
           </Select>
 
+          {/* Sort Order Toggle */}
           <Button
             variant="outline"
             size="icon"
+            className="h-9 w-9"
             onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
+            title={sortOrder === 'asc' ? (language === 'fr' ? 'Croissant' : 'Ascending') : (language === 'fr' ? 'Décroissant' : 'Descending')}
           >
-            {sortOrder === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-          </Button>
-
-          <Button variant="ghost" size="sm" onClick={clearFilters} className="text-muted-foreground">
-            <X className="w-4 h-4 mr-1" />
-            {t('reset')}
+            {sortOrder === 'asc' ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />}
           </Button>
         </div>
+
+        {/* Active Filters Badges */}
+        {activeFiltersCount > 0 && (
+          <div className="flex flex-wrap items-center gap-1 mt-2 pt-2 border-t border-border/50">
+            {periodFilter !== 'all' && (
+              <Badge variant="secondary" className="gap-1 text-xs h-6">
+                {periodFilter === 'custom' && startDate && endDate 
+                  ? `${format(startDate, 'dd/MM')} - ${format(endDate, 'dd/MM')}`
+                  : periodFilter === 'day' ? t('today')
+                  : periodFilter === 'week' ? t('thisWeek')
+                  : periodFilter === 'month' ? t('thisMonth')
+                  : t('thisYear')
+                }
+                <X className="w-3 h-3 cursor-pointer hover:text-foreground" onClick={() => { setPeriodFilter('all'); setStartDate(undefined); setEndDate(undefined); }} />
+              </Badge>
+            )}
+            {filterDirection !== 'all' && (
+              <Badge variant="secondary" className="gap-1 text-xs h-6">
+                {filterDirection === 'long' ? 'Long' : 'Short'}
+                <X className="w-3 h-3 cursor-pointer hover:text-foreground" onClick={() => setFilterDirection('all')} />
+              </Badge>
+            )}
+            {filterResult !== 'all' && (
+              <Badge variant="secondary" className="gap-1 text-xs h-6">
+                {filterResult === 'win' ? (language === 'fr' ? 'Gain' : 'Win')
+                  : filterResult === 'loss' ? (language === 'fr' ? 'Perte' : 'Loss')
+                  : filterResult === 'breakeven' ? t('breakeven')
+                  : (language === 'fr' ? 'En cours' : 'Pending')
+                }
+                <X className="w-3 h-3 cursor-pointer hover:text-foreground" onClick={() => setFilterResult('all')} />
+              </Badge>
+            )}
+            {filterAsset !== 'all' && (
+              <Badge variant="secondary" className="gap-1 text-xs h-6">
+                {filterAsset}
+                <X className="w-3 h-3 cursor-pointer hover:text-foreground" onClick={() => setFilterAsset('all')} />
+              </Badge>
+            )}
+            {filterSetup !== 'all' && (
+              <Badge variant="secondary" className="gap-1 text-xs h-6">
+                {filterSetup}
+                <X className="w-3 h-3 cursor-pointer hover:text-foreground" onClick={() => setFilterSetup('all')} />
+              </Badge>
+            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground"
+              onClick={clearFilters}
+            >
+              <X className="w-3 h-3 mr-1" />
+              {t('reset')}
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Trades List */}
