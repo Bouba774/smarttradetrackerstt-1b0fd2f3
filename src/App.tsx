@@ -115,8 +115,8 @@ const AppContent = () => {
       <ChunkErrorBoundary>
         <Suspense fallback={<PageLoader />}>
           <Routes>
-            {/* Public landing page */}
-            <Route path="/" element={<Landing />} />
+            {/* Public landing page - redirects to dashboard if logged in */}
+            <Route path="/" element={user ? <Navigate to="/dashboard" replace /> : <Landing />} />
             
             {/* Auth pages */}
             <Route path="/auth" element={<Auth />} />

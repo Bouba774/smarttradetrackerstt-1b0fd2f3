@@ -14,6 +14,9 @@ const SplashScreen: React.FC<SplashScreenProps> = ({
   const [progress, setProgress] = useState(0);
 
   useEffect(() => {
+    // Signal that app is ready - hide the initial loader
+    window.dispatchEvent(new Event('app-ready'));
+    
     // Animate progress bar
     const progressInterval = setInterval(() => {
       setProgress(prev => {

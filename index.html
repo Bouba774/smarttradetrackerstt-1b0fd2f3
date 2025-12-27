@@ -47,7 +47,16 @@
   </head>
 
   <body>
-    <div id="root"></div>
+    <!-- Initial loading state that matches splash screen background -->
+    <div id="initial-loader" style="position: fixed; inset: 0; background: linear-gradient(135deg, hsl(190 100% 50% / 0.1), hsl(222 47% 8%), hsl(160 100% 40% / 0.1)); z-index: 99999;"></div>
+    <div id="root" style="visibility: hidden;"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <script>
+      // Show content once React has mounted and splash is ready
+      window.addEventListener('app-ready', function() {
+        document.getElementById('initial-loader').style.display = 'none';
+        document.getElementById('root').style.visibility = 'visible';
+      });
+    </script>
   </body>
 </html>
