@@ -436,10 +436,10 @@ const History: React.FC = () => {
                   </div>
 
                   {/* PnL and Actions */}
-                  <div className="flex items-center gap-4">
-                    <div className="text-right">
+                  <div className="flex items-center gap-2 sm:gap-4">
+                    <div className="text-right min-w-0">
                       <p className={cn(
-                        "font-display font-bold text-lg",
+                        "font-display font-bold text-sm sm:text-lg",
                         trade.profit_loss && trade.profit_loss > 0 ? "profit-text" : 
                         trade.profit_loss && trade.profit_loss < 0 ? "loss-text" : "text-muted-foreground"
                       )}>
@@ -452,26 +452,28 @@ const History: React.FC = () => {
                         <ConfidentialValue>{trade.lot_size} lots</ConfidentialValue>
                       </p>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="text-muted-foreground hover:text-primary"
-                      onClick={(e) => handleEditTrade(trade, e)}
-                    >
-                      <Pencil className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="text-muted-foreground hover:text-loss"
-                      onClick={(e) => handleDeleteTrade(trade.id, e)}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-muted-foreground hover:text-primary"
+                        onClick={(e) => handleEditTrade(trade, e)}
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-muted-foreground hover:text-loss"
+                        onClick={(e) => handleDeleteTrade(trade.id, e)}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
                     {expandedTrade === trade.id ? (
-                      <ChevronUp className="w-5 h-5 text-muted-foreground" />
+                      <ChevronUp className="w-5 h-5 text-muted-foreground shrink-0" />
                     ) : (
-                      <ChevronDown className="w-5 h-5 text-muted-foreground" />
+                      <ChevronDown className="w-5 h-5 text-muted-foreground shrink-0" />
                     )}
                   </div>
                 </div>
