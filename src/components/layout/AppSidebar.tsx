@@ -116,9 +116,11 @@ const AppSidebar: React.FC = () => {
         <SidebarHeader className="p-3 sm:p-4 border-b border-primary/20">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-gradient-primary flex items-center justify-center shadow-neon shrink-0">
-                <LayoutDashboard className="w-4 h-4 sm:w-5 sm:h-5 text-primary-foreground" />
-              </div>
+              <img 
+                src="/assets/app-logo.jpg" 
+                alt="Smart Trade Tracker" 
+                className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg shrink-0 object-cover animate-logo-glow"
+              />
               <div className="overflow-hidden">
                 <h1 className="font-display font-bold text-foreground text-sm leading-tight">
                   Smart Trade

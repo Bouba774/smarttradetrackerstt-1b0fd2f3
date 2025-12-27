@@ -120,6 +120,14 @@ export default {
           "0%, 100%": { opacity: "1" },
           "50%": { opacity: "0.6" },
         },
+        "logo-glow": {
+          "0%, 100%": { 
+            boxShadow: "0 0 10px hsl(var(--primary) / 0.4), 0 0 20px hsl(var(--profit) / 0.3), 0 0 30px hsl(var(--primary) / 0.2)" 
+          },
+          "50%": { 
+            boxShadow: "0 0 15px hsl(var(--primary) / 0.6), 0 0 30px hsl(var(--profit) / 0.5), 0 0 45px hsl(var(--primary) / 0.3)" 
+          },
+        },
         "blink": {
           "0%, 50%": { opacity: "1" },
           "51%, 100%": { opacity: "0" },
@@ -138,6 +146,7 @@ export default {
         "float": "float 6s ease-in-out infinite",
         "glow": "glow 2s ease-in-out infinite",
         "bounce-gentle": "bounce-gentle 2s ease-in-out infinite",
+        "logo-glow": "logo-glow 3s ease-in-out infinite",
       },
     },
   },

@@ -312,9 +312,11 @@ if (error) {
         {/* Logo */}
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-primary flex items-center justify-center shadow-neon">
-              <TrendingUp className="w-8 h-8 text-primary-foreground" />
-            </div>
+            <img 
+              src="/assets/app-logo.jpg" 
+              alt="Smart Trade Tracker" 
+              className="w-20 h-20 rounded-2xl object-cover animate-logo-glow"
+            />
           </div>
           <h1 className="font-display text-2xl font-bold text-foreground">
             Smart Trade Tracker
