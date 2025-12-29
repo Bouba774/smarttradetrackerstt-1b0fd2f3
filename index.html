@@ -47,16 +47,29 @@
   </head>
 
   <body>
-    <!-- Initial loading state that matches splash screen background -->
-    <div id="initial-loader" style="position: fixed; inset: 0; background: linear-gradient(135deg, hsl(190 100% 50% / 0.1), hsl(222 47% 8%), hsl(160 100% 40% / 0.1)); z-index: 99999;"></div>
-    <div id="root" style="visibility: hidden;"></div>
+    <!-- Initial loading state with splash screen styling -->
+    <div id="initial-loader" style="position: fixed; inset: 0; background: linear-gradient(135deg, hsl(190 100% 50% / 0.1), hsl(222 47% 8%), hsl(160 100% 40% / 0.1)); z-index: 99999; display: flex; align-items: center; justify-content: center;">
+      <img src="/assets/app-logo.jpg" alt="Loading" style="width: 128px; height: 128px; border-radius: 16px; animation: pulse 2s infinite;" />
+    </div>
+    <style>
+      @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+    </style>
+    <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     <script>
-      // Show content once React has mounted and splash is ready
-      window.addEventListener('app-ready', function() {
-        document.getElementById('initial-loader').style.display = 'none';
-        document.getElementById('root').style.visibility = 'visible';
-      });
+      // Global function to hide loader - can be called multiple times safely
+      window.hideInitialLoader = function() {
+        var loader = document.getElementById('initial-loader');
+        if (loader) {
+          loader.style.opacity = '0';
+          loader.style.transition = 'opacity 0.3s ease-out';
+          setTimeout(function() { loader.style.display = 'none'; }, 300);
+        }
+      };
+      // Listen for app-ready event
+      window.addEventListener('app-ready', window.hideInitialLoader);
+      // Fallback: hide after 5 seconds max to prevent black screen
+      setTimeout(window.hideInitialLoader, 5000);
     </script>
   </body>
 </html>
