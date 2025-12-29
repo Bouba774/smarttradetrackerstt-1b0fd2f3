@@ -75,15 +75,24 @@ export const LockScreen: React.FC = () => {
     }
   };
 
-  const handleSetup = (pin: string) => {
+  const handleSetup = async (pin: string) => {
     if (setupStep === 'enter') {
       setFirstPin(pin);
       setSetupStep('confirm');
     } else {
       if (pin === firstPin) {
-        setupPin(pin);
-        setSetupStep('enter');
-        setFirstPin('');
+        try {
+          await setupPin(pin);
+          // Reset is handled by setupPin which sets isSetupMode to false
+        } catch (error) {
+          console.error('Error setting up PIN:', error);
+          setError(true);
+          setTimeout(() => {
+            setError(false);
+            setSetupStep('enter');
+            setFirstPin('');
+          }, 500);
+        }
       } else {
         setError(true);
         setTimeout(() => {
