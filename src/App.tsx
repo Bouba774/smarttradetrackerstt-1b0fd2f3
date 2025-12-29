@@ -1,4 +1,4 @@
-import { Suspense, lazy } from "react";
+import { Suspense, lazy, useEffect, useCallback, useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -7,10 +7,13 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
-import { SecurityProvider } from "@/contexts/SecurityContext";
+import { SecurityProvider, useSecurity } from "@/contexts/SecurityContext";
 import { AdminProvider } from "@/contexts/AdminContext";
 import Layout from "@/components/layout/Layout";
 import { CookieConsent } from "@/components/CookieConsent";
+import LockScreen from "@/components/LockScreen";
+import { usePinSecurity } from "@/hooks/usePinSecurity";
+import { toast } from "sonner";
 
 import { useSessionTracking } from "@/hooks/useSessionTracking";
 import ChunkErrorBoundary from "@/components/ChunkErrorBoundary";
@@ -109,12 +112,74 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 // Component to conditionally render layout
 const AppContent = () => {
   const { user } = useAuth();
+  const { isLocked, unlockApp } = useSecurity();
+  const {
+    isPinEnabled,
+    isBiometricEnabled,
+    verifyPin,
+    failedAttempts,
+    maxAttempts,
+    shouldWipeOnMaxAttempts,
+    wipeLocalData,
+    requestPinReset,
+    isVerifying,
+    resetFailedAttempts,
+  } = usePinSecurity();
   
   // Track user sessions
   useSessionTracking();
   
   // Prefetch priority routes after authentication
   usePrefetchOnAuth(!!user);
+
+  // Handle PIN verification
+  const handleUnlock = useCallback(async () => {
+    // This is called when PIN is entered - we need to get the PIN from somewhere
+    // The actual verification happens in LockScreen
+  }, []);
+
+  const handlePinVerify = useCallback(async (pin: string): Promise<boolean> => {
+    try {
+      const isValid = await verifyPin({ pin });
+      if (isValid) {
+        unlockApp();
+        resetFailedAttempts();
+        return true;
+      }
+      
+      // Check if we should wipe data
+      if (shouldWipeOnMaxAttempts && failedAttempts + 1 >= maxAttempts) {
+        await wipeLocalData();
+        toast.error('Données effacées après trop de tentatives');
+      }
+      return false;
+    } catch {
+      return false;
+    }
+  }, [verifyPin, unlockApp, resetFailedAttempts, shouldWipeOnMaxAttempts, failedAttempts, maxAttempts, wipeLocalData]);
+
+  const handleForgotPin = useCallback(async () => {
+    const success = await requestPinReset();
+    if (success) {
+      toast.success('Email de réinitialisation envoyé');
+    } else {
+      toast.error('Erreur lors de l\'envoi de l\'email');
+    }
+  }, [requestPinReset]);
+
+  // Show lock screen if locked and user is authenticated with PIN enabled
+  if (user && isLocked && isPinEnabled) {
+    return (
+      <LockScreen
+        onUnlock={() => {}}
+        failedAttempts={failedAttempts}
+        maxAttempts={maxAttempts}
+        showBiometric={isBiometricEnabled}
+        isVerifying={isVerifying}
+        onForgotPin={handleForgotPin}
+      />
+    );
+  }
 
   return (
     <>
