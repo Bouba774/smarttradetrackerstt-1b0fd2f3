@@ -262,6 +262,7 @@ export const LockScreen: React.FC = () => {
         {/* PIN Input (hidden when blocked) */}
         {!isBlocked && (
           <PINInput
+            key={isSetupMode ? `setup-${setupStep}` : 'unlock'}
             length={isSetupMode ? 4 : settings.pinLength}
             onComplete={isSetupMode ? handleSetup : handleUnlock}
             onCancel={isSetupMode ? handleCancelSetup : undefined}
