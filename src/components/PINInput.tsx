@@ -53,7 +53,9 @@ export const PINInput: React.FC<PINInputProps> = ({
 
   const handleConfirm = () => {
     if (pin.length === length) {
-      onComplete(pin);
+      const currentPin = pin;
+      setPin('');
+      onComplete(currentPin);
     }
   };
 
