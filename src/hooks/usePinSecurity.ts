@@ -1,0 +1,351 @@
+import { useState, useCallback, useEffect } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
+
+export interface PinSettings {
+  pinEnabled: boolean;
+  pinLength: number;
+  biometricEnabled: boolean;
+  maxAttempts: number;
+  wipeOnMaxAttempts: boolean;
+  autoLockTimeout: number; // in seconds, 0 = immediate
+}
+
+interface PinStatus {
+  hasPin: boolean;
+  pinLength: number;
+  biometricEnabled: boolean;
+  maxAttempts: number;
+  wipeOnMaxAttempts: boolean;
+}
+
+const defaultSettings: PinSettings = {
+  pinEnabled: false,
+  pinLength: 4,
+  biometricEnabled: false,
+  maxAttempts: 5,
+  wipeOnMaxAttempts: false,
+  autoLockTimeout: 0,
+};
+
+export const usePinSecurity = () => {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const [failedAttempts, setFailedAttempts] = useState(0);
+
+  // Fetch PIN status from database
+  const { data: pinStatus, isLoading: isLoadingStatus, refetch: refetchStatus } = useQuery({
+    queryKey: ['pin-status', user?.id],
+    queryFn: async (): Promise<PinStatus | null> => {
+      if (!user) return null;
+
+      const { data, error } = await supabase.rpc('get_own_pin_status');
+
+      if (error) {
+        console.error('Error fetching PIN status:', error);
+        return null;
+      }
+
+      if (data && data.length > 0) {
+        const status = data[0];
+        return {
+          hasPin: status.has_pin,
+          pinLength: status.pin_length || 4,
+          biometricEnabled: status.biometric_enabled || false,
+          maxAttempts: status.max_attempts || 5,
+          wipeOnMaxAttempts: status.wipe_on_max_attempts || false,
+        };
+      }
+      return null;
+    },
+    enabled: !!user,
+    staleTime: 1000 * 60 * 5,
+  });
+
+  // Fetch auto-lock timeout from user_settings
+  const { data: autoLockTimeout } = useQuery({
+    queryKey: ['auto-lock-timeout', user?.id],
+    queryFn: async (): Promise<number> => {
+      if (!user) return 0;
+
+      const { data, error } = await supabase
+        .from('user_settings')
+        .select('auto_lock_timeout')
+        .eq('user_id', user.id)
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error fetching auto-lock timeout:', error);
+      }
+
+      return data?.auto_lock_timeout ?? 0;
+    },
+    enabled: !!user,
+    staleTime: 1000 * 60 * 5,
+  });
+
+  // Setup PIN mutation
+  const setupPinMutation = useMutation({
+    mutationFn: async ({ pin }: { pin: string }) => {
+      if (!user) throw new Error('User not authenticated');
+
+      // Call edge function to hash PIN
+      const { data: hashData, error: hashError } = await supabase.functions.invoke('hash-pin', {
+        body: { pin, action: 'create' },
+      });
+
+      if (hashError) throw hashError;
+      if (!hashData?.hash || !hashData?.salt) throw new Error('Failed to hash PIN');
+
+      // Store in secure_credentials table
+      const { error: upsertError } = await supabase
+        .from('secure_credentials')
+        .upsert({
+          user_id: user.id,
+          pin_hash: hashData.hash,
+          pin_salt: hashData.salt,
+          pin_length: pin.length,
+        }, { onConflict: 'user_id' });
+
+      if (upsertError) throw upsertError;
+
+      // Update user_settings
+      const { error: settingsError } = await supabase
+        .from('user_settings')
+        .upsert({
+          user_id: user.id,
+          pin_enabled: true,
+          pin_length: pin.length,
+        }, { onConflict: 'user_id' });
+
+      if (settingsError) throw settingsError;
+
+      return { success: true };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pin-status'] });
+      queryClient.invalidateQueries({ queryKey: ['auto-lock-timeout'] });
+    },
+  });
+
+  // Verify PIN mutation
+  const verifyPinMutation = useMutation({
+    mutationFn: async ({ pin }: { pin: string }): Promise<boolean> => {
+      if (!user) throw new Error('User not authenticated');
+
+      // Get stored credentials
+      const { data: credentials, error: credError } = await supabase
+        .from('secure_credentials')
+        .select('pin_hash, pin_salt, max_attempts, wipe_on_max_attempts')
+        .eq('user_id', user.id)
+        .single();
+
+      if (credError || !credentials?.pin_hash || !credentials?.pin_salt) {
+        throw new Error('PIN not configured');
+      }
+
+      // Call edge function to verify
+      const { data: verifyData, error: verifyError } = await supabase.functions.invoke('hash-pin', {
+        body: {
+          pin,
+          action: 'verify',
+          existingHash: credentials.pin_hash,
+          existingSalt: credentials.pin_salt,
+        },
+      });
+
+      if (verifyError) throw verifyError;
+
+      return verifyData?.valid === true;
+    },
+    onSuccess: (isValid) => {
+      if (isValid) {
+        setFailedAttempts(0);
+      } else {
+        setFailedAttempts((prev) => prev + 1);
+      }
+    },
+    onError: () => {
+      setFailedAttempts((prev) => prev + 1);
+    },
+  });
+
+  // Disable PIN mutation
+  const disablePinMutation = useMutation({
+    mutationFn: async () => {
+      if (!user) throw new Error('User not authenticated');
+
+      // Clear PIN from secure_credentials
+      const { error: credError } = await supabase
+        .from('secure_credentials')
+        .update({
+          pin_hash: null,
+          pin_salt: null,
+          pin_length: null,
+        })
+        .eq('user_id', user.id);
+
+      if (credError) throw credError;
+
+      // Update user_settings
+      const { error: settingsError } = await supabase
+        .from('user_settings')
+        .update({
+          pin_enabled: false,
+          biometric_enabled: false,
+        })
+        .eq('user_id', user.id);
+
+      if (settingsError) throw settingsError;
+
+      return { success: true };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pin-status'] });
+    },
+  });
+
+  // Toggle biometric mutation
+  const toggleBiometricMutation = useMutation({
+    mutationFn: async (enabled: boolean) => {
+      if (!user) throw new Error('User not authenticated');
+
+      const { error } = await supabase
+        .from('secure_credentials')
+        .update({ biometric_enabled: enabled })
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      return { success: true };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pin-status'] });
+    },
+  });
+
+  // Update security settings mutation
+  const updateSecuritySettingsMutation = useMutation({
+    mutationFn: async (settings: Partial<{
+      maxAttempts: number;
+      wipeOnMaxAttempts: boolean;
+      autoLockTimeout: number;
+    }>) => {
+      if (!user) throw new Error('User not authenticated');
+
+      // Update secure_credentials if needed
+      if (settings.maxAttempts !== undefined || settings.wipeOnMaxAttempts !== undefined) {
+        const credUpdates: Record<string, unknown> = {};
+        if (settings.maxAttempts !== undefined) credUpdates.max_attempts = settings.maxAttempts;
+        if (settings.wipeOnMaxAttempts !== undefined) credUpdates.wipe_on_max_attempts = settings.wipeOnMaxAttempts;
+
+        const { error } = await supabase
+          .from('secure_credentials')
+          .update(credUpdates)
+          .eq('user_id', user.id);
+
+        if (error) throw error;
+      }
+
+      // Update user_settings for auto_lock_timeout
+      if (settings.autoLockTimeout !== undefined) {
+        const { error } = await supabase
+          .from('user_settings')
+          .upsert({
+            user_id: user.id,
+            auto_lock_timeout: settings.autoLockTimeout,
+          }, { onConflict: 'user_id' });
+
+        if (error) throw error;
+      }
+
+      return { success: true };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pin-status'] });
+      queryClient.invalidateQueries({ queryKey: ['auto-lock-timeout'] });
+    },
+  });
+
+  // Request PIN reset via email
+  const requestPinReset = useCallback(async () => {
+    if (!user?.email) {
+      toast.error('Email not found');
+      return false;
+    }
+
+    try {
+      const { error } = await supabase.functions.invoke('security-email', {
+        body: {
+          type: 'pin_reset',
+          email: user.email,
+          language: 'fr',
+          resetUrl: `${window.location.origin}/reset-pin`,
+        },
+      });
+
+      if (error) throw error;
+      return true;
+    } catch (error) {
+      console.error('Error requesting PIN reset:', error);
+      return false;
+    }
+  }, [user]);
+
+  // Check biometric availability
+  const checkBiometricAvailability = useCallback(async (): Promise<boolean> => {
+    if (!window.PublicKeyCredential) return false;
+
+    try {
+      const available = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+      return available;
+    } catch {
+      return false;
+    }
+  }, []);
+
+  // Wipe local data
+  const wipeLocalData = useCallback(async () => {
+    // Clear localStorage
+    const keysToRemove = Object.keys(localStorage).filter(
+      (key) => key.startsWith('trade') || key.startsWith('journal') || key.startsWith('settings')
+    );
+    keysToRemove.forEach((key) => localStorage.removeItem(key));
+
+    // Sign out user
+    await supabase.auth.signOut();
+  }, []);
+
+  return {
+    // State
+    pinStatus,
+    isLoadingStatus,
+    failedAttempts,
+    autoLockTimeout: autoLockTimeout ?? 0,
+    
+    // Computed
+    isPinEnabled: pinStatus?.hasPin ?? false,
+    isBiometricEnabled: pinStatus?.biometricEnabled ?? false,
+    maxAttempts: pinStatus?.maxAttempts ?? 5,
+    shouldWipeOnMaxAttempts: pinStatus?.wipeOnMaxAttempts ?? false,
+    
+    // Actions
+    setupPin: setupPinMutation.mutateAsync,
+    verifyPin: verifyPinMutation.mutateAsync,
+    disablePin: disablePinMutation.mutateAsync,
+    toggleBiometric: toggleBiometricMutation.mutateAsync,
+    updateSecuritySettings: updateSecuritySettingsMutation.mutateAsync,
+    requestPinReset,
+    checkBiometricAvailability,
+    wipeLocalData,
+    refetchStatus,
+    
+    // Loading states
+    isSettingUp: setupPinMutation.isPending,
+    isVerifying: verifyPinMutation.isPending,
+    isDisabling: disablePinMutation.isPending,
+    resetFailedAttempts: () => setFailedAttempts(0),
+  };
+};
