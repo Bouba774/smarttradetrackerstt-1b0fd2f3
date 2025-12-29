@@ -76,19 +76,13 @@ export const LockScreen: React.FC = () => {
   };
 
   const handleSetup = async (pin: string) => {
-    console.log('handleSetup called with pin:', pin, 'setupStep:', setupStep, 'firstPinRef:', firstPinRef.current);
-    
     if (setupStep === 'enter') {
-      console.log('Setting firstPinRef to:', pin);
       firstPinRef.current = pin;
       setSetupStep('confirm');
     } else {
-      console.log('Comparing pins:', pin, '===', firstPinRef.current, ':', pin === firstPinRef.current);
       if (pin === firstPinRef.current) {
         try {
-          console.log('PINs match, calling setupPin...');
           await setupPin(pin);
-          console.log('setupPin completed successfully');
           setSetupStep('enter');
           firstPinRef.current = '';
         } catch (error) {
@@ -101,7 +95,6 @@ export const LockScreen: React.FC = () => {
           }, 500);
         }
       } else {
-        console.log('PINs do not match!');
         setError(true);
         setTimeout(() => {
           setError(false);
