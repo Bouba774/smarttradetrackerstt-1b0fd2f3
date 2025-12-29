@@ -91,25 +91,64 @@ export const usePinSecurity = () => {
     mutationFn: async ({ pin }: { pin: string }) => {
       if (!user) throw new Error('User not authenticated');
 
+      console.log('Setting up PIN for user:', user.id);
+
       // Call edge function to hash PIN
       const { data: hashData, error: hashError } = await supabase.functions.invoke('hash-pin', {
         body: { pin, action: 'create' },
       });
 
-      if (hashError) throw hashError;
-      if (!hashData?.hash || !hashData?.salt) throw new Error('Failed to hash PIN');
+      console.log('Hash response:', hashData, hashError);
 
-      // Store in secure_credentials table
-      const { error: upsertError } = await supabase
+      if (hashError) {
+        console.error('Hash error:', hashError);
+        throw hashError;
+      }
+      if (!hashData?.hash || !hashData?.salt) {
+        console.error('Invalid hash data:', hashData);
+        throw new Error('Failed to hash PIN');
+      }
+
+      // Check if secure_credentials record exists
+      const { data: existingCred, error: checkError } = await supabase
         .from('secure_credentials')
-        .upsert({
-          user_id: user.id,
-          pin_hash: hashData.hash,
-          pin_salt: hashData.salt,
-          pin_length: pin.length,
-        }, { onConflict: 'user_id' });
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle();
 
-      if (upsertError) throw upsertError;
+      console.log('Existing credentials check:', existingCred, checkError);
+
+      if (existingCred) {
+        // Update existing record
+        const { error: updateError } = await supabase
+          .from('secure_credentials')
+          .update({
+            pin_hash: hashData.hash,
+            pin_salt: hashData.salt,
+            pin_length: pin.length,
+          })
+          .eq('user_id', user.id);
+
+        if (updateError) {
+          console.error('Update error:', updateError);
+          throw updateError;
+        }
+      } else {
+        // Insert new record
+        const { error: insertError } = await supabase
+          .from('secure_credentials')
+          .insert({
+            user_id: user.id,
+            pin_hash: hashData.hash,
+            pin_salt: hashData.salt,
+            pin_length: pin.length,
+          });
+
+        if (insertError) {
+          console.error('Insert error:', insertError);
+          throw insertError;
+        }
+      }
 
       // Update user_settings
       const { error: settingsError } = await supabase
@@ -120,8 +159,12 @@ export const usePinSecurity = () => {
           pin_length: pin.length,
         }, { onConflict: 'user_id' });
 
-      if (settingsError) throw settingsError;
+      if (settingsError) {
+        console.error('Settings error:', settingsError);
+        throw settingsError;
+      }
 
+      console.log('PIN setup completed successfully');
       return { success: true };
     },
     onSuccess: () => {
