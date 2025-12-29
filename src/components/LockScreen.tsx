@@ -41,6 +41,7 @@ export const LockScreen: React.FC = () => {
     blockCount,
     requestPinReset,
     canUseBiometric,
+    isLoading,
   } = useSecurity();
   
   const [error, setError] = useState(false);
@@ -53,8 +54,29 @@ export const LockScreen: React.FC = () => {
   // Use ref for firstPin to persist across re-renders without causing stale closures
   const firstPinRef = useRef<string>('');
 
+  // Don't render anything if not locked and not in setup mode
   if (!isLocked && !isSetupMode) {
     return null;
+  }
+
+  // Show loading state while security context is initializing
+  if (isLoading) {
+    return (
+      <div className="fixed inset-0 z-[100] bg-background flex flex-col items-center justify-center p-6">
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/5 rounded-full blur-3xl" />
+          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-primary/5 rounded-full blur-3xl" />
+        </div>
+        <div className="relative z-10 flex flex-col items-center gap-6">
+          <div className="w-20 h-20 rounded-2xl flex items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20 shadow-lg">
+            <Shield className="w-10 h-10 text-primary animate-pulse" />
+          </div>
+          <p className="text-muted-foreground">
+            {language === 'fr' ? 'Chargement...' : 'Loading...'}
+          </p>
+        </div>
+      </div>
+    );
   }
 
   const handleUnlock = async (pin: string) => {
