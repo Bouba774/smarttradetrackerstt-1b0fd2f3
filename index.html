@@ -47,13 +47,8 @@
   </head>
 
   <body>
-    <!-- Initial loading state with splash screen styling -->
-    <div id="initial-loader" style="position: fixed; inset: 0; background: linear-gradient(135deg, hsl(190 100% 50% / 0.1), hsl(222 47% 8%), hsl(160 100% 40% / 0.1)); z-index: 99999; display: flex; align-items: center; justify-content: center;">
-      <img src="/assets/app-logo.jpg" alt="Loading" style="width: 128px; height: 128px; border-radius: 16px; animation: pulse 2s infinite;" />
-    </div>
-    <style>
-      @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
-    </style>
+    <!-- Initial loading state - subtle background only -->
+    <div id="initial-loader" style="position: fixed; inset: 0; background: linear-gradient(135deg, hsl(190 100% 50% / 0.1), hsl(222 47% 8%), hsl(160 100% 40% / 0.1)); z-index: 99999;"></div>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     <script>
