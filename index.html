@@ -47,15 +47,88 @@
   </head>
 
   <body>
-    <!-- Initial loading state - subtle background only -->
-    <div id="initial-loader" style="position: fixed; inset: 0; background: linear-gradient(135deg, hsl(190 100% 50% / 0.1), hsl(222 47% 8%), hsl(160 100% 40% / 0.1)); z-index: 99999;"></div>
+    <!-- Initial loading state with animated candlesticks -->
+    <div id="initial-loader" style="position: fixed; inset: 0; background: hsl(222 47% 8%); z-index: 99999; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 24px;">
+      <!-- Dancing Candlesticks -->
+      <div style="display: flex; align-items: flex-end; gap: 8px; height: 80px;">
+        <div class="candle candle-green" style="animation-delay: 0ms;"></div>
+        <div class="candle candle-red" style="animation-delay: 100ms;"></div>
+        <div class="candle candle-green" style="animation-delay: 200ms;"></div>
+        <div class="candle candle-red" style="animation-delay: 300ms;"></div>
+        <div class="candle candle-green" style="animation-delay: 400ms;"></div>
+      </div>
+      <!-- Loading text -->
+      <div style="color: hsl(190 100% 50%); font-family: system-ui, -apple-system, sans-serif; font-size: 14px; opacity: 0.8;">
+        Chargement...
+      </div>
+    </div>
+    <style>
+      .candle {
+        width: 12px;
+        border-radius: 2px;
+        position: relative;
+        animation: candleDance 0.8s ease-in-out infinite;
+      }
+      .candle::before {
+        content: '';
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 2px;
+        background: inherit;
+      }
+      .candle-green {
+        background: hsl(160 100% 40%);
+        height: 40px;
+      }
+      .candle-green::before {
+        background: hsl(160 100% 40%);
+        top: -8px;
+        height: 8px;
+      }
+      .candle-green::after {
+        content: '';
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 2px;
+        background: hsl(160 100% 40%);
+        bottom: -6px;
+        height: 6px;
+      }
+      .candle-red {
+        background: hsl(0 100% 50%);
+        height: 30px;
+      }
+      .candle-red::before {
+        background: hsl(0 100% 50%);
+        top: -6px;
+        height: 6px;
+      }
+      .candle-red::after {
+        content: '';
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 2px;
+        background: hsl(0 100% 50%);
+        bottom: -10px;
+        height: 10px;
+      }
+      @keyframes candleDance {
+        0%, 100% { transform: scaleY(1) translateY(0); }
+        25% { transform: scaleY(1.3) translateY(-5px); }
+        50% { transform: scaleY(0.8) translateY(3px); }
+        75% { transform: scaleY(1.1) translateY(-2px); }
+      }
+    </style>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     <script>
       // Global function to hide loader - can be called multiple times safely
       window.hideInitialLoader = function() {
         var loader = document.getElementById('initial-loader');
-        if (loader) {
+        if (loader && loader.style.display !== 'none') {
           loader.style.opacity = '0';
           loader.style.transition = 'opacity 0.3s ease-out';
           setTimeout(function() { loader.style.display = 'none'; }, 300);
@@ -63,7 +136,7 @@
       };
       // Listen for app-ready event
       window.addEventListener('app-ready', window.hideInitialLoader);
-      // Fallback: hide after 5 seconds max to prevent black screen
+      // Fallback: hide after 5 seconds max
       setTimeout(window.hideInitialLoader, 5000);
     </script>
   </body>
