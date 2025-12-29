@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, useCallback, useState } from "react";
+import { Suspense, lazy, useCallback } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -74,9 +74,6 @@ const AdminAbout = lazy(() => import(/* webpackChunkName: "admin-pages" */ "./pa
 
 // Improved loading fallback with skeleton
 const PageLoader = () => <PageSkeleton type="default" />;
-const DashboardLoader = () => <PageSkeleton type="dashboard" />;
-const ListLoader = () => <PageSkeleton type="list" />;
-const FormLoader = () => <PageSkeleton type="form" />;
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -133,11 +130,6 @@ const AppContent = () => {
   usePrefetchOnAuth(!!user);
 
   // Handle PIN verification
-  const handleUnlock = useCallback(async () => {
-    // This is called when PIN is entered - we need to get the PIN from somewhere
-    // The actual verification happens in LockScreen
-  }, []);
-
   const handlePinVerify = useCallback(async (pin: string): Promise<boolean> => {
     try {
       const isValid = await verifyPin({ pin });
@@ -171,7 +163,7 @@ const AppContent = () => {
   if (user && isLocked && isPinEnabled) {
     return (
       <LockScreen
-        onUnlock={() => {}}
+        onUnlock={handlePinVerify}
         failedAttempts={failedAttempts}
         maxAttempts={maxAttempts}
         showBiometric={isBiometricEnabled}
