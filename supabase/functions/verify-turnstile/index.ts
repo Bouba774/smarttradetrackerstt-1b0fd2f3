@@ -1,40 +1,12 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-
-// Get allowed origins from environment or use defaults
-const getAllowedOrigin = (origin: string): string => {
-  const allowedOrigins = [
-    'https://sfdudueswogeusuofbbi.lovableproject.com',
-    'https://91e24412-c7c2-4228-b362-70375a18844d.lovableproject.com',
-    'https://smarttradetracker.lovable.app',
-    'https://smarttradetrackerstt.lovable.app',
-    'https://smarttradetracker.app',
-    'https://www.smarttradetracker.app',
-    'http://localhost:5173',
-    'http://localhost:3000',
-  ];
-  
-  if (allowedOrigins.includes(origin)) {
-    return origin;
-  }
-  return 'https://sfdudueswogeusuofbbi.lovableproject.com';
-};
-
-const getCorsHeaders = (req: Request) => {
-  const origin = req.headers.get('Origin') || '';
-  return {
-    'Access-Control-Allow-Origin': getAllowedOrigin(origin),
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  };
-};
+import { getCorsHeaders, handleCorsPreflightResponse } from "../_shared/cors.ts";
 
 serve(async (req) => {
-  const corsHeaders = getCorsHeaders(req);
-  
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return handleCorsPreflightResponse(req);
   }
+
+  const corsHeaders = getCorsHeaders(req);
 
   try {
     const { token } = await req.json();
