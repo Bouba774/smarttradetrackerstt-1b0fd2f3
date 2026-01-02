@@ -1,10 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { getCorsHeaders, handleCorsPreflightResponse } from "../_shared/cors.ts";
 
 // Risk scoring configuration
 const RISK_SCORES = {
@@ -50,24 +46,6 @@ const COUNTRY_TIMEZONES: Record<string, string[]> = {
   'IN': ['Asia/Kolkata', 'IST'],
   'RU': ['Europe/Moscow', 'Asia/'],
   'KR': ['Asia/Seoul', 'KST'],
-  'NL': ['Europe/Amsterdam', 'CET', 'CEST'],
-  'BE': ['Europe/Brussels', 'CET', 'CEST'],
-  'CH': ['Europe/Zurich', 'CET', 'CEST'],
-  'AT': ['Europe/Vienna', 'CET', 'CEST'],
-  'PL': ['Europe/Warsaw', 'CET', 'CEST'],
-  'SE': ['Europe/Stockholm', 'CET', 'CEST'],
-  'NO': ['Europe/Oslo', 'CET', 'CEST'],
-  'DK': ['Europe/Copenhagen', 'CET', 'CEST'],
-  'FI': ['Europe/Helsinki', 'EET', 'EEST'],
-  'PT': ['Europe/Lisbon', 'WET', 'WEST'],
-  'IE': ['Europe/Dublin', 'GMT', 'IST'],
-  'NZ': ['Pacific/Auckland', 'NZST', 'NZDT'],
-  'SG': ['Asia/Singapore', 'SGT'],
-  'HK': ['Asia/Hong_Kong', 'HKT'],
-  'AE': ['Asia/Dubai', 'GST'],
-  'ZA': ['Africa/Johannesburg', 'SAST'],
-  'MX': ['America/Mexico_City', 'CST', 'CDT'],
-  'AR': ['America/Argentina/', 'ART'],
 };
 
 // Country to primary languages mapping
@@ -86,24 +64,6 @@ const COUNTRY_LANGUAGES: Record<string, string[]> = {
   'IN': ['en', 'hi'],
   'RU': ['ru'],
   'KR': ['ko'],
-  'NL': ['nl'],
-  'BE': ['nl', 'fr', 'de'],
-  'CH': ['de', 'fr', 'it'],
-  'AT': ['de'],
-  'PL': ['pl'],
-  'SE': ['sv'],
-  'NO': ['no', 'nb', 'nn'],
-  'DK': ['da'],
-  'FI': ['fi', 'sv'],
-  'PT': ['pt'],
-  'IE': ['en', 'ga'],
-  'NZ': ['en'],
-  'SG': ['en', 'zh', 'ms', 'ta'],
-  'HK': ['zh', 'en'],
-  'AE': ['ar', 'en'],
-  'ZA': ['en', 'af', 'zu'],
-  'MX': ['es'],
-  'AR': ['es'],
 };
 
 interface ClientEnvironment {
@@ -119,9 +79,7 @@ interface IPInfoResponse {
   city?: string;
   region?: string;
   country?: string;
-  loc?: string;
   org?: string;
-  postal?: string;
   timezone?: string;
   asn?: {
     asn: string;
@@ -147,9 +105,6 @@ interface IPApiResponse {
   region: string;
   regionName: string;
   city: string;
-  zip: string;
-  lat: number;
-  lon: number;
   timezone: string;
   isp: string;
   org: string;
@@ -157,30 +112,6 @@ interface IPApiResponse {
   proxy: boolean;
   hosting: boolean;
   mobile: boolean;
-}
-
-interface DetectionResult {
-  success: boolean;
-  riskScore: number;
-  riskLevel: string;
-  riskFactors: string[];
-  vpnDetected: boolean;
-  proxyDetected: boolean;
-  torDetected: boolean;
-  hostingDetected: boolean;
-  connectionMasked: boolean;
-  timezoneMismatch: boolean;
-  languageMismatch: boolean;
-  actionTaken: string;
-  ipInfo: {
-    country: string;
-    countryCode: string;
-    city: string;
-    region: string;
-    isp: string;
-    asn: string;
-    organization: string;
-  };
 }
 
 function getRiskLevel(score: number): string {
@@ -219,7 +150,6 @@ function isHostingASN(org: string, asn: string): boolean {
 
 async function fetchIPInfoPrimary(ip: string): Promise<Partial<IPInfoResponse> | null> {
   try {
-    // Using ip-api.com as primary (free, no key required, includes proxy/hosting detection)
     const response = await fetch(
       `http://ip-api.com/json/${ip}?fields=status,message,country,countryCode,region,regionName,city,zip,lat,lon,timezone,isp,org,as,proxy,hosting,mobile`,
       { signal: AbortSignal.timeout(5000) }
@@ -231,7 +161,6 @@ async function fetchIPInfoPrimary(ip: string): Promise<Partial<IPInfoResponse> |
     
     if (data.status !== 'success') return null;
     
-    // Convert to unified format
     return {
       ip,
       city: data.city,
@@ -240,7 +169,7 @@ async function fetchIPInfoPrimary(ip: string): Promise<Partial<IPInfoResponse> |
       org: data.org,
       timezone: data.timezone,
       privacy: {
-        vpn: false, // ip-api doesn't detect VPN specifically
+        vpn: false,
         proxy: data.proxy,
         tor: false,
         relay: false,
@@ -263,7 +192,6 @@ async function fetchIPInfoPrimary(ip: string): Promise<Partial<IPInfoResponse> |
 
 async function fetchIPInfoFallback(ip: string): Promise<Partial<IPInfoResponse> | null> {
   try {
-    // Fallback to ipwho.is (free, no key required)
     const response = await fetch(
       `https://ipwho.is/${ip}`,
       { signal: AbortSignal.timeout(5000) }
@@ -297,17 +225,17 @@ async function fetchIPInfoFallback(ip: string): Promise<Partial<IPInfoResponse> 
 }
 
 serve(async (req) => {
-  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return handleCorsPreflightResponse(req);
   }
+
+  const corsHeaders = getCorsHeaders(req);
 
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Get authorization header
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       return new Response(
@@ -316,7 +244,6 @@ serve(async (req) => {
       );
     }
 
-    // Verify user
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
@@ -340,7 +267,6 @@ serve(async (req) => {
 
     console.log(`[VPN Detection] Starting for user ${user.id}, admin access: ${isAdminAccess}`);
 
-    // Get client IP
     const clientIP = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
                      req.headers.get('x-real-ip') ||
                      req.headers.get('cf-connecting-ip') ||
@@ -348,7 +274,6 @@ serve(async (req) => {
 
     console.log(`[VPN Detection] Client IP: ${clientIP}`);
 
-    // Skip detection for local/private IPs
     const isPrivateIP = clientIP === 'unknown' || 
                         clientIP.startsWith('192.168.') ||
                         clientIP.startsWith('10.') ||
@@ -359,7 +284,6 @@ serve(async (req) => {
     let ipInfo: Partial<IPInfoResponse> | null = null;
     
     if (!isPrivateIP) {
-      // Try primary API first, then fallback
       ipInfo = await fetchIPInfoPrimary(clientIP);
       if (!ipInfo) {
         console.log('[VPN Detection] Primary API failed, trying fallback');
@@ -367,7 +291,6 @@ serve(async (req) => {
       }
     }
 
-    // Initialize detection result
     const riskFactors: string[] = [];
     let riskScore = 0;
     let vpnDetected = false;
@@ -378,7 +301,6 @@ serve(async (req) => {
     let languageMismatch = false;
 
     if (ipInfo) {
-      // Check privacy flags from API
       if (ipInfo.privacy?.vpn) {
         vpnDetected = true;
         riskScore += RISK_SCORES.VPN_DETECTED;
@@ -403,7 +325,6 @@ serve(async (req) => {
         riskFactors.push('Connection from hosting/datacenter');
       }
 
-      // Check ASN for hosting patterns if not already detected
       if (!hostingDetected && ipInfo.asn) {
         if (isHostingASN(ipInfo.org || '', ipInfo.asn.name || '')) {
           hostingDetected = true;
@@ -412,7 +333,6 @@ serve(async (req) => {
         }
       }
 
-      // Check timezone coherence
       if (clientEnvironment?.timezone && ipInfo.country) {
         timezoneMismatch = checkTimezoneMismatch(ipInfo.country, clientEnvironment.timezone);
         if (timezoneMismatch) {
@@ -421,7 +341,6 @@ serve(async (req) => {
         }
       }
 
-      // Check language coherence
       if (clientEnvironment?.language && ipInfo.country) {
         languageMismatch = checkLanguageMismatch(ipInfo.country, clientEnvironment.language);
         if (languageMismatch) {
@@ -431,7 +350,6 @@ serve(async (req) => {
       }
     }
 
-    // Check for rapid IP changes
     const { data: recentIPCount } = await supabase.rpc('count_recent_ips', {
       p_user_id: user.id,
       p_minutes: 30
@@ -442,21 +360,17 @@ serve(async (req) => {
       riskFactors.push(`Rapid IP changes detected (${recentIPCount} IPs in 30 min)`);
     }
 
-    // Cap risk score at 100
     riskScore = Math.min(riskScore, 100);
 
-    // Determine risk level
     const riskLevel = getRiskLevel(riskScore);
     const connectionMasked = vpnDetected || proxyDetected || torDetected || hostingDetected;
 
-    // Get user role
     const { data: userRole } = await supabase.rpc('get_user_role_for_security', {
       p_user_id: user.id
     });
 
     const role = userRole || 'user';
 
-    // Determine action to take
     let actionTaken = 'ALLOWED';
 
     if (isAdminAccess && role === 'admin') {
@@ -477,17 +391,16 @@ serve(async (req) => {
 
     console.log(`[VPN Detection] Risk: ${riskScore} (${riskLevel}), Masked: ${connectionMasked}, Action: ${actionTaken}`);
 
-    // Log the connection
     const { error: logError } = await supabase
       .from('connection_logs')
       .insert({
         user_id: user.id,
         session_id: sessionId || null,
         ip_address: clientIP,
-        country: ipInfo?.country ? undefined : null, // We don't store country name to avoid geolocation
+        country: ipInfo?.country ? undefined : null,
         country_code: ipInfo?.country,
-        city: null, // We don't store city for GDPR compliance
-        region: null, // We don't store region for GDPR compliance
+        city: null,
+        region: null,
         isp: ipInfo?.asn?.name,
         asn: ipInfo?.asn?.asn,
         organization: ipInfo?.org,
@@ -499,83 +412,57 @@ serve(async (req) => {
         risk_score: riskScore,
         risk_level: riskLevel,
         risk_factors: riskFactors,
+        timezone_mismatch: timezoneMismatch,
+        language_mismatch: languageMismatch,
         client_timezone: clientEnvironment?.timezone,
         client_language: clientEnvironment?.language,
         client_platform: clientEnvironment?.platform,
         client_screen_resolution: clientEnvironment?.screenResolution,
         user_agent: clientEnvironment?.userAgent,
-        timezone_mismatch: timezoneMismatch,
-        language_mismatch: languageMismatch,
+        is_admin_access: isAdminAccess,
         user_role: role,
         action_taken: actionTaken,
-        is_admin_access: isAdminAccess,
-        detection_source: 'ip-api',
-        raw_detection_data: ipInfo as any
+        detection_source: ipInfo ? 'ip-api' : 'none',
+        raw_detection_data: ipInfo ? JSON.stringify(ipInfo) : null,
       });
 
     if (logError) {
-      console.error('[VPN Detection] Failed to log connection:', logError);
+      console.error('[VPN Detection] Error logging connection:', logError);
     }
-
-    // Update IP history
-    if (!isPrivateIP) {
-      await supabase
-        .from('user_ip_history')
-        .upsert({
-          user_id: user.id,
-          ip_address: clientIP,
-          country_code: ipInfo?.country,
-          last_seen_at: new Date().toISOString()
-        }, {
-          onConflict: 'user_id,ip_address'
-        });
-    }
-
-    const result: DetectionResult = {
-      success: true,
-      riskScore,
-      riskLevel,
-      riskFactors,
-      vpnDetected,
-      proxyDetected,
-      torDetected,
-      hostingDetected,
-      connectionMasked,
-      timezoneMismatch,
-      languageMismatch,
-      actionTaken,
-      ipInfo: {
-        country: '', // Don't expose for privacy
-        countryCode: ipInfo?.country || '',
-        city: '', // Don't expose for privacy
-        region: '', // Don't expose for privacy
-        isp: ipInfo?.asn?.name || '',
-        asn: ipInfo?.asn?.asn || '',
-        organization: ipInfo?.org || ''
-      }
-    };
 
     return new Response(
-      JSON.stringify(result),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({
+        success: true,
+        riskScore,
+        riskLevel,
+        riskFactors,
+        vpnDetected,
+        proxyDetected,
+        torDetected,
+        hostingDetected,
+        connectionMasked,
+        timezoneMismatch,
+        languageMismatch,
+        actionTaken,
+        ipInfo: {
+          country: ipInfo?.country || 'Unknown',
+          countryCode: ipInfo?.country || '',
+          city: ipInfo?.city || 'Unknown',
+          region: ipInfo?.region || 'Unknown',
+          isp: ipInfo?.asn?.name || 'Unknown',
+          asn: ipInfo?.asn?.asn || '',
+          organization: ipInfo?.org || 'Unknown',
+        },
+      }),
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error) {
     console.error('[VPN Detection] Error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const corsHeaders = getCorsHeaders(req);
     return new Response(
-      JSON.stringify({ 
-        error: 'Detection failed',
-        success: false,
-        riskScore: 0,
-        riskLevel: 'low',
-        riskFactors: [],
-        vpnDetected: false,
-        proxyDetected: false,
-        torDetected: false,
-        hostingDetected: false,
-        connectionMasked: false,
-        actionTaken: 'ERROR'
-      }),
+      JSON.stringify({ error: errorMessage }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

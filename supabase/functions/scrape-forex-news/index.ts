@@ -1,7 +1,4 @@
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { getCorsHeaders, handleCorsPreflightResponse } from "../_shared/cors.ts";
 
 interface NewsItem {
   id: string;
@@ -18,8 +15,10 @@ interface NewsItem {
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return handleCorsPreflightResponse(req);
   }
+
+  const corsHeaders = getCorsHeaders(req);
 
   try {
     const apiKey = Deno.env.get('FIRECRAWL_API_KEY');
@@ -68,6 +67,7 @@ Deno.serve(async (req) => {
     );
   } catch (error) {
     console.error('Error scraping news:', error);
+    const corsHeaders = getCorsHeaders(req);
     return new Response(
       JSON.stringify({ success: false, error: error instanceof Error ? error.message : 'Failed' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

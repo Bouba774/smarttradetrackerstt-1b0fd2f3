@@ -1,33 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-
-// Get allowed origins from environment or use defaults
-const getAllowedOrigin = (origin: string): string => {
-  // Allow all Lovable preview domains and production domains
-  const allowedPatterns = [
-    /^https:\/\/.*\.lovable\.app$/,
-    /^https:\/\/.*\.lovableproject\.com$/,
-    /^https:\/\/smarttradetracker\.app$/,
-    /^https:\/\/www\.smarttradetracker\.app$/,
-    /^http:\/\/localhost:\d+$/,
-  ];
-  
-  for (const pattern of allowedPatterns) {
-    if (pattern.test(origin)) {
-      return origin;
-    }
-  }
-  
-  return 'https://sfdudueswogeusuofbbi.lovableproject.com';
-};
-
-const getCorsHeaders = (req: Request) => {
-  const origin = req.headers.get('Origin') || '';
-  return {
-    "Access-Control-Allow-Origin": getAllowedOrigin(origin),
-    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
-  };
-};
+import { getCorsHeaders, handleCorsPreflightResponse } from "../_shared/cors.ts";
 
 // Authorized languages only - security validation
 const AUTHORIZED_LANGUAGES = ['en', 'fr', 'es', 'pt', 'ar', 'de', 'tr', 'it'];
@@ -96,11 +68,11 @@ function sanitizeUserData(data: unknown): unknown {
 }
 
 serve(async (req) => {
-  const corsHeaders = getCorsHeaders(req);
-  
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return handleCorsPreflightResponse(req);
   }
+
+  const corsHeaders = getCorsHeaders(req);
 
   try {
     const { messages, userData, language = 'en' } = await req.json();

@@ -1,7 +1,4 @@
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { getCorsHeaders, handleCorsPreflightResponse } from "../_shared/cors.ts";
 
 interface EconomicEvent {
   id: string;
@@ -225,8 +222,10 @@ async function scrapeWithFirecrawl(dateStr: string): Promise<EconomicEvent[]> {
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return handleCorsPreflightResponse(req);
   }
+
+  const corsHeaders = getCorsHeaders(req);
 
   try {
     let requestedDate = '';
@@ -259,6 +258,7 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error('Error in scrape-forex-factory:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const corsHeaders = getCorsHeaders(req);
     
     return new Response(
       JSON.stringify({ 
