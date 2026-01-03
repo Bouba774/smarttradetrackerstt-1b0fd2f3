@@ -1,4 +1,4 @@
-import { Suspense, lazy, useCallback, useEffect } from "react";
+import React, { Suspense, lazy, useCallback, useEffect, useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -140,15 +140,20 @@ const AppContent = () => {
     requestPinReset,
     isVerifying,
     checkBiometricAvailability,
+    verifyBiometric,
     pinStatus,
   } = usePinSecurity();
-  
-  // Track user sessions
-  useSessionTracking();
-  
-  // Prefetch priority routes after authentication
-  usePrefetchOnAuth(!!user);
 
+  // Check if biometric is actually available (credentials registered)
+  const [biometricReady, setBiometricReady] = useState(false);
+  
+  useEffect(() => {
+    if (isBiometricEnabled && user) {
+      checkBiometricAvailability().then(setBiometricReady);
+    } else {
+      setBiometricReady(false);
+    }
+  }, [isBiometricEnabled, user, checkBiometricAvailability]);
   // Handle PIN verification with brute force protection
   const handlePinVerify = useCallback(async (pin: string): Promise<boolean> => {
     try {
@@ -189,26 +194,20 @@ const AppContent = () => {
     }
   }, [verifyPin, unlockApp, failedAttempts, setFailedAttempts, lockCooldownEnd, setLockCooldown, shouldWipeOnMaxAttempts, maxAttempts, wipeLocalData]);
 
-  // Handle biometric authentication
+  // Handle biometric authentication using proper WebAuthn credential
   const handleBiometricUnlock = useCallback(async (): Promise<boolean> => {
     try {
+      // First check if biometric is properly configured
       const isAvailable = await checkBiometricAvailability();
       if (!isAvailable) {
-        toast.error('Biométrie non disponible');
+        // Don't show error - just silently fail and let user use PIN
         return false;
       }
 
-      // Use WebAuthn for biometric
-      const credential = await navigator.credentials.get({
-        publicKey: {
-          challenge: new Uint8Array(32),
-          timeout: 60000,
-          userVerification: 'required',
-          rpId: window.location.hostname,
-        },
-      });
-
-      if (credential) {
+      // Use the proper verification that requires registered credentials
+      const success = await verifyBiometric();
+      
+      if (success) {
         unlockApp();
         setFailedAttempts(0);
         return true;
@@ -219,7 +218,7 @@ const AppContent = () => {
       console.log('Biometric authentication failed:', error);
       return false;
     }
-  }, [checkBiometricAvailability, unlockApp, setFailedAttempts]);
+  }, [checkBiometricAvailability, verifyBiometric, unlockApp, setFailedAttempts]);
 
   const handleForgotPin = useCallback(async () => {
     const success = await requestPinReset();
@@ -245,13 +244,16 @@ const AppContent = () => {
 
   // Show lock screen if locked and user is authenticated with PIN configured
   if (user && isLocked && isPinConfigured) {
+    // Only show biometric option if credentials are actually registered
+    const showBiometricOption = isBiometricEnabled && biometricReady;
+    
     return (
       <LockScreen
         onUnlock={handlePinVerify}
-        onBiometricUnlock={isBiometricEnabled ? handleBiometricUnlock : undefined}
+        onBiometricUnlock={showBiometricOption ? handleBiometricUnlock : undefined}
         failedAttempts={failedAttempts}
         maxAttempts={maxAttempts || MAX_PIN_ATTEMPTS}
-        showBiometric={isBiometricEnabled}
+        showBiometric={showBiometricOption}
         pinLength={pinStatus?.pinLength || 4}
         isVerifying={isVerifying}
         onForgotPin={handleForgotPin}

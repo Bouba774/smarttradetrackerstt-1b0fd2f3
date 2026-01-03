@@ -67,6 +67,8 @@ export const SecuritySettings: React.FC = () => {
     toggleBiometric,
     updateSecuritySettings,
     checkBiometricAvailability,
+    registerBiometricCredential,
+    removeBiometricCredential,
     isSettingUp,
     isDisabling,
   } = usePinSecurity();
@@ -78,10 +80,26 @@ export const SecuritySettings: React.FC = () => {
   const [confirmPin, setConfirmPin] = useState('');
   const [pinError, setPinError] = useState(false);
   const [biometricAvailable, setBiometricAvailable] = useState(false);
+  const [isBiometricRegistered, setIsBiometricRegistered] = useState(false);
 
-  // Check biometric availability
+  // Check biometric availability (platform authenticator)
   useEffect(() => {
-    checkBiometricAvailability().then(setBiometricAvailable);
+    const checkAvailability = async () => {
+      if (!window.PublicKeyCredential) {
+        setBiometricAvailable(false);
+        return;
+      }
+      try {
+        const available = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+        setBiometricAvailable(available);
+        // Check if already registered
+        const isRegistered = await checkBiometricAvailability();
+        setIsBiometricRegistered(isRegistered);
+      } catch {
+        setBiometricAvailable(false);
+      }
+    };
+    checkAvailability();
   }, [checkBiometricAvailability]);
 
   const handleConfidentialModeToggle = () => {
@@ -164,6 +182,24 @@ export const SecuritySettings: React.FC = () => {
   const handleBiometricToggle = async (enabled: boolean) => {
     triggerFeedback('click');
     try {
+      if (enabled) {
+        // Register biometric credential first
+        const registered = await registerBiometricCredential();
+        if (!registered) {
+          toast.error(
+            language === 'fr'
+              ? 'Impossible d\'enregistrer la biométrie. Vérifiez que votre appareil le supporte.'
+              : 'Failed to register biometrics. Check if your device supports it.'
+          );
+          return;
+        }
+        setIsBiometricRegistered(true);
+      } else {
+        // Remove stored credential
+        removeBiometricCredential();
+        setIsBiometricRegistered(false);
+      }
+      
       await toggleBiometric(enabled);
       toast.success(
         enabled
@@ -254,7 +290,7 @@ export const SecuritySettings: React.FC = () => {
             />
           </div>
 
-          {/* Biometric Option - Only show if PIN is enabled */}
+          {/* Biometric Option - Only show if PIN is enabled and platform authenticator available */}
           {isPinEnabled && biometricAvailable && (
             <div className="flex items-center justify-between pt-2 border-t border-border/50">
               <div>
@@ -264,12 +300,16 @@ export const SecuritySettings: React.FC = () => {
                 </Label>
                 <p className="text-xs text-muted-foreground">
                   {language === 'fr'
-                    ? 'Face ID / Empreinte digitale'
-                    : 'Face ID / Fingerprint'}
+                    ? isBiometricEnabled && isBiometricRegistered
+                      ? 'Biométrie configurée et active'
+                      : 'Déverrouillez avec votre empreinte ou visage'
+                    : isBiometricEnabled && isBiometricRegistered
+                      ? 'Biometrics configured and active'
+                      : 'Unlock with fingerprint or face'}
                 </p>
               </div>
               <Switch
-                checked={isBiometricEnabled}
+                checked={isBiometricEnabled && isBiometricRegistered}
                 onCheckedChange={handleBiometricToggle}
               />
             </div>

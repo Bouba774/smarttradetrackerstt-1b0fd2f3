@@ -337,17 +337,118 @@ export const usePinSecurity = () => {
     }
   }, [user]);
 
-  // Check biometric availability
+  // Check biometric availability - WebAuthn platform authenticator
   const checkBiometricAvailability = useCallback(async (): Promise<boolean> => {
+    // Check if WebAuthn is supported
     if (!window.PublicKeyCredential) return false;
 
     try {
+      // Check if platform authenticator (fingerprint/face) is available
       const available = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
-      return available;
+      if (!available) return false;
+      
+      // Check if credentials are already registered for this user
+      const storedCredentialId = localStorage.getItem(`biometric_credential_${user?.id}`);
+      return !!storedCredentialId;
     } catch {
       return false;
     }
-  }, []);
+  }, [user?.id]);
+
+  // Register biometric credential (must be called when enabling biometrics)
+  const registerBiometricCredential = useCallback(async (): Promise<boolean> => {
+    if (!user || !window.PublicKeyCredential) return false;
+
+    try {
+      const available = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+      if (!available) return false;
+
+      // Generate a challenge
+      const challenge = new Uint8Array(32);
+      crypto.getRandomValues(challenge);
+
+      // Create credential
+      const credential = await navigator.credentials.create({
+        publicKey: {
+          challenge,
+          rp: {
+            name: 'Smart Trade Tracker',
+            id: window.location.hostname,
+          },
+          user: {
+            id: new TextEncoder().encode(user.id),
+            name: user.email || 'user',
+            displayName: user.email || 'User',
+          },
+          pubKeyCredParams: [
+            { alg: -7, type: 'public-key' },  // ES256
+            { alg: -257, type: 'public-key' }, // RS256
+          ],
+          authenticatorSelection: {
+            authenticatorAttachment: 'platform',
+            userVerification: 'required',
+            residentKey: 'discouraged',
+          },
+          timeout: 60000,
+        },
+      }) as PublicKeyCredential;
+
+      if (credential) {
+        // Store the credential ID for later verification
+        const credentialId = btoa(String.fromCharCode(...new Uint8Array(credential.rawId)));
+        localStorage.setItem(`biometric_credential_${user.id}`, credentialId);
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.log('Biometric registration failed:', error);
+      return false;
+    }
+  }, [user]);
+
+  // Verify biometric (used for unlocking)
+  const verifyBiometric = useCallback(async (): Promise<boolean> => {
+    if (!user || !window.PublicKeyCredential) return false;
+
+    try {
+      const storedCredentialId = localStorage.getItem(`biometric_credential_${user.id}`);
+      if (!storedCredentialId) return false;
+
+      // Decode the stored credential ID
+      const rawId = Uint8Array.from(atob(storedCredentialId), c => c.charCodeAt(0));
+
+      // Generate a new challenge
+      const challenge = new Uint8Array(32);
+      crypto.getRandomValues(challenge);
+
+      // Request authentication
+      const credential = await navigator.credentials.get({
+        publicKey: {
+          challenge,
+          timeout: 60000,
+          userVerification: 'required',
+          rpId: window.location.hostname,
+          allowCredentials: [{
+            id: rawId,
+            type: 'public-key',
+            transports: ['internal'],
+          }],
+        },
+      });
+
+      return !!credential;
+    } catch (error) {
+      console.log('Biometric verification failed:', error);
+      return false;
+    }
+  }, [user]);
+
+  // Remove biometric credential
+  const removeBiometricCredential = useCallback(() => {
+    if (user?.id) {
+      localStorage.removeItem(`biometric_credential_${user.id}`);
+    }
+  }, [user?.id]);
 
   // Wipe local data
   const wipeLocalData = useCallback(async () => {
@@ -382,6 +483,9 @@ export const usePinSecurity = () => {
     updateSecuritySettings: updateSecuritySettingsMutation.mutateAsync,
     requestPinReset,
     checkBiometricAvailability,
+    registerBiometricCredential,
+    verifyBiometric,
+    removeBiometricCredential,
     wipeLocalData,
     refetchStatus,
     
