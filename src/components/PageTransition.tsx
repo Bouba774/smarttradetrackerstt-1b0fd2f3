@@ -8,39 +8,37 @@ interface PageTransitionProps {
 const PageTransition: React.FC<PageTransitionProps> = ({ children }) => {
   const location = useLocation();
   const [isVisible, setIsVisible] = useState(true);
-  const [currentChildren, setCurrentChildren] = useState(children);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const previousPathRef = useRef(location.pathname);
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     // Only trigger transition if path actually changed
     if (previousPathRef.current !== location.pathname) {
       previousPathRef.current = location.pathname;
       
-      // Clear any pending timeout
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-      
-      // Quick fade out
+      // Quick fade out then immediate fade in
       setIsVisible(false);
       
-      // After fade out, update children and fade in
-      timeoutRef.current = setTimeout(() => {
-        setCurrentChildren(children);
-        setIsVisible(true);
-      }, 100);
-    } else {
-      // Same path, just update children without animation
-      setCurrentChildren(children);
+      // Use requestAnimationFrame for smoother transition
+      requestAnimationFrame(() => {
+        if (isMountedRef.current) {
+          // Small delay then fade back in
+          setTimeout(() => {
+            if (isMountedRef.current) {
+              setIsVisible(true);
+            }
+          }, 50);
+        }
+      });
     }
-    
-    return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-    };
-  }, [location.pathname, children]);
+  }, [location.pathname]);
 
   return (
     <div
@@ -53,7 +51,7 @@ const PageTransition: React.FC<PageTransitionProps> = ({ children }) => {
         minHeight: '100%',
       }}
     >
-      {currentChildren}
+      {children}
     </div>
   );
 };

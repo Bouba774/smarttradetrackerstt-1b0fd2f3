@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Shield, Eye, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useSidebar } from '@/components/ui/sidebar';
+import PageTransition from '@/components/PageTransition';
 
 const AdminLayoutContent: React.FC = () => {
   const navigate = useNavigate();
@@ -99,10 +100,12 @@ const AdminLayoutContent: React.FC = () => {
             {/* User Selector - Always visible */}
             <AdminUserSelector />
             
-            {/* Page Content */}
-            <div className="min-h-0">
-              <Outlet />
-            </div>
+            {/* Page Content with transitions */}
+            <PageTransition>
+              <div className="min-h-0">
+                <Outlet />
+              </div>
+            </PageTransition>
           </div>
         </div>
       </main>
