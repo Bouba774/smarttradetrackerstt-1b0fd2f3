@@ -147,14 +147,12 @@ export const ProfilePhotoUploader: React.FC<ProfilePhotoUploaderProps> = ({
       if (!open) resetSelection();
     }}>
       <DialogTrigger asChild>
-        <Button
-          variant="outline"
-          className="w-full justify-start gap-3 h-12"
+        <button
+          className="absolute -bottom-1 -left-1 w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground shadow-lg hover:bg-primary/90 transition-colors z-10"
           onClick={() => triggerFeedback('click')}
         >
-          <Camera className="w-5 h-5 text-primary" />
-          {language === 'fr' ? 'Changer la photo' : 'Change photo'}
-        </Button>
+          <Camera className="w-4 h-4" />
+        </button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>

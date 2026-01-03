@@ -290,6 +290,12 @@ const Profile: React.FC = () => {
             <div className="absolute -bottom-2 -right-2 w-8 h-8 rounded-full bg-primary flex items-center justify-center text-xs text-primary-foreground font-bold shadow-lg">
               {userLevel}
             </div>
+            {/* Photo edit button */}
+            <ProfilePhotoUploader
+              currentAvatarUrl={profile?.avatar_url}
+              nickname={profile?.nickname}
+              onPhotoUpdated={refreshProfile}
+            />
           </div>
 
           {/* User Info */}
@@ -461,13 +467,6 @@ const Profile: React.FC = () => {
         <h3 className="font-display font-semibold text-foreground mb-4">
           {t('actions')}
         </h3>
-
-        {/* Change Photo */}
-        <ProfilePhotoUploader
-          currentAvatarUrl={profile?.avatar_url}
-          nickname={profile?.nickname}
-          onPhotoUpdated={refreshProfile}
-        />
 
         {/* Logout */}
         <Button
