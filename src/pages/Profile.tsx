@@ -285,10 +285,7 @@ const Profile: React.FC = () => {
                 {profile?.nickname?.charAt(0)?.toUpperCase() || 'T'}
               </AvatarFallback>
             </Avatar>
-            <div className="absolute -bottom-2 -right-2 w-8 h-8 rounded-full bg-primary flex items-center justify-center text-xs text-primary-foreground font-bold shadow-lg">
-              {userLevel}
-            </div>
-            {/* Photo edit button */}
+            {/* Photo edit button - positioned at bottom right */}
             <ProfilePhotoUploader
               currentAvatarUrl={profile?.avatar_url}
               nickname={profile?.nickname}
