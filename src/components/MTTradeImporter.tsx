@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -32,6 +32,7 @@ import {
   Download,
   Eye,
   EyeOff,
+  Settings2,
 } from 'lucide-react';
 import {
   parseTradeFile,
@@ -41,6 +42,7 @@ import {
 } from '@/lib/mtTradeParser';
 import { format } from 'date-fns';
 import { fr, enUS } from 'date-fns/locale';
+import { ColumnMappingDialog, type ColumnMapping } from './ColumnMappingDialog';
 
 interface MTTradeImporterProps {
   onImportComplete?: () => void;
@@ -59,6 +61,8 @@ const MTTradeImporter: React.FC<MTTradeImporterProps> = ({ onImportComplete }) =
   const [showHelp, setShowHelp] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [importProgress, setImportProgress] = useState(0);
+  const [showMappingDialog, setShowMappingDialog] = useState(false);
+  const [columnMapping, setColumnMapping] = useState<ColumnMapping | null>(null);
 
   const t = {
     fr: {
@@ -94,6 +98,10 @@ const MTTradeImporter: React.FC<MTTradeImporterProps> = ({ onImportComplete }) =
       buy: 'Achat',
       sell: 'Vente',
       more: 'de plus',
+      configureColumns: 'Configurer',
+      rawPreview: 'Données brutes',
+      columns: 'colonnes',
+      rows: 'lignes',
     },
     en: {
       title: 'Import from your broker',
@@ -128,6 +136,10 @@ const MTTradeImporter: React.FC<MTTradeImporterProps> = ({ onImportComplete }) =
       buy: 'Buy',
       sell: 'Sell',
       more: 'more',
+      configureColumns: 'Configure',
+      rawPreview: 'Raw data',
+      columns: 'columns',
+      rows: 'rows',
     },
     es: {
       title: 'Importar desde su broker',
@@ -162,6 +174,10 @@ const MTTradeImporter: React.FC<MTTradeImporterProps> = ({ onImportComplete }) =
       buy: 'Compra',
       sell: 'Venta',
       more: 'más',
+      configureColumns: 'Configurar',
+      rawPreview: 'Datos brutos',
+      columns: 'columnas',
+      rows: 'filas',
     },
     pt: {
       title: 'Importar do seu broker',
@@ -196,6 +212,10 @@ const MTTradeImporter: React.FC<MTTradeImporterProps> = ({ onImportComplete }) =
       buy: 'Compra',
       sell: 'Venda',
       more: 'mais',
+      configureColumns: 'Configurar',
+      rawPreview: 'Dados brutos',
+      columns: 'colunas',
+      rows: 'linhas',
     },
     ar: {
       title: 'استيراد من الوسيط',
@@ -230,6 +250,10 @@ const MTTradeImporter: React.FC<MTTradeImporterProps> = ({ onImportComplete }) =
       buy: 'شراء',
       sell: 'بيع',
       more: 'المزيد',
+      configureColumns: 'تكوين',
+      rawPreview: 'البيانات الخام',
+      columns: 'أعمدة',
+      rows: 'صفوف',
     },
     de: {
       title: 'Von Ihrem Broker importieren',
@@ -264,6 +288,10 @@ const MTTradeImporter: React.FC<MTTradeImporterProps> = ({ onImportComplete }) =
       buy: 'Kauf',
       sell: 'Verkauf',
       more: 'mehr',
+      configureColumns: 'Konfigurieren',
+      rawPreview: 'Rohdaten',
+      columns: 'Spalten',
+      rows: 'Zeilen',
     },
     tr: {
       title: 'Brokerınızdan içe aktarın',
@@ -298,6 +326,10 @@ const MTTradeImporter: React.FC<MTTradeImporterProps> = ({ onImportComplete }) =
       buy: 'Alış',
       sell: 'Satış',
       more: 'daha fazla',
+      configureColumns: 'Yapılandır',
+      rawPreview: 'Ham veri',
+      columns: 'sütun',
+      rows: 'satır',
     },
     it: {
       title: 'Importa dal tuo broker',
@@ -332,10 +364,43 @@ const MTTradeImporter: React.FC<MTTradeImporterProps> = ({ onImportComplete }) =
       buy: 'Acquisto',
       sell: 'Vendita',
       more: 'altri',
+      configureColumns: 'Configura',
+      rawPreview: 'Dati grezzi',
+      columns: 'colonne',
+      rows: 'righe',
     },
   };
 
   const texts = t[language as keyof typeof t] || t.en;
+
+  // Auto-detect column mapping from headers
+  const autoDetectMapping = (headers: string[]): ColumnMapping => {
+    const findColumnIndex = (names: string[]): number => {
+      const lowerHeaders = headers.map(h => h.toLowerCase().trim());
+      for (const name of names) {
+        const idx = lowerHeaders.findIndex(h => h.includes(name.toLowerCase()));
+        if (idx !== -1) return idx;
+      }
+      return -1;
+    };
+
+    return {
+      ticket: findColumnIndex(['ticket', 'order', '#', 'deal', 'position', 'id']),
+      openTime: findColumnIndex(['open time', 'time', 'open', 'entry time', 'entry', 'date']),
+      closeTime: findColumnIndex(['close time', 'close', 'exit time', 'exit']),
+      type: findColumnIndex(['type', 'direction', 'action', 'operation', 'side']),
+      symbol: findColumnIndex(['symbol', 'instrument', 'pair', 'item', 'asset']),
+      volume: findColumnIndex(['volume', 'lots', 'size', 'qty', 'quantity', 'amount']),
+      openPrice: findColumnIndex(['open price', 'price', 'entry price']),
+      closePrice: findColumnIndex(['close price', 'exit price']),
+      stopLoss: findColumnIndex(['s/l', 'sl', 'stop loss', 'stop', 'stoploss']),
+      takeProfit: findColumnIndex(['t/p', 'tp', 'take profit', 'target', 'takeprofit']),
+      profit: findColumnIndex(['profit', 'p/l', 'pnl', 'result', 'net profit', 'gain']),
+      commission: findColumnIndex(['commission', 'comm', 'fee', 'fees']),
+      swap: findColumnIndex(['swap', 'overnight', 'rollover', 'financing']),
+      comment: findColumnIndex(['comment', 'note', 'notes', 'remark', 'remarks']),
+    };
+  };
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -381,12 +446,19 @@ const MTTradeImporter: React.FC<MTTradeImporterProps> = ({ onImportComplete }) =
     setIsProcessing(true);
     setParseResult(null);
     setShowPreview(false);
+    setColumnMapping(null);
 
     try {
       const content = await file.text();
       const result = parseTradeFile(content, file.name);
       
       setParseResult(result);
+      
+      // Auto-detect column mapping if headers are available
+      if (result.headers && result.headers.length > 0) {
+        const detectedMapping = autoDetectMapping(result.headers);
+        setColumnMapping(detectedMapping);
+      }
       
       if (result.trades.length === 0) {
         toast.warning(texts.noTrades);
@@ -429,6 +501,7 @@ const MTTradeImporter: React.FC<MTTradeImporterProps> = ({ onImportComplete }) =
 
       toast.success(`${texts.success} (${imported} ${texts.tradesImported})`);
       setParseResult(null);
+      setColumnMapping(null);
       
       if (onImportComplete) {
         onImportComplete();
@@ -445,6 +518,7 @@ const MTTradeImporter: React.FC<MTTradeImporterProps> = ({ onImportComplete }) =
   const resetImport = () => {
     setParseResult(null);
     setShowPreview(false);
+    setColumnMapping(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -461,6 +535,14 @@ const MTTradeImporter: React.FC<MTTradeImporterProps> = ({ onImportComplete }) =
     if (formatName.includes('JSON')) return <FileCode className="w-3 h-3" />;
     return <FileText className="w-3 h-3" />;
   };
+
+  const handleMappingConfirm = (newMapping: ColumnMapping) => {
+    setColumnMapping(newMapping);
+    toast.success(language === 'fr' ? 'Mapping mis à jour' : 'Mapping updated');
+  };
+
+  // Check if we can show the mapping configuration
+  const canConfigureMapping = parseResult?.headers && parseResult.headers.length > 0;
 
   return (
     <Card className="bg-card/50 border-primary/20">
@@ -548,6 +630,13 @@ const MTTradeImporter: React.FC<MTTradeImporterProps> = ({ onImportComplete }) =
                   </Badge>
                 </div>
                 
+                {/* Raw data info */}
+                {parseResult.headers && parseResult.rawData && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {parseResult.headers.length} {texts.columns} • {parseResult.rawData.length} {texts.rows}
+                  </p>
+                )}
+                
                 {parseResult.errors.length > 0 && (
                   <div className="flex items-center gap-1 text-sm text-amber-500 mt-1">
                     <AlertTriangle className="w-3 h-3" />
@@ -557,9 +646,9 @@ const MTTradeImporter: React.FC<MTTradeImporterProps> = ({ onImportComplete }) =
               </div>
             </div>
 
-            {/* Preview Toggle */}
+            {/* Action Buttons */}
             {parseResult.trades.length > 0 && (
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <Button
                   variant="outline"
                   size="sm"
@@ -569,6 +658,18 @@ const MTTradeImporter: React.FC<MTTradeImporterProps> = ({ onImportComplete }) =
                   {showPreview ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   {showPreview ? texts.hidePreview : texts.preview}
                 </Button>
+                
+                {canConfigureMapping && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowMappingDialog(true)}
+                    className="gap-1"
+                  >
+                    <Settings2 className="w-4 h-4" />
+                    {texts.configureColumns}
+                  </Button>
+                )}
                 
                 {parseResult.errors.length > 0 && (
                   <Button
@@ -719,6 +820,18 @@ const MTTradeImporter: React.FC<MTTradeImporterProps> = ({ onImportComplete }) =
           </CollapsibleContent>
         </Collapsible>
       </CardContent>
+
+      {/* Column Mapping Dialog */}
+      {canConfigureMapping && columnMapping && (
+        <ColumnMappingDialog
+          open={showMappingDialog}
+          onOpenChange={setShowMappingDialog}
+          headers={parseResult.headers || []}
+          sampleData={parseResult.rawData?.slice(0, 5) || []}
+          currentMapping={columnMapping}
+          onConfirm={handleMappingConfirm}
+        />
+      )}
     </Card>
   );
 };
