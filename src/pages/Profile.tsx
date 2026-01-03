@@ -32,6 +32,9 @@ import {
   Check,
   X,
   Calendar,
+  Eye,
+  EyeOff,
+  Lock,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -45,6 +48,14 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const Profile: React.FC = () => {
   const navigate = useNavigate();
@@ -62,6 +73,17 @@ const Profile: React.FC = () => {
   const [isEditingNickname, setIsEditingNickname] = useState(false);
   const [newNickname, setNewNickname] = useState('');
   const [isSavingNickname, setIsSavingNickname] = useState(false);
+  
+  // Logout confirmation state
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  
+  // Password confirmation for deletion
+  const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
+  const [passwordInput, setPasswordInput] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [isVerifyingPassword, setIsVerifyingPassword] = useState(false);
+  const [pendingAction, setPendingAction] = useState<'deleteData' | 'deleteAccount' | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   // Get user level title
   const getLevelTitle = (level: number) => {
@@ -189,7 +211,47 @@ const Profile: React.FC = () => {
     }
   };
 
-  const handleDeleteAllData = async () => {
+  // Password verification for destructive actions
+  const handlePasswordVerification = async () => {
+    if (!user?.email || !passwordInput) return;
+    
+    setIsVerifyingPassword(true);
+    setPasswordError('');
+    
+    try {
+      // Try to sign in with the password to verify it
+      const { error } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: passwordInput,
+      });
+      
+      if (error) {
+        setPasswordError(language === 'fr' ? 'Mot de passe incorrect' : 'Incorrect password');
+        triggerFeedback('error');
+        return;
+      }
+      
+      // Password verified, execute pending action
+      setShowPasswordConfirm(false);
+      setPasswordInput('');
+      
+      if (pendingAction === 'deleteData') {
+        await executeDeleteAllData();
+      } else if (pendingAction === 'deleteAccount') {
+        await executeDeleteAccount();
+      }
+      
+      setPendingAction(null);
+    } catch (error) {
+      console.error('Password verification error:', error);
+      setPasswordError(language === 'fr' ? 'Erreur de vérification' : 'Verification error');
+      triggerFeedback('error');
+    } finally {
+      setIsVerifyingPassword(false);
+    }
+  };
+
+  const executeDeleteAllData = async () => {
     if (!user) return;
 
     setIsDeletingData(true);
@@ -226,7 +288,14 @@ const Profile: React.FC = () => {
     }
   };
 
-  const handleDeleteAccount = async () => {
+  const handleDeleteAllData = () => {
+    setPendingAction('deleteData');
+    setPasswordInput('');
+    setPasswordError('');
+    setShowPasswordConfirm(true);
+  };
+
+  const executeDeleteAccount = async () => {
     if (!user) return;
 
     setIsDeletingAccount(true);
@@ -234,7 +303,7 @@ const Profile: React.FC = () => {
 
     try {
       // First delete all user data
-      await handleDeleteAllData();
+      await executeDeleteAllData();
 
       // Delete profile
       await supabase.from('profiles').delete().eq('user_id', user.id);
@@ -251,6 +320,13 @@ const Profile: React.FC = () => {
     } finally {
       setIsDeletingAccount(false);
     }
+  };
+
+  const handleDeleteAccount = () => {
+    setPendingAction('deleteAccount');
+    setPasswordInput('');
+    setPasswordError('');
+    setShowPasswordConfirm(true);
   };
 
   const userLevel = profile?.level || 1;
@@ -394,7 +470,7 @@ const Profile: React.FC = () => {
         <button
           onClick={() => {
             triggerFeedback('click');
-            signOut();
+            setShowLogoutConfirm(true);
           }}
           className="absolute bottom-4 right-4 w-10 h-10 rounded-full bg-muted/50 hover:bg-loss/20 flex items-center justify-center text-muted-foreground hover:text-loss transition-colors"
           title={t('signOut')}
@@ -531,6 +607,117 @@ const Profile: React.FC = () => {
           </AlertDialog>
         </div>
       </div>
+
+      {/* Logout Confirmation Dialog */}
+      <Dialog open={showLogoutConfirm} onOpenChange={setShowLogoutConfirm}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <DoorOpen className="w-5 h-5 text-loss" />
+              {language === 'fr' ? 'Confirmer la déconnexion' : 'Confirm logout'}
+            </DialogTitle>
+            <DialogDescription>
+              {language === 'fr' 
+                ? 'Êtes-vous sûr de vouloir vous déconnecter ?' 
+                : 'Are you sure you want to log out?'}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              onClick={() => setShowLogoutConfirm(false)}
+            >
+              {t('cancel')}
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                setShowLogoutConfirm(false);
+                triggerFeedback('click');
+                signOut();
+              }}
+            >
+              {t('signOut')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Password Confirmation Dialog for Deletion */}
+      <Dialog open={showPasswordConfirm} onOpenChange={(open) => {
+        if (!open) {
+          setShowPasswordConfirm(false);
+          setPasswordInput('');
+          setPasswordError('');
+          setPendingAction(null);
+        }
+      }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-loss">
+              <Lock className="w-5 h-5" />
+              {language === 'fr' ? 'Vérification du mot de passe' : 'Password verification'}
+            </DialogTitle>
+            <DialogDescription>
+              {language === 'fr' 
+                ? 'Entrez votre mot de passe pour confirmer cette action.' 
+                : 'Enter your password to confirm this action.'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <div className="relative">
+              <Input
+                type={showPassword ? 'text' : 'password'}
+                value={passwordInput}
+                onChange={(e) => {
+                  setPasswordInput(e.target.value);
+                  setPasswordError('');
+                }}
+                placeholder={language === 'fr' ? 'Votre mot de passe' : 'Your password'}
+                className={passwordError ? 'border-loss' : ''}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && passwordInput) {
+                    handlePasswordVerification();
+                  }
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+            {passwordError && (
+              <p className="text-sm text-loss mt-2">{passwordError}</p>
+            )}
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowPasswordConfirm(false);
+                setPasswordInput('');
+                setPasswordError('');
+                setPendingAction(null);
+              }}
+              disabled={isVerifyingPassword}
+            >
+              {t('cancel')}
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handlePasswordVerification}
+              disabled={!passwordInput || isVerifyingPassword}
+            >
+              {isVerifyingPassword 
+                ? (language === 'fr' ? 'Vérification...' : 'Verifying...') 
+                : (language === 'fr' ? 'Confirmer' : 'Confirm')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

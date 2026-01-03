@@ -63,6 +63,7 @@ export const SecuritySettings: React.FC = () => {
     autoLockTimeout,
     isLoadingStatus,
     setupPin,
+    verifyPin,
     disablePin,
     toggleBiometric,
     updateSecuritySettings,
@@ -71,16 +72,21 @@ export const SecuritySettings: React.FC = () => {
     removeBiometricCredential,
     isSettingUp,
     isDisabling,
+    isVerifying,
   } = usePinSecurity();
 
   const [showPinSetup, setShowPinSetup] = useState(false);
   const [showPinConfirm, setShowPinConfirm] = useState(false);
   const [showDisableConfirm, setShowDisableConfirm] = useState(false);
+  const [showDisableBiometricConfirm, setShowDisableBiometricConfirm] = useState(false);
   const [newPin, setNewPin] = useState('');
   const [confirmPin, setConfirmPin] = useState('');
   const [pinError, setPinError] = useState(false);
   const [biometricAvailable, setBiometricAvailable] = useState(false);
   const [isBiometricRegistered, setIsBiometricRegistered] = useState(false);
+  const [disablePinInput, setDisablePinInput] = useState('');
+  const [disablePinError, setDisablePinError] = useState(false);
+  const [isVerifyingDisablePin, setIsVerifyingDisablePin] = useState(false);
 
   // Check biometric availability (platform authenticator)
   useEffect(() => {
@@ -160,10 +166,28 @@ export const SecuritySettings: React.FC = () => {
     }
   };
 
-  const handleDisablePin = async () => {
+  const handleVerifyAndDisablePin = async (pin: string) => {
+    setIsVerifyingDisablePin(true);
+    setDisablePinError(false);
+    
     try {
+      const isValid = await verifyPin({ pin });
+      if (!isValid) {
+        setDisablePinError(true);
+        setDisablePinInput('');
+        toast.error(
+          language === 'fr'
+            ? 'Code PIN incorrect'
+            : 'Incorrect PIN code'
+        );
+        setTimeout(() => setDisablePinError(false), 500);
+        return;
+      }
+      
+      // PIN verified, now disable
       await disablePin();
       setShowDisableConfirm(false);
+      setDisablePinInput('');
       toast.success(
         language === 'fr'
           ? 'Protection par PIN désactivée'
@@ -171,40 +195,86 @@ export const SecuritySettings: React.FC = () => {
       );
     } catch (error) {
       console.error('Error disabling PIN:', error);
+      setDisablePinError(true);
       toast.error(
         language === 'fr'
           ? 'Erreur lors de la désactivation du PIN'
           : 'Error disabling PIN'
       );
+    } finally {
+      setIsVerifyingDisablePin(false);
+    }
+  };
+
+  const handleVerifyAndDisableBiometric = async (pin: string) => {
+    setIsVerifyingDisablePin(true);
+    setDisablePinError(false);
+    
+    try {
+      const isValid = await verifyPin({ pin });
+      if (!isValid) {
+        setDisablePinError(true);
+        setDisablePinInput('');
+        toast.error(
+          language === 'fr'
+            ? 'Code PIN incorrect'
+            : 'Incorrect PIN code'
+        );
+        setTimeout(() => setDisablePinError(false), 500);
+        return;
+      }
+      
+      // PIN verified, now disable biometric
+      removeBiometricCredential();
+      setIsBiometricRegistered(false);
+      await toggleBiometric(false);
+      setShowDisableBiometricConfirm(false);
+      setDisablePinInput('');
+      toast.success(
+        language === 'fr'
+          ? 'Biométrie désactivée'
+          : 'Biometrics disabled'
+      );
+    } catch (error) {
+      console.error('Error disabling biometric:', error);
+      setDisablePinError(true);
+      toast.error(
+        language === 'fr'
+          ? 'Erreur lors de la désactivation de la biométrie'
+          : 'Error disabling biometrics'
+      );
+    } finally {
+      setIsVerifyingDisablePin(false);
     }
   };
 
   const handleBiometricToggle = async (enabled: boolean) => {
     triggerFeedback('click');
+    
+    if (!enabled) {
+      // Show PIN verification dialog to disable biometric
+      setDisablePinInput('');
+      setDisablePinError(false);
+      setShowDisableBiometricConfirm(true);
+      return;
+    }
+    
     try {
-      if (enabled) {
-        // Register biometric credential first
-        const registered = await registerBiometricCredential();
-        if (!registered) {
-          toast.error(
-            language === 'fr'
-              ? 'Impossible d\'enregistrer la biométrie. Vérifiez que votre appareil le supporte.'
-              : 'Failed to register biometrics. Check if your device supports it.'
-          );
-          return;
-        }
-        setIsBiometricRegistered(true);
-      } else {
-        // Remove stored credential
-        removeBiometricCredential();
-        setIsBiometricRegistered(false);
+      // Register biometric credential first
+      const registered = await registerBiometricCredential();
+      if (!registered) {
+        toast.error(
+          language === 'fr'
+            ? 'Impossible d\'enregistrer la biométrie. Vérifiez que votre appareil le supporte.'
+            : 'Failed to register biometrics. Check if your device supports it.'
+        );
+        return;
       }
+      setIsBiometricRegistered(true);
       
-      await toggleBiometric(enabled);
+      await toggleBiometric(true);
       toast.success(
-        enabled
-          ? (language === 'fr' ? 'Biométrie activée' : 'Biometrics enabled')
-          : (language === 'fr' ? 'Biométrie désactivée' : 'Biometrics disabled')
+        language === 'fr' ? 'Biométrie activée' : 'Biometrics enabled'
       );
     } catch (error) {
       console.error('Error toggling biometric:', error);
@@ -476,8 +546,14 @@ export const SecuritySettings: React.FC = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Disable PIN Confirm Dialog */}
-      <Dialog open={showDisableConfirm} onOpenChange={setShowDisableConfirm}>
+      {/* Disable PIN Confirm Dialog - Now with PIN verification */}
+      <Dialog open={showDisableConfirm} onOpenChange={(open) => {
+        if (!open) {
+          setShowDisableConfirm(false);
+          setDisablePinInput('');
+          setDisablePinError(false);
+        }
+      }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-destructive">
@@ -486,23 +562,73 @@ export const SecuritySettings: React.FC = () => {
             </DialogTitle>
             <DialogDescription>
               {language === 'fr'
-                ? 'Êtes-vous sûr de vouloir désactiver la protection par code PIN ? Vos données ne seront plus protégées.'
-                : 'Are you sure you want to disable PIN protection? Your data will no longer be protected.'}
+                ? 'Entrez votre code PIN pour désactiver la protection.'
+                : 'Enter your PIN code to disable protection.'}
             </DialogDescription>
           </DialogHeader>
+          <div className="flex justify-center py-6">
+            <PINInput
+              length={4}
+              onComplete={handleVerifyAndDisablePin}
+              disabled={isVerifyingDisablePin || isDisabling}
+              error={disablePinError}
+            />
+          </div>
           <DialogFooter className="gap-2 sm:gap-0">
             <Button
               variant="outline"
-              onClick={() => setShowDisableConfirm(false)}
+              onClick={() => {
+                setShowDisableConfirm(false);
+                setDisablePinInput('');
+                setDisablePinError(false);
+              }}
+              disabled={isVerifyingDisablePin || isDisabling}
             >
               {language === 'fr' ? 'Annuler' : 'Cancel'}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Disable Biometric Confirm Dialog - With PIN verification */}
+      <Dialog open={showDisableBiometricConfirm} onOpenChange={(open) => {
+        if (!open) {
+          setShowDisableBiometricConfirm(false);
+          setDisablePinInput('');
+          setDisablePinError(false);
+        }
+      }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <Fingerprint className="w-5 h-5" />
+              {language === 'fr' ? 'Désactiver la biométrie' : 'Disable biometrics'}
+            </DialogTitle>
+            <DialogDescription>
+              {language === 'fr'
+                ? 'Entrez votre code PIN pour désactiver l\'authentification biométrique.'
+                : 'Enter your PIN code to disable biometric authentication.'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-center py-6">
+            <PINInput
+              length={4}
+              onComplete={handleVerifyAndDisableBiometric}
+              disabled={isVerifyingDisablePin}
+              error={disablePinError}
+            />
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
             <Button
-              variant="destructive"
-              onClick={handleDisablePin}
-              disabled={isDisabling}
+              variant="outline"
+              onClick={() => {
+                setShowDisableBiometricConfirm(false);
+                setDisablePinInput('');
+                setDisablePinError(false);
+              }}
+              disabled={isVerifyingDisablePin}
             >
-              {language === 'fr' ? 'Désactiver' : 'Disable'}
+              {language === 'fr' ? 'Annuler' : 'Cancel'}
             </Button>
           </DialogFooter>
         </DialogContent>
