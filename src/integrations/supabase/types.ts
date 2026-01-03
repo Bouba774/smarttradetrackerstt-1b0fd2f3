@@ -1366,6 +1366,7 @@ export type Database = {
         Returns: undefined
       }
       request_account_deletion: { Args: { p_reason?: string }; Returns: Json }
+      request_ip_history_deletion: { Args: never; Returns: Json }
       reset_rate_limit: {
         Args: { p_attempt_type?: string; p_identifier: string }
         Returns: undefined
