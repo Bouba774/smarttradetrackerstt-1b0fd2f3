@@ -222,7 +222,7 @@ export const ProfilePhotoUploader: React.FC<ProfilePhotoUploaderProps> = ({
     }}>
       <DialogTrigger asChild>
         <button
-          className="absolute -bottom-1 -left-1 w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground shadow-lg hover:bg-primary/90 transition-colors z-10"
+          className="absolute -bottom-2 -right-2 w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground shadow-lg hover:bg-primary/90 transition-colors z-10"
           onClick={() => triggerFeedback('click')}
         >
           <Camera className="w-4 h-4" />
