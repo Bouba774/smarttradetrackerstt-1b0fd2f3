@@ -265,27 +265,26 @@ const CurrencyConversion: React.FC = () => {
 
   // Convert amount
   const convertAmount = useCallback((amount: number, fromCode: string, toCode: string): number => {
-    if (!rates[fromCode] || !rates[toCode]) return 0;
+    const fromRate = rates[fromCode];
+    const toRate = rates[toCode];
     
-    const fromAsset = getAsset(fromCode);
-    const toAsset = getAsset(toCode);
-    
-    let amountInUsd: number;
-    if (fromAsset?.type === 'crypto') {
-      amountInUsd = amount / rates[fromCode];
-    } else {
-      amountInUsd = amount / rates[fromCode];
+    // Check if we have valid rates
+    if (fromRate === undefined || toRate === undefined || fromRate === 0) {
+      return 0;
     }
     
-    let result: number;
-    if (toAsset?.type === 'crypto') {
-      result = amountInUsd * rates[toCode];
-    } else {
-      result = amountInUsd * rates[toCode];
-    }
+    // All rates are stored as "1 USD = X units of currency"
+    // For fiat: rates[EUR] = 0.92 means 1 USD = 0.92 EUR
+    // For crypto: rates[BTC] = 0.000015 means 1 USD = 0.000015 BTC (i.e., 1/price in USD)
+    
+    // Convert from source currency to USD first
+    const amountInUsd = amount / fromRate;
+    
+    // Then convert from USD to target currency
+    const result = amountInUsd * toRate;
     
     return result;
-  }, [rates, getAsset]);
+  }, [rates]);
 
   // Format number with proper decimals and spacing
   const formatNumber = useCallback((num: number, decimals: number = 4): string => {

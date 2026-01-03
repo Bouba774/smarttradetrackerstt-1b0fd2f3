@@ -152,13 +152,18 @@ export const ProfilePhotoUploader: React.FC<ProfilePhotoUploaderProps> = ({
 
       if (uploadError) throw uploadError;
 
-      const { data: urlData } = supabase.storage
+      // Get signed URL for private bucket (1 year validity)
+      const { data: signedUrlData, error: signedUrlError } = await supabase.storage
         .from('trade-images')
-        .getPublicUrl(fileName);
+        .createSignedUrl(fileName, 60 * 60 * 24 * 365);
+
+      if (signedUrlError || !signedUrlData?.signedUrl) {
+        throw signedUrlError || new Error('Failed to create signed URL');
+      }
 
       const { error: updateError } = await supabase
         .from('profiles')
-        .update({ avatar_url: urlData.publicUrl })
+        .update({ avatar_url: signedUrlData.signedUrl })
         .eq('user_id', user.id);
 
       if (updateError) throw updateError;
