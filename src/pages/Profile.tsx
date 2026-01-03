@@ -21,7 +21,7 @@ import { formatPrice, formatPriceForExport } from '@/lib/utils';
 import {
   User,
   Mail,
-  LogOut,
+  DoorOpen,
   Trash2,
   AlertTriangle,
   Download,
@@ -275,7 +275,7 @@ const Profile: React.FC = () => {
       </div>
 
       {/* Profile Card */}
-      <div className="glass-card p-8 animate-fade-in">
+      <div className="glass-card p-8 animate-fade-in relative">
         <div className="flex flex-col items-center text-center space-y-6">
           {/* Avatar */}
           <div className="relative">
@@ -389,6 +389,18 @@ const Profile: React.FC = () => {
             )}
           </div>
         </div>
+
+        {/* Logout button - bottom right corner */}
+        <button
+          onClick={() => {
+            triggerFeedback('click');
+            signOut();
+          }}
+          className="absolute bottom-4 right-4 w-10 h-10 rounded-full bg-muted/50 hover:bg-loss/20 flex items-center justify-center text-muted-foreground hover:text-loss transition-colors"
+          title={t('signOut')}
+        >
+          <DoorOpen className="w-5 h-5" />
+        </button>
       </div>
 
       {/* Export Data Card */}
@@ -433,25 +445,6 @@ const Profile: React.FC = () => {
         <MTTradeImporter />
       </div>
 
-      {/* Actions Card */}
-      <div className="glass-card p-6 animate-fade-in space-y-4" style={{ animationDelay: '100ms' }}>
-        <h3 className="font-display font-semibold text-foreground mb-4">
-          {t('actions')}
-        </h3>
-
-        {/* Logout */}
-        <Button
-          variant="outline"
-          className="w-full justify-start gap-3 h-12"
-          onClick={() => {
-            triggerFeedback('click');
-            signOut();
-          }}
-        >
-          <LogOut className="w-5 h-5 text-muted-foreground" />
-          {t('signOut')}
-        </Button>
-      </div>
 
       {/* Danger Zone */}
       <div className="glass-card p-6 animate-fade-in border-loss/30" style={{ animationDelay: '200ms' }}>
