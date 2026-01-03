@@ -46,6 +46,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     if (!error && data) {
       setProfile(data);
+      
+      // Check if we need to send welcome email (first login after confirmation)
+      if (!data.welcome_email_sent) {
+        // Get user email from auth
+        const { data: { user: authUser } } = await supabase.auth.getUser();
+        if (authUser?.email) {
+          // Send welcome email in background
+          supabase.functions.invoke('auth-send-welcome', {
+            body: {
+              userId: userId,
+              email: authUser.email,
+              nickname: data.nickname,
+              language: navigator.language.startsWith('fr') ? 'fr' : 'en'
+            }
+          }).catch(err => console.log('Welcome email error (non-blocking):', err));
+        }
+      }
     }
   };
 
@@ -131,7 +148,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const signUp = async (email: string, password: string, nickname: string) => {
-    const redirectUrl = `${window.location.origin}/`;
+    const redirectUrl = `${window.location.origin}/confirm-email`;
     
     const { error } = await supabase.auth.signUp({
       email,

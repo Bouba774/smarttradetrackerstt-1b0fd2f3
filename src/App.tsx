@@ -46,6 +46,8 @@ const TermsOfUse = lazy(() => import(/* webpackChunkName: "legal" */ "./pages/Te
 const About = lazy(() => import(/* webpackChunkName: "about" */ "./pages/About"));
 const PrivacyCenter = lazy(() => import(/* webpackChunkName: "privacy" */ "./pages/PrivacyCenter"));
 const ResetPassword = lazy(() => import(/* webpackChunkName: "auth" */ "./pages/ResetPassword"));
+const VerifyLogin = lazy(() => import(/* webpackChunkName: "auth" */ "./pages/VerifyLogin"));
+const ConfirmEmail = lazy(() => import(/* webpackChunkName: "auth" */ "./pages/ConfirmEmail"));
 
 const Help = lazy(() => import(/* webpackChunkName: "help" */ "./pages/Help"));
 const AIChatBot = lazy(() => import(/* webpackChunkName: "ai-chat" */ "@/components/AIChatBot"));
@@ -275,6 +277,8 @@ const AppContent = () => {
             {/* Auth pages */}
             <Route path="/auth" element={<Auth />} />
             <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/verify-login" element={<VerifyLogin />} />
+            <Route path="/confirm-email" element={<ConfirmEmail />} />
             
             {/* Public pages without authentication */}
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
