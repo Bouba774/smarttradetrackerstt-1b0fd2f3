@@ -62,7 +62,7 @@ const MTTradeImporter: React.FC<MTTradeImporterProps> = ({ onImportComplete }) =
 
   const t = {
     fr: {
-      title: 'Importer depuis MetaTrader',
+      title: 'Importer depuis votre broker',
       description: 'Importez votre historique de trades depuis MT4/MT5',
       dropzone: 'Glissez un fichier ici',
       orClick: 'ou cliquez pour sélectionner',
@@ -78,11 +78,10 @@ const MTTradeImporter: React.FC<MTTradeImporterProps> = ({ onImportComplete }) =
       hideErrors: 'Masquer les erreurs',
       importNow: 'Importer maintenant',
       cancel: 'Annuler',
-      howToExport: 'Comment exporter depuis MetaTrader ?',
+      howToExport: 'Comment exporter depuis votre broker ?',
       mt4Step: 'MT4: Historique du compte → Clic droit → Enregistrer comme rapport détaillé (HTML)',
       mt5Step: 'MT5: Historique → Clic droit → Rapport → HTML ou CSV',
       noTrades: 'Aucun trade trouvé dans ce fichier',
-      free100: '100% gratuit',
       formatDetected: 'Format détecté',
       preview: 'Aperçu',
       hidePreview: 'Masquer',
@@ -97,7 +96,7 @@ const MTTradeImporter: React.FC<MTTradeImporterProps> = ({ onImportComplete }) =
       more: 'de plus',
     },
     en: {
-      title: 'Import from MetaTrader',
+      title: 'Import from your broker',
       description: 'Import your trade history from MT4/MT5',
       dropzone: 'Drop a file here',
       orClick: 'or click to select',
@@ -113,11 +112,10 @@ const MTTradeImporter: React.FC<MTTradeImporterProps> = ({ onImportComplete }) =
       hideErrors: 'Hide errors',
       importNow: 'Import now',
       cancel: 'Cancel',
-      howToExport: 'How to export from MetaTrader?',
+      howToExport: 'How to export from your broker?',
       mt4Step: 'MT4: Account History → Right-click → Save as Detailed Report (HTML)',
       mt5Step: 'MT5: History → Right-click → Report → HTML or CSV',
       noTrades: 'No trades found in this file',
-      free100: '100% free',
       formatDetected: 'Format detected',
       preview: 'Preview',
       hidePreview: 'Hide',
@@ -263,14 +261,9 @@ const MTTradeImporter: React.FC<MTTradeImporterProps> = ({ onImportComplete }) =
   return (
     <Card className="bg-card/50 border-primary/20">
       <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Upload className="w-5 h-5 text-primary" />
-            <CardTitle className="text-base">{texts.title}</CardTitle>
-          </div>
-          <Badge variant="secondary" className="bg-green-500/10 text-green-500 border-green-500/20 text-xs">
-            {texts.free100}
-          </Badge>
+        <div className="flex items-center gap-2">
+          <Upload className="w-5 h-5 text-primary" />
+          <CardTitle className="text-base">{texts.title}</CardTitle>
         </div>
         <CardDescription>{texts.description}</CardDescription>
       </CardHeader>
