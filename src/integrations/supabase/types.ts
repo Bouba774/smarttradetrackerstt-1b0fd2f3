@@ -1282,6 +1282,40 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_own_settings_safe: {
+        Args: never
+        Returns: {
+          animations: boolean
+          auto_lock_timeout: number
+          background: string
+          confidential_mode: boolean
+          created_at: string
+          currency: string
+          default_capital: number
+          default_risk_percent: number
+          font_size: string
+          id: string
+          language: string
+          pin_enabled: boolean
+          sounds: boolean
+          updated_at: string
+          user_id: string
+          vibration: boolean
+        }[]
+      }
+      get_own_trusted_devices_masked: {
+        Args: never
+        Returns: {
+          browser_name: string
+          country: string
+          created_at: string
+          device_name: string
+          id: string
+          is_trusted: boolean
+          last_used_at: string
+          os_name: string
+        }[]
+      }
       get_user_anomalies_count: { Args: { p_user_id: string }; Returns: number }
       get_user_pin_status: { Args: { p_user_id: string }; Returns: Json }
       get_user_role_for_security: {
@@ -1340,6 +1374,10 @@ export type Database = {
       set_admin_secret: {
         Args: { p_admin_id: string; p_secret: string }
         Returns: boolean
+      }
+      update_challenge_progress: {
+        Args: { p_challenge_id: string; p_progress: number }
+        Returns: Json
       }
       validate_request_nonce: {
         Args: { p_endpoint: string; p_nonce: string; p_user_id?: string }
