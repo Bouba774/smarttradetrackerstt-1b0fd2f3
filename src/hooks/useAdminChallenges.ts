@@ -40,7 +40,10 @@ export const useAdminChallenges = () => {
       return (data.data || []) as UserChallenge[];
     },
     enabled: !!selectedUser && isAdminVerified,
-    staleTime: 60000,
+    staleTime: 0,
+    gcTime: 5 * 60 * 1000,
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
     retry: 1,
   });
 

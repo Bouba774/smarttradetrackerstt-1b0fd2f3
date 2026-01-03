@@ -39,7 +39,10 @@ export const useAdminTrades = () => {
       return (data.data || []) as Trade[];
     },
     enabled: !!selectedUser && isAdminVerified,
-    staleTime: 30000, // 30 secondes de cache
+    staleTime: 0, // Toujours refetch quand la query est invalidée
+    gcTime: 5 * 60 * 1000, // 5 minutes de cache garbage collection
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
     retry: 1,
   });
 

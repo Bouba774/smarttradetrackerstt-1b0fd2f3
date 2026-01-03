@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useAdminRole } from '@/hooks/useAdminRole';
 import { Json } from '@/integrations/supabase/types';
 import { toast } from 'sonner';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface SelectedUser {
   id: string;
@@ -50,10 +51,11 @@ const AdminContext = createContext<AdminContextType | undefined>(undefined);
 export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth();
   const { isAdmin } = useAdminRole();
+  const queryClient = useQueryClient();
   
   const [isAdminVerified, setIsAdminVerified] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<SelectedUser | null>(null);
+  const [selectedUser, setSelectedUserState] = useState<SelectedUser | null>(null);
   const [allUsers, setAllUsers] = useState<SelectedUser[]>([]);
   const [isLoadingUsers, setIsLoadingUsers] = useState(false);
   const [isInAdminMode, setIsInAdminMode] = useState(false);
@@ -63,6 +65,35 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const sessionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const warningTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const hasWarnedRef = useRef(false);
+
+  // Invalider les queries admin
+  const invalidateAdminQueries = useCallback((userId?: string) => {
+    const adminQueryKeys = [
+      'admin-trades-secure',
+      'admin-profile-secure',
+      'admin-journal-secure',
+      'admin-challenges-secure',
+      'admin-settings-secure',
+      'admin-sessions-secure',
+    ];
+
+    adminQueryKeys.forEach((key) => {
+      if (userId) {
+        queryClient.invalidateQueries({ queryKey: [key, userId], refetchType: 'active' });
+      } else {
+        queryClient.invalidateQueries({ queryKey: [key] });
+      }
+    });
+  }, [queryClient]);
+
+  // Setter pour selectedUser avec invalidation du cache
+  const setSelectedUser = useCallback((user: SelectedUser | null) => {
+    setSelectedUserState(user);
+    if (user) {
+      // Invalider les anciennes données et refetch les nouvelles
+      invalidateAdminQueries(user.id);
+    }
+  }, [invalidateAdminQueries]);
 
   // Clear all timers
   const clearTimers = useCallback(() => {

@@ -65,7 +65,10 @@ export const useAdminSessions = () => {
       return (data.data || []) as AdminUserSession[];
     },
     enabled: !!selectedUser && isAdminVerified,
-    staleTime: 30000,
+    staleTime: 0,
+    gcTime: 5 * 60 * 1000,
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
     retry: 1,
   });
 
