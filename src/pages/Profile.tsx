@@ -21,7 +21,7 @@ import { formatPrice, formatPriceForExport } from '@/lib/utils';
 import {
   User,
   Mail,
-  DoorOpen,
+  LogOut,
   Trash2,
   AlertTriangle,
   Download,
@@ -475,7 +475,7 @@ const Profile: React.FC = () => {
           className="absolute bottom-4 right-4 w-10 h-10 rounded-full bg-muted/50 hover:bg-loss/20 flex items-center justify-center text-muted-foreground hover:text-loss transition-colors"
           title={t('signOut')}
         >
-          <DoorOpen className="w-5 h-5" />
+          <LogOut className="w-5 h-5" />
         </button>
       </div>
 
@@ -614,7 +614,7 @@ const Profile: React.FC = () => {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <DoorOpen className="w-5 h-5 text-loss" />
+              <LogOut className="w-5 h-5 text-loss" />
               {language === 'fr' ? 'Confirmer la déconnexion' : 'Confirm logout'}
             </DialogTitle>
             <DialogDescription>
