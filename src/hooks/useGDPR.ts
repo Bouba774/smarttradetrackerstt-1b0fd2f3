@@ -51,6 +51,14 @@ interface ExportedData {
   export_format_version: string;
 }
 
+interface SignedExportResponse {
+  signedUrl: string;
+  expiresAt: string;
+  downloadMethod: 'signed_url' | 'direct';
+  fileName: string;
+  data?: ExportedData;
+}
+
 export const useGDPR = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -100,29 +108,43 @@ export const useGDPR = () => {
     staleTime: 300000, // 5 minutes
   });
 
-  // Export data
+  // Export data with signed URL
   const exportDataMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (): Promise<SignedExportResponse> => {
       const { data, error } = await supabase.functions.invoke('gdpr-management', {
         body: { action: 'export-data' },
       });
 
       if (error) throw error;
-      return data.data as ExportedData;
+      return data as SignedExportResponse;
     },
-    onSuccess: (data) => {
-      // Create downloadable file
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `smart-trade-tracker-export-${new Date().toISOString().split('T')[0]}.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+    onSuccess: (response) => {
+      if (response.downloadMethod === 'signed_url' && response.signedUrl) {
+        // Download via signed URL
+        const a = document.createElement('a');
+        a.href = response.signedUrl;
+        a.download = response.fileName;
+        a.target = '_blank';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        
+        toast.success('Données exportées avec succès. Le lien expire dans 24h.');
+      } else if (response.data) {
+        // Fallback: direct download from response data
+        const blob = new Blob([JSON.stringify(response.data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `smart-trade-tracker-export-${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        toast.success('Données exportées avec succès');
+      }
       
-      toast.success('Données exportées avec succès');
       queryClient.invalidateQueries({ queryKey: ['gdpr-requests'] });
     },
     onError: () => {

@@ -56,3 +56,6 @@ verify_jwt = false
 
 [functions.validate-calculations]
 verify_jwt = true
+
+[functions.gdpr-cleanup]
+verify_jwt = false

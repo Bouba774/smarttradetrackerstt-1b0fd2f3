@@ -403,36 +403,42 @@ export type Database = {
         Row: {
           created_at: string
           data_export_url: string | null
+          export_expires_at: string | null
           id: string
           processed_at: string | null
           processed_by: string | null
           reason: string | null
           request_type: string
           status: string
+          storage_path: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
           created_at?: string
           data_export_url?: string | null
+          export_expires_at?: string | null
           id?: string
           processed_at?: string | null
           processed_by?: string | null
           reason?: string | null
           request_type: string
           status?: string
+          storage_path?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
           created_at?: string
           data_export_url?: string | null
+          export_expires_at?: string | null
           id?: string
           processed_at?: string | null
           processed_by?: string | null
           reason?: string | null
           request_type?: string
           status?: string
+          storage_path?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -1217,6 +1223,10 @@ export type Database = {
         }
         Returns: Json
       }
+      cleanup_old_ip_history: {
+        Args: { retention_days?: number }
+        Returns: number
+      }
       count_admin_failures: { Args: { p_admin_id: string }; Returns: number }
       count_recent_ips: {
         Args: { p_minutes?: number; p_user_id: string }
@@ -1326,6 +1336,7 @@ export type Database = {
         Args: { p_attempt_type?: string; p_identifier: string }
         Returns: undefined
       }
+      scheduled_gdpr_cleanup: { Args: never; Returns: Json }
       set_admin_secret: {
         Args: { p_admin_id: string; p_secret: string }
         Returns: boolean
