@@ -87,6 +87,7 @@ export const ProfilePhotoUploader: React.FC<ProfilePhotoUploaderProps> = ({
   const [isDeleting, setIsDeleting] = useState(false);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [croppedPreview, setCroppedPreview] = useState<string | null>(null);
+  const [croppedBlob, setCroppedBlob] = useState<Blob | null>(null);
   const [crop, setCrop] = useState<Crop>();
   const [completedCrop, setCompletedCrop] = useState<PixelCrop>();
   const [isCropping, setIsCropping] = useState(false);
@@ -125,8 +126,9 @@ export const ProfilePhotoUploader: React.FC<ProfilePhotoUploaderProps> = ({
     if (!imgRef.current || !completedCrop) return;
 
     try {
-      const croppedBlob = await getCroppedImg(imgRef.current, completedCrop);
-      const previewUrl = URL.createObjectURL(croppedBlob);
+      const blob = await getCroppedImg(imgRef.current, completedCrop);
+      const previewUrl = URL.createObjectURL(blob);
+      setCroppedBlob(blob);
       setCroppedPreview(previewUrl);
       setIsCropping(false);
       triggerFeedback('click');
@@ -137,13 +139,12 @@ export const ProfilePhotoUploader: React.FC<ProfilePhotoUploaderProps> = ({
   };
 
   const handleUpload = async () => {
-    if (!imgRef.current || !completedCrop || !user) return;
+    if (!croppedBlob || !user) return;
 
     setIsUploading(true);
     triggerFeedback('click');
 
     try {
-      const croppedBlob = await getCroppedImg(imgRef.current, completedCrop);
       const fileName = `${user.id}/avatar-${Date.now()}.jpg`;
 
       const { error: uploadError } = await supabase.storage
@@ -212,6 +213,7 @@ export const ProfilePhotoUploader: React.FC<ProfilePhotoUploaderProps> = ({
   const resetSelection = () => {
     setImageUrl(null);
     setCroppedPreview(null);
+    setCroppedBlob(null);
     setCrop(undefined);
     setCompletedCrop(undefined);
     setIsCropping(false);
