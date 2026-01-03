@@ -466,6 +466,8 @@ export const ar = {
   cameraActivated: 'تم تفعيل الكاميرا {camera}',
   cameraSelected: 'تم اختيار الكاميرا {camera}',
   cameraSwitchUnavailable: 'تبديل الكاميرا غير متاح',
+  continueWithGoogle: 'المتابعة مع Google',
+  googleAuthError: 'فشل مصادقة Google. حاول مرة أخرى.',
 
   // AI
   aiAssistant: 'المساعد الذكي',

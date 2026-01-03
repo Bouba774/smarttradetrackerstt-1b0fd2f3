@@ -466,6 +466,8 @@ export const tr = {
   cameraActivated: '{camera} kamera aktif',
   cameraSelected: '{camera} kamera seçildi',
   cameraSwitchUnavailable: 'Kamera değiştirme mevcut değil',
+  continueWithGoogle: 'Google ile devam et',
+  googleAuthError: 'Google kimlik doğrulaması başarısız. Tekrar deneyin.',
 
   // AI
   aiAssistant: 'AI Asistan',

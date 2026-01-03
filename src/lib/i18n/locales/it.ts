@@ -466,6 +466,8 @@ export const it = {
   cameraActivated: 'Fotocamera {camera} attivata',
   cameraSelected: 'Fotocamera {camera} selezionata',
   cameraSwitchUnavailable: 'Cambio fotocamera non disponibile',
+  continueWithGoogle: 'Continua con Google',
+  googleAuthError: 'Autenticazione Google fallita. Riprova.',
 
   // AI
   aiAssistant: 'Assistente IA',

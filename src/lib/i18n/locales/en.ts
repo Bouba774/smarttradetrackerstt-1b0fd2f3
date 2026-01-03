@@ -466,6 +466,8 @@ export const en = {
   cameraActivated: '{camera} camera activated',
   cameraSelected: '{camera} camera selected',
   cameraSwitchUnavailable: 'Camera switch not available',
+  continueWithGoogle: 'Continue with Google',
+  googleAuthError: 'Google authentication failed. Please try again.',
 
   // AI
   aiAssistant: 'AI Assistant',

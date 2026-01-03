@@ -466,6 +466,8 @@ export const fr = {
   cameraActivated: 'Caméra {camera} activée',
   cameraSelected: 'Caméra {camera} sélectionnée',
   cameraSwitchUnavailable: 'Changement de caméra non disponible',
+  continueWithGoogle: 'Continuer avec Google',
+  googleAuthError: 'Échec de l\'authentification Google. Veuillez réessayer.',
 
   // AI
   aiAssistant: 'Assistant IA',

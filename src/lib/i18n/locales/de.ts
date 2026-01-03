@@ -466,6 +466,8 @@ export const de = {
   cameraActivated: '{camera} Kamera aktiviert',
   cameraSelected: '{camera} Kamera ausgewählt',
   cameraSwitchUnavailable: 'Kamerawechsel nicht verfügbar',
+  continueWithGoogle: 'Mit Google fortfahren',
+  googleAuthError: 'Google-Authentifizierung fehlgeschlagen. Bitte versuchen Sie es erneut.',
 
   // AI
   aiAssistant: 'KI-Assistent',
