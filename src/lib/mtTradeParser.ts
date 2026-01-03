@@ -27,6 +27,8 @@ export interface ParseResult {
   totalTrades: number;
   importedTrades: number;
   format: string;
+  headers?: string[];
+  rawData?: string[][];
 }
 
 // Date parsing patterns for various MT export formats
@@ -280,6 +282,7 @@ export function parseCSVFile(content: string): ParseResult {
     }
     
     const headers = parseCSVLine(lines[headerIdx], delimiter);
+    const rawData: string[][] = [];
     
     for (let i = headerIdx + 1; i < lines.length; i++) {
       const line = lines[i].trim();
@@ -287,6 +290,7 @@ export function parseCSVFile(content: string): ParseResult {
       
       try {
         const columns = parseCSVLine(line, delimiter);
+        rawData.push(columns);
         const trade = parseCSVTradeFlexible(columns, headers);
         
         if (trade) {
@@ -303,7 +307,9 @@ export function parseCSVFile(content: string): ParseResult {
       errors,
       totalTrades: lines.length - headerIdx - 1,
       importedTrades: trades.length,
-      format: 'CSV'
+      format: 'CSV',
+      headers,
+      rawData
     };
   } catch (e) {
     return {
