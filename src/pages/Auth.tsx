@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Eye, EyeOff, Mail, Lock, User, TrendingUp, Zap, ArrowLeft } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, User, Zap, ArrowLeft, CheckCircle, Loader2 } from 'lucide-react';
 import { z } from 'zod';
 import { supabase } from '@/integrations/supabase/client';
 import { createPasswordSchema, validatePassword } from '@/lib/passwordValidation';
@@ -17,8 +17,9 @@ import { useConnectionSecurity } from '@/hooks/useConnectionSecurity';
 import { useEmailValidation } from '@/hooks/useEmailValidation';
 
 // Cloudflare Turnstile Site Key (public key, safe to expose in client code)
-// This is the site key from your Cloudflare Turnstile configuration
 const TURNSTILE_SITE_KEY = '0x4AAAAAACG-_s2EZYR5V8_J';
+
+type AuthStep = 'credentials' | 'email_sent' | 'confirm_email';
 
 const Auth: React.FC = () => {
   const { signIn, signUp, user, loading } = useAuth();
@@ -30,6 +31,7 @@ const Auth: React.FC = () => {
   
   const [isLogin, setIsLogin] = useState(true);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
+  const [authStep, setAuthStep] = useState<AuthStep>('credentials');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [nickname, setNickname] = useState('');
@@ -38,6 +40,7 @@ const Auth: React.FC = () => {
   const [errors, setErrors] = useState<{ email?: string; password?: string; nickname?: string }>({});
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [isBlocked, setIsBlocked] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
 
   // Enable Turnstile only if not on localhost
   const isLocalhost = (): boolean => {
@@ -56,6 +59,14 @@ const Auth: React.FC = () => {
       navigate('/dashboard');
     }
   }, [user, loading, navigate]);
+
+  // Resend cooldown timer
+  useEffect(() => {
+    if (resendCooldown > 0) {
+      const timer = setTimeout(() => setResendCooldown(resendCooldown - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [resendCooldown]);
 
   const validateForm = () => {
     const newErrors: typeof errors = {};
@@ -179,54 +190,46 @@ const Auth: React.FC = () => {
     try {
       if (isForgotPassword) {
         // SECURITY: Always show success message to prevent email enumeration
-        // Even if the email doesn't exist, we show the same message
         await supabase.auth.resetPasswordForEmail(email, {
           redirectTo: `${window.location.origin}/reset-password`,
         });
         
-        // Always show success - don't reveal if email exists
         toast.success(language === 'fr' 
           ? 'Si un compte existe avec cet email, vous recevrez un lien de réinitialisation.' 
           : 'If an account exists with this email, you will receive a reset link.');
         setIsForgotPassword(false);
       } else if (isLogin) {
-        // Add artificial delay to prevent timing attacks
+        // NEW FLOW: Send login confirmation email instead of direct login
         const startTime = Date.now();
-        const { error } = await signIn(email, password);
-        const elapsed = Date.now() - startTime;
-        const minDelay = 500; // Minimum 500ms response time
         
+        const { data, error } = await supabase.functions.invoke('auth-send-login-confirmation', {
+          body: {
+            email,
+            password,
+            language,
+            userAgent: navigator.userAgent
+          }
+        });
+        
+        const elapsed = Date.now() - startTime;
+        const minDelay = 500;
         if (elapsed < minDelay) {
           await new Promise(resolve => setTimeout(resolve, minDelay - elapsed));
         }
         
-if (error) {
-          // SECURITY: Generic error message - don't reveal if email exists
+        if (error || !data?.success) {
+          // Generic error message - don't reveal details
           toast.error(t('authError'));
         } else {
-          // Reset rate limit on successful login
-          try {
-            await supabase.rpc('reset_rate_limit', {
-              p_identifier: email.toLowerCase(),
-              p_attempt_type: 'login'
-            });
-          } catch {
-            // Silent fail
-          }
-          
-          // Perform VPN/connection security check after successful login
-          try {
-            await checkConnection({ isAdminAccess: false });
-          } catch {
-            // Silent fail - don't block login for security check errors
-          }
-          
-          setIsBlocked(false);
-          toast.success(t('loginSuccess'));
-          navigate('/dashboard');
+          // Show email sent confirmation screen
+          setAuthStep('email_sent');
+          setResendCooldown(60); // 60 seconds before can resend
+          toast.success(language === 'fr'
+            ? 'Un email de confirmation a été envoyé.'
+            : 'A confirmation email has been sent.');
         }
       } else {
-        // Validate email before signup (disposable email detection)
+        // SIGNUP FLOW
         const emailValidation = await validateEmailAddress(email, false);
         if (!emailValidation.valid) {
           toast.error(emailValidation.message || (language === 'fr'
@@ -236,7 +239,6 @@ if (error) {
           return;
         }
 
-        // Add artificial delay to prevent timing attacks
         const startTime = Date.now();
         const { error } = await signUp(email, password, nickname);
         const elapsed = Date.now() - startTime;
@@ -247,23 +249,22 @@ if (error) {
         }
         
         if (error) {
-          // SECURITY: Generic error message for signup
-          // Don't reveal if email already exists
           if (error.message.includes('User already registered') || 
               error.message.includes('already been registered')) {
-            // Show generic success message to prevent enumeration
+            // Show confirmation screen anyway to prevent enumeration
+            setAuthStep('confirm_email');
             toast.success(language === 'fr'
               ? 'Si cet email n\'est pas déjà enregistré, vous recevrez un email de confirmation.'
               : 'If this email is not already registered, you will receive a confirmation email.');
-          } else if (error.message.includes('Password')) {
-            // Password-related errors are safe to show
-            toast.error(t('authError'));
           } else {
             toast.error(t('authError'));
           }
         } else {
-          toast.success(t('accountCreated'));
-          navigate('/dashboard');
+          // Show confirmation screen
+          setAuthStep('confirm_email');
+          toast.success(language === 'fr'
+            ? 'Un email de confirmation a été envoyé à votre adresse.'
+            : 'A confirmation email has been sent to your address.');
         }
       }
     } catch (error) {
@@ -271,6 +272,68 @@ if (error) {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  // Handle resend email
+  const handleResendEmail = async () => {
+    if (resendCooldown > 0) return;
+    
+    setIsSubmitting(true);
+    
+    try {
+      if (isLogin) {
+        // Resend login confirmation
+        const { data, error } = await supabase.functions.invoke('auth-send-login-confirmation', {
+          body: {
+            email,
+            password,
+            language,
+            userAgent: navigator.userAgent
+          }
+        });
+        
+        if (error || !data?.success) {
+          toast.error(language === 'fr'
+            ? 'Erreur lors de l\'envoi. Veuillez réessayer.'
+            : 'Error sending email. Please try again.');
+        } else {
+          setResendCooldown(60);
+          toast.success(language === 'fr'
+            ? 'Email renvoyé avec succès.'
+            : 'Email resent successfully.');
+        }
+      } else {
+        // Resend signup confirmation
+        const { error } = await supabase.auth.resend({
+          type: 'signup',
+          email,
+          options: {
+            emailRedirectTo: `${window.location.origin}/confirm-email`
+          }
+        });
+        
+        if (error) {
+          toast.error(language === 'fr'
+            ? 'Erreur lors de l\'envoi. Veuillez réessayer.'
+            : 'Error sending email. Please try again.');
+        } else {
+          setResendCooldown(60);
+          toast.success(language === 'fr'
+            ? 'Email renvoyé avec succès.'
+            : 'Email resent successfully.');
+        }
+      }
+    } catch (err) {
+      toast.error(t('authError'));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Reset to credentials step
+  const handleBackToCredentials = () => {
+    setAuthStep('credentials');
+    setPassword('');
   };
 
   if (loading) {
@@ -326,50 +389,159 @@ if (error) {
 
         {/* Auth Card */}
         <div className="glass-card p-8 animate-fade-in">
-          {isForgotPassword ? (
+          {/* Email Sent Confirmation Screen */}
+          {authStep === 'email_sent' && (
             <>
-              <div className="mb-6">
-                <button
-                  onClick={() => setIsForgotPassword(false)}
-                  className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                  {language === 'fr' ? 'Retour' : 'Back'}
-                </button>
+              <div className="text-center">
+                <div className="flex justify-center mb-6">
+                  <div className="w-16 h-16 bg-primary/20 rounded-full flex items-center justify-center">
+                    <Mail className="w-8 h-8 text-primary" />
+                  </div>
+                </div>
+                <h2 className="text-xl font-bold text-foreground mb-3">
+                  {language === 'fr' ? 'Vérifiez votre email' : 'Check your email'}
+                </h2>
+                <p className="text-muted-foreground text-sm mb-2">
+                  {language === 'fr' 
+                    ? 'Un email de confirmation a été envoyé à :'
+                    : 'A confirmation email has been sent to:'}
+                </p>
+                <p className="text-foreground font-medium mb-6">{email}</p>
+                <p className="text-muted-foreground text-xs mb-6">
+                  {language === 'fr'
+                    ? 'Cliquez sur le lien dans l\'email pour confirmer votre connexion. Le lien expire dans 15 minutes.'
+                    : 'Click the link in the email to confirm your login. The link expires in 15 minutes.'}
+                </p>
+                
+                <div className="space-y-3">
+                  <Button
+                    onClick={handleResendEmail}
+                    disabled={resendCooldown > 0 || isSubmitting}
+                    variant="outline"
+                    className="w-full"
+                  >
+                    {isSubmitting ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Mail className="w-4 h-4 mr-2" />
+                    )}
+                    {resendCooldown > 0 
+                      ? `${language === 'fr' ? 'Renvoyer dans' : 'Resend in'} ${resendCooldown}s`
+                      : (language === 'fr' ? 'Renvoyer l\'email' : 'Resend email')}
+                  </Button>
+                  
+                  <button
+                    onClick={handleBackToCredentials}
+                    className="w-full text-sm text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <ArrowLeft className="w-3 h-3 inline mr-1" />
+                    {language === 'fr' ? 'Utiliser une autre adresse' : 'Use a different email'}
+                  </button>
+                </div>
               </div>
-              <h2 className="text-xl font-bold text-foreground mb-2">
-                {language === 'fr' ? 'Mot de passe oublié' : 'Forgot password'}
-              </h2>
-              <p className="text-sm text-muted-foreground mb-6">
-                {language === 'fr' 
-                  ? 'Entrez votre email pour recevoir un lien de réinitialisation.' 
-                  : 'Enter your email to receive a reset link.'}
-              </p>
             </>
-          ) : (
-            <div className="flex mb-8">
-              <button
-                onClick={() => setIsLogin(true)}
-                className={`flex-1 py-3 text-sm font-medium transition-all border-b-2 ${
-                  isLogin 
-                    ? 'border-primary text-primary' 
-                    : 'border-transparent text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                {t('login')}
-              </button>
-              <button
-                onClick={() => setIsLogin(false)}
-                className={`flex-1 py-3 text-sm font-medium transition-all border-b-2 ${
-                  !isLogin 
-                    ? 'border-primary text-primary' 
-                    : 'border-transparent text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                {t('signUp')}
-              </button>
-            </div>
           )}
+
+          {/* Email Confirmation Screen (Signup) */}
+          {authStep === 'confirm_email' && (
+            <>
+              <div className="text-center">
+                <div className="flex justify-center mb-6">
+                  <div className="w-16 h-16 bg-profit/20 rounded-full flex items-center justify-center">
+                    <CheckCircle className="w-8 h-8 text-profit" />
+                  </div>
+                </div>
+                <h2 className="text-xl font-bold text-foreground mb-3">
+                  {language === 'fr' ? 'Confirmez votre email' : 'Confirm your email'}
+                </h2>
+                <p className="text-muted-foreground text-sm mb-2">
+                  {language === 'fr' 
+                    ? 'Un email de confirmation a été envoyé à :'
+                    : 'A confirmation email has been sent to:'}
+                </p>
+                <p className="text-foreground font-medium mb-6">{email}</p>
+                <p className="text-muted-foreground text-xs mb-6">
+                  {language === 'fr'
+                    ? 'Cliquez sur le lien dans l\'email pour activer votre compte. Le lien expire dans 24 heures.'
+                    : 'Click the link in the email to activate your account. The link expires in 24 hours.'}
+                </p>
+                
+                <div className="space-y-3">
+                  <Button
+                    onClick={handleResendEmail}
+                    disabled={resendCooldown > 0 || isSubmitting}
+                    variant="outline"
+                    className="w-full"
+                  >
+                    {isSubmitting ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Mail className="w-4 h-4 mr-2" />
+                    )}
+                    {resendCooldown > 0 
+                      ? `${language === 'fr' ? 'Renvoyer dans' : 'Resend in'} ${resendCooldown}s`
+                      : (language === 'fr' ? 'Renvoyer l\'email' : 'Resend email')}
+                  </Button>
+                  
+                  <button
+                    onClick={handleBackToCredentials}
+                    className="w-full text-sm text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <ArrowLeft className="w-3 h-3 inline mr-1" />
+                    {language === 'fr' ? 'Retour à l\'inscription' : 'Back to signup'}
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Credentials Form */}
+          {authStep === 'credentials' && (
+            <>
+              {isForgotPassword ? (
+                <>
+                  <div className="mb-6">
+                    <button
+                      onClick={() => setIsForgotPassword(false)}
+                      className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      <ArrowLeft className="w-4 h-4" />
+                      {language === 'fr' ? 'Retour' : 'Back'}
+                    </button>
+                  </div>
+                  <h2 className="text-xl font-bold text-foreground mb-2">
+                    {language === 'fr' ? 'Mot de passe oublié' : 'Forgot password'}
+                  </h2>
+                  <p className="text-sm text-muted-foreground mb-6">
+                    {language === 'fr' 
+                      ? 'Entrez votre email pour recevoir un lien de réinitialisation.' 
+                      : 'Enter your email to receive a reset link.'}
+                  </p>
+                </>
+              ) : (
+                <div className="flex mb-8">
+                  <button
+                    onClick={() => setIsLogin(true)}
+                    className={`flex-1 py-3 text-sm font-medium transition-all border-b-2 ${
+                      isLogin 
+                        ? 'border-primary text-primary' 
+                        : 'border-transparent text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    {t('login')}
+                  </button>
+                  <button
+                    onClick={() => setIsLogin(false)}
+                    className={`flex-1 py-3 text-sm font-medium transition-all border-b-2 ${
+                      !isLogin 
+                        ? 'border-primary text-primary' 
+                        : 'border-transparent text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    {t('signUp')}
+                  </button>
+                </div>
+              )}
 
           <form onSubmit={handleSubmit} className="space-y-5">
             {!isLogin && !isForgotPassword && (
@@ -507,7 +679,7 @@ if (error) {
             )}
           </form>
 
-          {!isForgotPassword && (
+          {authStep === 'credentials' && !isForgotPassword && (
             <p className="text-center text-xs text-muted-foreground mt-6">
               {isLogin ? t('noAccountYet') : t('alreadyHaveAccount')}
               {' '}
@@ -518,6 +690,8 @@ if (error) {
                 {isLogin ? t('signUp') : t('signIn')}
               </button>
             </p>
+          )}
+            </>
           )}
         </div>
 

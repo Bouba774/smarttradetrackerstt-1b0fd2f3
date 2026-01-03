@@ -522,6 +522,39 @@ export type Database = {
         }
         Relationships: []
       }
+      login_confirmation_tokens: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          ip_address: string | null
+          token_hash: string
+          used_at: string | null
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          id?: string
+          ip_address?: string | null
+          token_hash: string
+          used_at?: string | null
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          ip_address?: string | null
+          token_hash?: string
+          used_at?: string | null
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       mt_accounts: {
         Row: {
           account_name: string
@@ -575,6 +608,7 @@ export type Database = {
           avatar_url: string | null
           bio: string | null
           created_at: string
+          email_confirmed_at: string | null
           id: string
           level: number | null
           monthly_objective_profit: number | null
@@ -584,11 +618,13 @@ export type Database = {
           updated_at: string
           user_id: string
           weekly_objective_trades: number | null
+          welcome_email_sent: boolean | null
         }
         Insert: {
           avatar_url?: string | null
           bio?: string | null
           created_at?: string
+          email_confirmed_at?: string | null
           id?: string
           level?: number | null
           monthly_objective_profit?: number | null
@@ -598,11 +634,13 @@ export type Database = {
           updated_at?: string
           user_id: string
           weekly_objective_trades?: number | null
+          welcome_email_sent?: boolean | null
         }
         Update: {
           avatar_url?: string | null
           bio?: string | null
           created_at?: string
+          email_confirmed_at?: string | null
           id?: string
           level?: number | null
           monthly_objective_profit?: number | null
@@ -612,6 +650,7 @@ export type Database = {
           updated_at?: string
           user_id?: string
           weekly_objective_trades?: number | null
+          welcome_email_sent?: boolean | null
         }
         Relationships: []
       }
@@ -1223,6 +1262,11 @@ export type Database = {
         }
         Returns: Json
       }
+      check_user_needs_email_confirmation: {
+        Args: { p_user_id: string }
+        Returns: boolean
+      }
+      cleanup_expired_login_tokens: { Args: never; Returns: number }
       cleanup_old_ip_history: {
         Args: { retention_days?: number }
         Returns: number
@@ -1231,6 +1275,16 @@ export type Database = {
       count_recent_ips: {
         Args: { p_minutes?: number; p_user_id: string }
         Returns: number
+      }
+      create_login_token: {
+        Args: {
+          p_expires_minutes?: number
+          p_ip_address?: string
+          p_token_hash: string
+          p_user_agent?: string
+          p_user_id: string
+        }
+        Returns: string
       }
       decrypt_mt_login: {
         Args: { p_encrypted: string; p_user_id: string }
@@ -1387,6 +1441,14 @@ export type Database = {
       verify_admin_secret: {
         Args: { p_admin_id: string; p_secret: string }
         Returns: boolean
+      }
+      verify_login_token: {
+        Args: { p_token_hash: string }
+        Returns: {
+          error_message: string
+          is_valid: boolean
+          user_id: string
+        }[]
       }
     }
     Enums: {
