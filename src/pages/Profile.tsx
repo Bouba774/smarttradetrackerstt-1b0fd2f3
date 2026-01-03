@@ -21,11 +21,9 @@ import { formatPrice, formatPriceForExport } from '@/lib/utils';
 import {
   User,
   Mail,
-  Trophy,
   LogOut,
   Trash2,
   AlertTriangle,
-  Star,
   Download,
   FileJson,
   FileSpreadsheet,
@@ -376,31 +374,6 @@ const Profile: React.FC = () => {
               <span className="text-sm">{user?.email}</span>
             </div>
             {user?.created_at && (
-              <div className="flex items-center justify-center gap-2 text-muted-foreground mt-2">
-                <Calendar className="w-4 h-4" />
-                <span className="text-sm">
-                  {language === 'fr' ? 'Membre depuis le ' : 'Member since '}
-                  {format(new Date(user.created_at), 'd MMM yyyy', { locale: language === 'fr' ? fr : enUS })}
-                </span>
-              </div>
-            )}
-          </div>
-
-          {/* Level & Title */}
-          <div className="glass-card px-6 py-4 bg-primary/5 border border-primary/20 w-full max-w-sm">
-            <div className="flex items-center justify-center gap-3">
-              <Trophy className="w-6 h-6 text-primary" />
-              <div className="text-left">
-                <p className="text-sm text-muted-foreground">
-                  {t('titleLevel')}
-                </p>
-                <p className="font-display font-bold text-foreground">
-                  {userTitle} <span className="text-primary">({t('level')} {userLevel})</span>
-                </p>
-              </div>
-            </div>
-            <div className="mt-3 flex items-center justify-center gap-2">
-              {/* Star icon - secret admin access trigger for admins only */}
               <button
                 onClick={() => {
                   if (isAdmin) {
@@ -408,14 +381,15 @@ const Profile: React.FC = () => {
                     navigate('/admin-verify');
                   }
                 }}
-                className={isAdmin ? "cursor-pointer hover:scale-110 transition-transform" : "cursor-default"}
+                className={`flex items-center justify-center gap-2 text-muted-foreground mt-2 ${isAdmin ? "cursor-pointer hover:text-primary transition-colors" : "cursor-default"}`}
               >
-                <Star className="w-4 h-4 text-yellow-500" />
+                <Calendar className="w-4 h-4" />
+                <span className="text-sm">
+                  {language === 'fr' ? 'Membre depuis le ' : 'Member since '}
+                  {format(new Date(user.created_at), 'd MMM yyyy', { locale: language === 'fr' ? fr : enUS })}
+                </span>
               </button>
-              <span className="text-sm text-muted-foreground">
-                {totalPoints} {t('points')}
-              </span>
-            </div>
+            )}
           </div>
         </div>
       </div>
