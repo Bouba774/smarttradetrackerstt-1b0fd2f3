@@ -546,7 +546,6 @@ export const PDFExportDialog: React.FC<PDFExportDialogProps> = ({
   ];
 
   const sectionItems = [
-    { key: 'header' as const, icon: FileText, label: t.headerLogo },
     { key: 'profile' as const, icon: User, label: t.profileInfo },
     { key: 'statistics' as const, icon: BarChart3, label: t.mainStatistics },
     { key: 'additionalStats' as const, icon: Target, label: t.additionalStats },

@@ -63,7 +63,7 @@ const MTTradeImporter: React.FC<MTTradeImporterProps> = ({ onImportComplete }) =
   const t = {
     fr: {
       title: 'Importer depuis votre broker',
-      description: 'Importez votre historique de trades depuis MT4/MT5',
+      description: 'Importez votre historique de trades',
       dropzone: 'Glissez un fichier ici',
       orClick: 'ou cliquez pour sélectionner',
       supportedFormats: 'CSV, HTML, XML, JSON',
@@ -97,7 +97,7 @@ const MTTradeImporter: React.FC<MTTradeImporterProps> = ({ onImportComplete }) =
     },
     en: {
       title: 'Import from your broker',
-      description: 'Import your trade history from MT4/MT5',
+      description: 'Import your trade history',
       dropzone: 'Drop a file here',
       orClick: 'or click to select',
       supportedFormats: 'CSV, HTML, XML, JSON',
@@ -131,7 +131,7 @@ const MTTradeImporter: React.FC<MTTradeImporterProps> = ({ onImportComplete }) =
     },
     es: {
       title: 'Importar desde su broker',
-      description: 'Importe su historial de trades desde MT4/MT5',
+      description: 'Importe su historial de trades',
       dropzone: 'Arrastre un archivo aquí',
       orClick: 'o haga clic para seleccionar',
       supportedFormats: 'CSV, HTML, XML, JSON',
@@ -165,7 +165,7 @@ const MTTradeImporter: React.FC<MTTradeImporterProps> = ({ onImportComplete }) =
     },
     pt: {
       title: 'Importar do seu broker',
-      description: 'Importe seu histórico de trades do MT4/MT5',
+      description: 'Importe seu histórico de trades',
       dropzone: 'Arraste um arquivo aqui',
       orClick: 'ou clique para selecionar',
       supportedFormats: 'CSV, HTML, XML, JSON',
@@ -199,7 +199,7 @@ const MTTradeImporter: React.FC<MTTradeImporterProps> = ({ onImportComplete }) =
     },
     ar: {
       title: 'استيراد من الوسيط',
-      description: 'استورد سجل صفقاتك من MT4/MT5',
+      description: 'استورد سجل صفقاتك',
       dropzone: 'اسحب ملفًا هنا',
       orClick: 'أو انقر للاختيار',
       supportedFormats: 'CSV, HTML, XML, JSON',
@@ -233,7 +233,7 @@ const MTTradeImporter: React.FC<MTTradeImporterProps> = ({ onImportComplete }) =
     },
     de: {
       title: 'Von Ihrem Broker importieren',
-      description: 'Importieren Sie Ihren Trade-Verlauf aus MT4/MT5',
+      description: 'Importieren Sie Ihren Trade-Verlauf',
       dropzone: 'Datei hierher ziehen',
       orClick: 'oder klicken Sie zur Auswahl',
       supportedFormats: 'CSV, HTML, XML, JSON',
@@ -267,7 +267,7 @@ const MTTradeImporter: React.FC<MTTradeImporterProps> = ({ onImportComplete }) =
     },
     tr: {
       title: 'Brokerınızdan içe aktarın',
-      description: 'MT4/MT5\'ten işlem geçmişinizi içe aktarın',
+      description: 'İşlem geçmişinizi içe aktarın',
       dropzone: 'Buraya bir dosya sürükleyin',
       orClick: 'veya seçmek için tıklayın',
       supportedFormats: 'CSV, HTML, XML, JSON',
@@ -301,7 +301,7 @@ const MTTradeImporter: React.FC<MTTradeImporterProps> = ({ onImportComplete }) =
     },
     it: {
       title: 'Importa dal tuo broker',
-      description: 'Importa la cronologia dei trade da MT4/MT5',
+      description: 'Importa la cronologia dei trade',
       dropzone: 'Trascina un file qui',
       orClick: 'o clicca per selezionare',
       supportedFormats: 'CSV, HTML, XML, JSON',
