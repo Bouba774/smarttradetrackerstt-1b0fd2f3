@@ -92,13 +92,13 @@ const Profile: React.FC = () => {
     return t(titles[index]);
   };
 
-  const handleExportPDF = async (filteredTrades: any[], profileData: any, periodLabel: string) => {
+  const handleExportPDF = async (filteredTrades: any[], profileData: any, periodLabel: string, options: { confidentialMode: boolean }) => {
     if (filteredTrades.length === 0) {
       toast.error(t('noDataToExport'));
       return;
     }
     setIsExporting(true);
-    await exportToPDF(filteredTrades, profileData, periodLabel);
+    await exportToPDF(filteredTrades, profileData, periodLabel, options);
     setIsExporting(false);
   };
 

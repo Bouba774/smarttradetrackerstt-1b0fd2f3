@@ -8,7 +8,8 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { FileText, CalendarIcon, Download, Filter } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { FileText, CalendarIcon, Download, Filter, EyeOff } from 'lucide-react';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subDays, subMonths, isWithinInterval } from 'date-fns';
 import { fr, enUS } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -36,10 +37,14 @@ interface ProfileData {
   total_points: number | null;
 }
 
+export interface PDFExportOptions {
+  confidentialMode: boolean;
+}
+
 interface PDFExportDialogProps {
   trades: Trade[];
   profile: ProfileData | null;
-  onExport: (trades: Trade[], profile: ProfileData | null, periodLabel: string) => Promise<void>;
+  onExport: (trades: Trade[], profile: ProfileData | null, periodLabel: string, options: PDFExportOptions) => Promise<void>;
   isExporting?: boolean;
   compact?: boolean;
 }
@@ -63,6 +68,7 @@ export const PDFExportDialog: React.FC<PDFExportDialogProps> = ({
   const [customEndDate, setCustomEndDate] = useState<Date | undefined>(undefined);
   const [startCalendarOpen, setStartCalendarOpen] = useState(false);
   const [endCalendarOpen, setEndCalendarOpen] = useState(false);
+  const [confidentialMode, setConfidentialMode] = useState(false);
 
   const filteredTrades = useMemo(() => {
     const today = new Date();
@@ -136,7 +142,7 @@ export const PDFExportDialog: React.FC<PDFExportDialogProps> = ({
 
   const handleExport = async () => {
     triggerFeedback('click');
-    await onExport(filteredTrades, profile, getPeriodLabel());
+    await onExport(filteredTrades, profile, getPeriodLabel(), { confidentialMode });
     setOpen(false);
   };
 
@@ -257,10 +263,29 @@ export const PDFExportDialog: React.FC<PDFExportDialogProps> = ({
             </div>
           )}
 
+          {/* Confidential Mode Toggle */}
+          <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+            <div className="flex items-center gap-3">
+              <EyeOff className="w-4 h-4 text-muted-foreground" />
+              <div>
+                <p className="text-sm font-medium text-foreground">
+                  {language === 'fr' ? 'Mode confidentiel' : 'Confidential mode'}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {language === 'fr' ? 'Masquer les montants (****)' : 'Hide amounts (****)'}
+                </p>
+              </div>
+            </div>
+            <Switch
+              checked={confidentialMode}
+              onCheckedChange={setConfidentialMode}
+            />
+          </div>
+
           {/* Preview */}
           <div className="p-4 bg-muted/50 rounded-lg space-y-2">
             <p className="text-sm font-medium text-foreground">
-              {language === 'fr' ? 'Aperçu de l\'export' : 'Export preview'}
+              {language === 'fr' ? "Aperçu de l'export" : 'Export preview'}
             </p>
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">{language === 'fr' ? 'Période:' : 'Period:'}</span>
@@ -270,6 +295,12 @@ export const PDFExportDialog: React.FC<PDFExportDialogProps> = ({
               <span className="text-muted-foreground">{language === 'fr' ? 'Trades:' : 'Trades:'}</span>
               <span className="font-medium">{filteredTrades.length}</span>
             </div>
+            {confidentialMode && (
+              <div className="flex items-center gap-2 text-xs text-yellow-500 mt-2">
+                <EyeOff className="w-3 h-3" />
+                <span>{language === 'fr' ? 'Les montants seront masqués' : 'Amounts will be hidden'}</span>
+              </div>
+            )}
           </div>
         </div>
 

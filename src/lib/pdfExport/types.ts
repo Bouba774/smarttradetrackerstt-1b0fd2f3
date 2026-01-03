@@ -30,6 +30,8 @@ export interface ExportStats {
   bestTrade: number;
   worstTrade: number;
   avgProfit: number;
+  avgWin: number;
+  avgLoss: number;
   profitFactor: number;
   avgLotSize: number;
   totalVolume: number;

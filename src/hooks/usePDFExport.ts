@@ -14,9 +14,28 @@ import {
   formatPriceForPDF,
   createAmountFormatter,
   calculateStats,
-  drawEquityCurve,
   drawPerformanceChart,
 } from '@/lib/pdfExport';
+
+export interface PDFExportOptions {
+  confidentialMode: boolean;
+}
+
+// Convert image to base64 for PDF embedding
+const getLogoBase64 = async (): Promise<string | null> => {
+  try {
+    const response = await fetch('/assets/app-logo.jpg');
+    const blob = await response.blob();
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return null;
+  }
+};
 
 export const usePDFExport = () => {
   const { language } = useLanguage();
@@ -32,15 +51,29 @@ export const usePDFExport = () => {
   const exportToPDF = useCallback(async (
     trades: Trade[],
     profile: ProfileData | null,
-    periodLabel?: string
+    periodLabel?: string,
+    options?: PDFExportOptions
   ) => {
     triggerFeedback('click');
+    const confidentialMode = options?.confidentialMode ?? false;
+
+    // Create confidential formatter
+    const formatAmount = confidentialMode 
+      ? () => '****' 
+      : formatAmountForPDF;
+
+    const formatLot = confidentialMode
+      ? () => '****'
+      : (value: number) => formatNumberForPDF(value, 2);
 
     try {
       const doc = new jsPDF();
       const pageWidth = doc.internal.pageSize.getWidth();
       const pageHeight = doc.internal.pageSize.getHeight();
       let yPos = 20;
+
+      // Try to load logo
+      const logoBase64 = await getLogoBase64();
 
       // Header with gradient effect
       doc.setFillColor(15, 23, 42);
@@ -50,33 +83,41 @@ export const usePDFExport = () => {
       doc.setFillColor(59, 130, 246);
       doc.rect(0, 48, pageWidth, 2, 'F');
       
-      // Logo area
-      doc.setFillColor(59, 130, 246);
-      doc.circle(20, 25, 8, 'F');
-      doc.setTextColor(255, 255, 255);
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'bold');
-      doc.text('STT', 15.5, 27);
+      // Logo area - use actual logo if available
+      if (logoBase64) {
+        doc.addImage(logoBase64, 'JPEG', 12, 13, 24, 24);
+      } else {
+        // Fallback circle with STT
+        doc.setFillColor(59, 130, 246);
+        doc.circle(24, 25, 12, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'bold');
+        doc.text('STT', 18, 27);
+      }
 
       // Title
       doc.setTextColor(255, 255, 255);
       doc.setFontSize(22);
       doc.setFont('helvetica', 'bold');
-      doc.text('Smart Trade Tracker', 32, 24);
+      doc.text('Smart Trade Tracker', 40, 24);
       
       doc.setFontSize(11);
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(148, 163, 184);
-      doc.text(language === 'fr' ? 'Rapport de Performance' : 'Performance Report', 32, 34);
+      doc.text(language === 'fr' ? 'Rapport de Performance' : 'Performance Report', 40, 34);
+
+      // ALPHA FX branding
+      doc.setFontSize(10);
+      doc.setTextColor(255, 255, 255);
+      doc.setFont('helvetica', 'bold');
+      doc.text('ALPHA FX', pageWidth - 14, 18, { align: 'right' });
 
       // Profile info (right side)
       if (profile) {
-        doc.setFontSize(10);
-        doc.setTextColor(255, 255, 255);
-        doc.text(`${profile.nickname}`, pageWidth - 14, 22, { align: 'right' });
-        doc.setTextColor(148, 163, 184);
         doc.setFontSize(9);
-        doc.text(`Level ${profile.level || 1} • ${profile.total_points || 0} pts`, pageWidth - 14, 32, { align: 'right' });
+        doc.setTextColor(148, 163, 184);
+        doc.text(`Level ${profile.level || 1} • ${profile.total_points || 0} pts`, pageWidth - 14, 28, { align: 'right' });
       }
 
       // Date and currency badge
@@ -88,6 +129,16 @@ export const usePDFExport = () => {
         42,
         { align: 'right' }
       );
+
+      // Confidential mode indicator
+      if (confidentialMode) {
+        doc.setFillColor(234, 179, 8);
+        doc.roundedRect(pageWidth - 80, 30, 45, 8, 2, 2, 'F');
+        doc.setTextColor(0, 0, 0);
+        doc.setFontSize(6);
+        doc.setFont('helvetica', 'bold');
+        doc.text(language === 'fr' ? 'CONFIDENTIEL' : 'CONFIDENTIAL', pageWidth - 57.5, 35, { align: 'center' });
+      }
 
       yPos = 60;
 
@@ -113,17 +164,20 @@ export const usePDFExport = () => {
       doc.text(language === 'fr' ? 'Statistiques de Performance' : 'Performance Statistics', 14, yPos);
       yPos += 8;
 
-      // Stats cards in grid
+      // Stats cards in grid - 3 rows of 3
       const cardWidth = (pageWidth - 32) / 3;
       const cardHeight = 22;
       
       const statsCards = [
         { label: 'Total Trades', value: stats.totalTrades.toString(), color: [59, 130, 246] as [number, number, number] },
         { label: 'Winrate', value: `${stats.winrate}%`, color: stats.winrate >= 50 ? [34, 197, 94] as [number, number, number] : [239, 68, 68] as [number, number, number] },
-        { label: 'Profit Factor', value: stats.profitFactor === Infinity ? 'Inf' : formatNumberForPDF(stats.profitFactor, 2), color: stats.profitFactor >= 1 ? [34, 197, 94] as [number, number, number] : [239, 68, 68] as [number, number, number] },
-        { label: language === 'fr' ? 'PnL Total' : 'Total PnL', value: formatAmountForPDF(stats.totalPnL), color: stats.totalPnL >= 0 ? [34, 197, 94] as [number, number, number] : [239, 68, 68] as [number, number, number] },
-        { label: language === 'fr' ? 'Meilleur Trade' : 'Best Trade', value: formatAmountForPDF(stats.bestTrade), color: [34, 197, 94] as [number, number, number] },
-        { label: language === 'fr' ? 'Pire Trade' : 'Worst Trade', value: formatAmountForPDF(stats.worstTrade), color: [239, 68, 68] as [number, number, number] },
+        { label: 'Profit Factor', value: stats.profitFactor === Infinity ? '∞' : formatNumberForPDF(stats.profitFactor, 2), color: stats.profitFactor >= 1 ? [34, 197, 94] as [number, number, number] : [239, 68, 68] as [number, number, number] },
+        { label: language === 'fr' ? 'PnL Total' : 'Total PnL', value: formatAmount(stats.totalPnL), color: stats.totalPnL >= 0 ? [34, 197, 94] as [number, number, number] : [239, 68, 68] as [number, number, number] },
+        { label: language === 'fr' ? 'Meilleur Trade' : 'Best Trade', value: formatAmount(stats.bestTrade), color: [34, 197, 94] as [number, number, number] },
+        { label: language === 'fr' ? 'Pire Trade' : 'Worst Trade', value: formatAmount(stats.worstTrade), color: [239, 68, 68] as [number, number, number] },
+        { label: language === 'fr' ? 'Gain Moyen' : 'Avg Win', value: formatAmount(stats.avgWin || 0), color: [34, 197, 94] as [number, number, number] },
+        { label: language === 'fr' ? 'Perte Moyenne' : 'Avg Loss', value: formatAmount(stats.avgLoss || 0), color: [239, 68, 68] as [number, number, number] },
+        { label: language === 'fr' ? 'Profit Moyen' : 'Avg Profit', value: formatAmount(stats.avgProfit), color: stats.avgProfit >= 0 ? [34, 197, 94] as [number, number, number] : [239, 68, 68] as [number, number, number] },
       ];
 
       statsCards.forEach((card, i) => {
@@ -148,35 +202,33 @@ export const usePDFExport = () => {
         doc.text(card.value, x + 6, y + 17);
       });
 
-      yPos += 2 * (cardHeight + 4) + 10;
+      yPos += 3 * (cardHeight + 4) + 10;
 
       // Additional stats row
       const additionalStats = [
-        { label: language === 'fr' ? 'Lot Moyen' : 'Avg Lot', value: formatNumberForPDF(stats.avgLotSize, 2) },
-        { label: language === 'fr' ? 'Volume Total' : 'Total Volume', value: formatNumberForPDF(stats.totalVolume, 2) },
-        { label: language === 'fr' ? 'Profit Moyen' : 'Avg Profit', value: formatAmountForPDF(stats.avgProfit) },
+        { label: language === 'fr' ? 'Lot Moyen' : 'Avg Lot', value: formatLot(stats.avgLotSize) },
+        { label: language === 'fr' ? 'Volume Total' : 'Total Volume', value: formatLot(stats.totalVolume) },
+        { label: language === 'fr' ? 'Gains' : 'Wins', value: stats.winningTrades.toString() },
+        { label: language === 'fr' ? 'Pertes' : 'Losses', value: stats.losingTrades.toString() },
+        { label: 'BE', value: stats.breakeven.toString() },
       ];
 
       doc.setFontSize(9);
+      const statWidth = (pageWidth - 28) / additionalStats.length;
       additionalStats.forEach((stat, i) => {
-        const x = 14 + i * ((pageWidth - 28) / 3);
+        const x = 14 + i * statWidth;
         doc.setTextColor(100, 116, 139);
         doc.setFont('helvetica', 'normal');
         doc.text(stat.label + ':', x, yPos);
         doc.setTextColor(30, 30, 30);
         doc.setFont('helvetica', 'bold');
-        doc.text(stat.value, x + 30, yPos);
+        doc.text(stat.value, x + 25, yPos);
       });
 
       yPos += 12;
 
       // Performance distribution chart
       yPos = drawPerformanceChart(doc, stats, yPos, language);
-
-      // Equity curve
-      if (trades.length >= 2) {
-        yPos = drawEquityCurve(doc, trades, yPos, language, formatAmountForPDF);
-      }
 
       // Check if we need a new page for trade history
       if (yPos > pageHeight - 80) {
@@ -208,8 +260,8 @@ export const usePDFExport = () => {
         trade.direction.toUpperCase().substring(0, 1),
         formatPriceForPDF(trade.entry_price),
         trade.exit_price ? formatPriceForPDF(trade.exit_price) : '-',
-        formatNumberForPDF(trade.lot_size, 2),
-        formatAmountForPDF(trade.profit_loss || 0),
+        formatLot(trade.lot_size),
+        formatAmount(trade.profit_loss || 0),
         trade.result === 'win' ? 'W' : trade.result === 'loss' ? 'L' : 'BE',
       ]);
 
@@ -246,13 +298,17 @@ export const usePDFExport = () => {
         },
         didParseCell: (data) => {
           if (data.column.index === 6 && data.section === 'body') {
-            const value = parseFloat(data.cell.text[0]?.replace(/[^0-9.-]/g, '') || '0');
-            if (value > 0) {
-              data.cell.styles.textColor = [34, 197, 94];
-              data.cell.styles.fontStyle = 'bold';
-            } else if (value < 0) {
-              data.cell.styles.textColor = [239, 68, 68];
-              data.cell.styles.fontStyle = 'bold';
+            if (confidentialMode) {
+              data.cell.styles.textColor = [100, 100, 100];
+            } else {
+              const value = parseFloat(data.cell.text[0]?.replace(/[^0-9.-]/g, '') || '0');
+              if (value > 0) {
+                data.cell.styles.textColor = [34, 197, 94];
+                data.cell.styles.fontStyle = 'bold';
+              } else if (value < 0) {
+                data.cell.styles.textColor = [239, 68, 68];
+                data.cell.styles.fontStyle = 'bold';
+              }
             }
           }
           if (data.column.index === 7 && data.section === 'body') {
@@ -290,7 +346,7 @@ export const usePDFExport = () => {
       }
 
       // Save
-      const filename = `smart-trade-tracker-report-${format(new Date(), 'yyyy-MM-dd')}.pdf`;
+      const filename = `smart-trade-tracker-report-${format(new Date(), 'yyyy-MM-dd')}${confidentialMode ? '-confidentiel' : ''}.pdf`;
       doc.save(filename);
 
       triggerFeedback('success');
@@ -298,7 +354,7 @@ export const usePDFExport = () => {
     } catch (error) {
       console.error('PDF export error:', error);
       triggerFeedback('error');
-      toast.error(language === 'fr' ? 'Erreur lors de l\'export PDF' : 'PDF export error');
+      toast.error(language === 'fr' ? "Erreur lors de l'export PDF" : 'PDF export error');
     }
   }, [language, currency, formatAmountForPDF, getCurrencySymbol, triggerFeedback, locale]);
 
