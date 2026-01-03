@@ -488,32 +488,33 @@ const Profile: React.FC = () => {
           </h3>
         </div>
 
-        <div className="grid grid-cols-2 gap-3 mb-3">
+        <div className="flex gap-3">
           <Button
             variant="outline"
-            className="flex-1 justify-start gap-3 h-12"
+            className="flex-1 justify-center gap-2 h-10"
             onClick={handleExportJSON}
             disabled={isExporting}
           >
-            <FileJson className="w-5 h-5 text-primary" />
-            {t('exportJSON')}
+            <FileJson className="w-4 h-4 text-primary" />
+            JSON
           </Button>
           <Button
             variant="outline"
-            className="flex-1 justify-start gap-3 h-12"
+            className="flex-1 justify-center gap-2 h-10"
             onClick={handleExportCSV}
             disabled={isExporting}
           >
-            <FileSpreadsheet className="w-5 h-5 text-profit" />
-            {t('exportCSV')}
+            <FileSpreadsheet className="w-4 h-4 text-profit" />
+            CSV
           </Button>
+          <PDFExportDialog
+            trades={trades}
+            profile={profile ? { nickname: profile.nickname, level: profile.level, total_points: profile.total_points } : null}
+            onExport={handleExportPDF}
+            isExporting={isExporting}
+            compact
+          />
         </div>
-        <PDFExportDialog
-          trades={trades}
-          profile={profile ? { nickname: profile.nickname, level: profile.level, total_points: profile.total_points } : null}
-          onExport={handleExportPDF}
-          isExporting={isExporting}
-        />
       </div>
 
       {/* MetaTrader Import Card */}

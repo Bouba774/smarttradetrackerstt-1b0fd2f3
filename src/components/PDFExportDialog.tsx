@@ -41,6 +41,7 @@ interface PDFExportDialogProps {
   profile: ProfileData | null;
   onExport: (trades: Trade[], profile: ProfileData | null, periodLabel: string) => Promise<void>;
   isExporting?: boolean;
+  compact?: boolean;
 }
 
 type PeriodFilter = 'all' | 'today' | 'week' | 'month' | 'last7days' | 'last30days' | 'custom';
@@ -50,6 +51,7 @@ export const PDFExportDialog: React.FC<PDFExportDialogProps> = ({
   profile,
   onExport,
   isExporting = false,
+  compact = false,
 }) => {
   const { language, t } = useLanguage();
   const { triggerFeedback } = useFeedback();
@@ -153,11 +155,13 @@ export const PDFExportDialog: React.FC<PDFExportDialogProps> = ({
       <DialogTrigger asChild>
         <Button
           variant="outline"
-          className="w-full justify-start gap-3 h-12"
+          className={cn(
+            compact ? "flex-1 justify-center gap-2 h-10" : "w-full justify-start gap-3 h-12"
+          )}
           disabled={isExporting}
         >
-          <FileText className="w-5 h-5 text-loss" />
-          {language === 'fr' ? 'Exporter en PDF' : 'Export to PDF'}
+          <FileText className={cn(compact ? "w-4 h-4" : "w-5 h-5", "text-loss")} />
+          {compact ? 'PDF' : (language === 'fr' ? 'Exporter en PDF' : 'Export to PDF')}
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
