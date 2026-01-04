@@ -64,6 +64,64 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }).catch(err => console.log('Welcome email error (non-blocking):', err));
         }
       }
+    } else if (!data && !error) {
+      // No profile exists - check if this is a Google OAuth user and create profile
+      await createProfileForOAuthUser(userId);
+    }
+  };
+
+  const createProfileForOAuthUser = async (userId: string) => {
+    try {
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      
+      if (!authUser) return;
+
+      // Check if user signed in with Google OAuth
+      const isGoogleUser = authUser.app_metadata?.provider === 'google' || 
+                           authUser.identities?.some(id => id.provider === 'google');
+
+      if (isGoogleUser) {
+        // Extract Google user data
+        const googleMetadata = authUser.user_metadata;
+        const nickname = googleMetadata?.full_name || 
+                        googleMetadata?.name || 
+                        authUser.email?.split('@')[0] || 
+                        'Trader';
+        const avatarUrl = googleMetadata?.avatar_url || googleMetadata?.picture || null;
+
+        // Create profile with Google data
+        const { data: newProfile, error: insertError } = await supabase
+          .from('profiles')
+          .insert({
+            user_id: userId,
+            nickname: nickname,
+            avatar_url: avatarUrl,
+            level: 1,
+            total_points: 0,
+            weekly_objective_trades: 10,
+            monthly_objective_profit: 1000,
+          })
+          .select()
+          .single();
+
+        if (!insertError && newProfile) {
+          setProfile(newProfile);
+          
+          // Send welcome email for Google users
+          if (authUser.email) {
+            supabase.functions.invoke('auth-send-welcome', {
+              body: {
+                userId: userId,
+                email: authUser.email,
+                nickname: nickname,
+                language: navigator.language.startsWith('fr') ? 'fr' : 'en'
+              }
+            }).catch(err => console.log('Welcome email error (non-blocking):', err));
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Error creating profile for OAuth user:', err);
     }
   };
 
