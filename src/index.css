@@ -184,8 +184,7 @@
 
 @layer components {
   .glass-card {
-    @apply bg-card/60 backdrop-blur-xl border border-primary/20 rounded-xl;
-    box-shadow: var(--shadow-card);
+    @apply bg-card/60 backdrop-blur-xl rounded-xl;
   }
   
   .glass-card-hover {
@@ -193,8 +192,6 @@
   }
   
   .glass-card-hover:hover {
-    @apply border-primary/40;
-    box-shadow: var(--shadow-neon);
     transform: translateY(-2px);
   }
   
@@ -218,16 +215,6 @@
   
   .stat-card {
     @apply glass-card p-4 relative overflow-hidden;
-  }
-  
-  .stat-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 2px;
-    background: var(--gradient-primary);
   }
   
   .gauge-container {

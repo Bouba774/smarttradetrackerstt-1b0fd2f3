@@ -24,10 +24,10 @@ const StatCard: React.FC<StatCardProps> = ({
   delay = 0,
 }) => {
   const variantStyles = {
-    default: 'before:bg-gradient-primary',
-    profit: 'before:bg-gradient-profit',
-    loss: 'before:bg-gradient-loss',
-    neutral: 'before:bg-muted-foreground',
+    default: '',
+    profit: '',
+    loss: '',
+    neutral: '',
   };
 
   const valueStyles = {
