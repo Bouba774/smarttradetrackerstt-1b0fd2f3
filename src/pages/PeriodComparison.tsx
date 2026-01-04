@@ -351,7 +351,7 @@ const PeriodComparison: React.FC = () => {
     const isDeclined = diff < 0;
 
     return (
-      <div className="glass-card p-4 animate-fade-in">
+      <div className="glass-card p-4">
         <div className="flex items-center gap-2 mb-3">
           <Icon className="w-4 h-4 text-primary" />
           <span className="text-sm text-muted-foreground">{label}</span>
@@ -427,7 +427,7 @@ const PeriodComparison: React.FC = () => {
       </div>
 
       {/* View Mode Toggle */}
-      <div className="glass-card p-4 animate-fade-in">
+      <div className="glass-card p-4">
         <div className="flex items-center justify-center gap-2 p-1 rounded-lg bg-secondary/50 w-fit mx-auto">
           <Button
             variant={viewMode === 'week' ? 'default' : 'ghost'}
@@ -451,7 +451,7 @@ const PeriodComparison: React.FC = () => {
       {/* Period Selectors */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Period A Selector */}
-        <div className="glass-card p-4 animate-fade-in">
+        <div className="glass-card p-4">
           <p className="text-sm font-medium text-foreground mb-3">
             {language === 'fr' ? 'Période A (actuelle)' : 'Period A (current)'}
           </p>
@@ -487,7 +487,7 @@ const PeriodComparison: React.FC = () => {
         </div>
 
         {/* Period B Selector */}
-        <div className="glass-card p-4 animate-fade-in" style={{ animationDelay: '50ms' }}>
+        <div className="glass-card p-4">
           <p className="text-sm font-medium text-foreground mb-3">
             {language === 'fr' ? 'Période B (comparaison)' : 'Period B (comparison)'}
           </p>
@@ -524,7 +524,7 @@ const PeriodComparison: React.FC = () => {
       </div>
 
       {hasNoData ? (
-        <div className="glass-card p-12 text-center animate-fade-in">
+        <div className="glass-card p-12 text-center">
           <GitCompare className="w-16 h-16 mx-auto text-muted-foreground/50 mb-4" />
           <h3 className="text-xl font-display font-semibold text-foreground mb-2">
             {t('noData')}
@@ -584,7 +584,7 @@ const PeriodComparison: React.FC = () => {
           {/* Charts */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Bar Chart Comparison */}
-            <div className="glass-card p-6 animate-fade-in" style={{ animationDelay: '200ms' }}>
+            <div className="glass-card p-6">
               <h3 className="font-display font-semibold text-foreground mb-4">
                 {language === 'fr' ? 'Comparaison des Métriques' : 'Metrics Comparison'}
               </h3>
@@ -610,7 +610,7 @@ const PeriodComparison: React.FC = () => {
             </div>
 
             {/* Radar Chart */}
-            <div className="glass-card p-6 animate-fade-in" style={{ animationDelay: '250ms' }}>
+            <div className="glass-card p-6">
               <h3 className="font-display font-semibold text-foreground mb-4">
                 {language === 'fr' ? 'Profil de Performance' : 'Performance Profile'}
               </h3>
@@ -638,7 +638,7 @@ const PeriodComparison: React.FC = () => {
           </div>
 
           {/* Summary */}
-          <div className="glass-card p-6 animate-fade-in" style={{ animationDelay: '300ms' }}>
+          <div className="glass-card p-6">
             <h3 className="font-display font-semibold text-foreground mb-4">
               {language === 'fr' ? 'Résumé de la Comparaison' : 'Comparison Summary'}
             </h3>
