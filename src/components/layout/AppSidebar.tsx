@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useCallback } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAdminRole } from '@/hooks/useAdminRole';
@@ -41,9 +41,6 @@ const AppSidebar: React.FC = () => {
   const { isAdminVerified, isInAdminMode } = useAdmin();
   const { state, openMobile, setOpenMobile, isMobile } = useSidebar();
   const isOpen = isMobile ? openMobile : state === 'expanded';
-  
-  // Track clicked item for immediate visual feedback
-  const [clickedPath, setClickedPath] = useState<string | null>(null);
 
   const navItems = [
     { path: '/dashboard', icon: LayoutDashboard, label: t('dashboard') },
@@ -61,26 +58,17 @@ const AppSidebar: React.FC = () => {
     { path: '/about', icon: Info, label: t('about') },
   ];
 
-  // Optimized navigation handler - closes sidebar IMMEDIATELY before navigation
+  // Fast navigation - close sidebar and navigate immediately
   const handleNavClick = useCallback((e: React.MouseEvent, path: string) => {
     e.preventDefault();
     
-    // Immediate visual feedback
-    setClickedPath(path);
+    // Close sidebar immediately on mobile
+    if (isMobile && openMobile) {
+      setOpenMobile(false);
+    }
     
-    // Close sidebar FIRST using requestAnimationFrame for UI priority
-    requestAnimationFrame(() => {
-      if (isMobile && openMobile) {
-        setOpenMobile(false);
-      }
-      
-      // Navigate after sidebar close is triggered
-      requestAnimationFrame(() => {
-        navigate(path);
-        // Reset click state after navigation
-        setTimeout(() => setClickedPath(null), 150);
-      });
-    });
+    // Navigate immediately
+    navigate(path);
   }, [isMobile, openMobile, setOpenMobile, navigate]);
 
   const handleClose = useCallback(() => {
@@ -148,7 +136,7 @@ const AppSidebar: React.FC = () => {
           <SidebarGroup>
             <SidebarGroupContent>
               <SidebarMenu className={cn(!isMobile && !isOpen && "flex flex-col items-center gap-2")}>
-                {navItems.map((item, index) => {
+                {navItems.map((item) => {
                   const Icon = item.icon;
                   const isActive = location.pathname === item.path;
 
@@ -156,13 +144,8 @@ const AppSidebar: React.FC = () => {
                     <SidebarMenuItem 
                       key={item.path}
                       className={cn(
-                        "opacity-0 translate-x-[-20px]",
-                        isOpen && "animate-[slideInLeft_0.3s_ease-out_forwards]",
-                        !isMobile && !isOpen && "opacity-100 translate-x-0 w-auto"
+                        !isMobile && !isOpen && "w-auto"
                       )}
-                      style={{ 
-                        animationDelay: isOpen ? `${index * 30}ms` : '0ms'
-                      }}
                     >
                       <SidebarMenuButton
                         asChild
@@ -173,23 +156,17 @@ const AppSidebar: React.FC = () => {
                           to={item.path}
                           onClick={(e) => handleNavClick(e, item.path)}
                           className={cn(
-                            "flex items-center gap-3 px-3 py-3 rounded-lg transition-all duration-200 group relative touch-target",
-                            // Desktop collapsed: circular icon buttons
-                            !isMobile && !isOpen && "w-10 h-10 p-0 justify-center rounded-full border border-primary/30 hover:border-primary hover:shadow-neon",
-                            // Click feedback - scale down briefly
-                            clickedPath === item.path && "scale-95 bg-primary/30",
-                            isActive && !clickedPath
+                            "flex items-center gap-3 px-3 py-3 rounded-lg transition-colors duration-100 group relative touch-target",
+                            !isMobile && !isOpen && "w-10 h-10 p-0 justify-center rounded-full border border-primary/30 hover:border-primary",
+                            isActive
                               ? !isMobile && !isOpen 
-                                ? "bg-primary/20 text-primary shadow-neon border-primary"
-                                : "bg-primary/20 text-primary shadow-neon border-l-2 border-primary"
-                              : !clickedPath && "text-muted-foreground hover:text-primary hover:bg-primary/10 active:bg-primary/20",
-                            isMobile || isOpen ? "hover:translate-x-1" : ""
+                                ? "bg-primary/20 text-primary border-primary"
+                                : "bg-primary/20 text-primary border-l-2 border-primary"
+                              : "text-muted-foreground hover:text-primary hover:bg-primary/10 active:bg-primary/20"
                           )}
                         >
                           <Icon className={cn(
-                            "w-5 h-5 shrink-0 transition-all duration-150",
-                            isActive && "scale-110",
-                            clickedPath === item.path && "scale-90",
+                            "w-5 h-5 shrink-0",
                             !isMobile && !isOpen && "w-4 h-4"
                           )} />
                           {(isMobile || isOpen) && (
@@ -197,8 +174,8 @@ const AppSidebar: React.FC = () => {
                               {item.label}
                             </span>
                           )}
-                          {isActive && (isMobile || isOpen) && !clickedPath && (
-                            <div className="absolute right-2 w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                          {isActive && (isMobile || isOpen) && (
+                            <div className="absolute right-2 w-1.5 h-1.5 rounded-full bg-primary" />
                           )}
                         </Link>
                       </SidebarMenuButton>
