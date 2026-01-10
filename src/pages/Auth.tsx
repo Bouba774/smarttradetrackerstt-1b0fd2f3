@@ -352,7 +352,7 @@ const Auth: React.FC = () => {
     <div className="min-h-screen bg-background flex items-center justify-center p-4 relative overflow-hidden">
       {/* Dev Mode Badge */}
       {!hasTurnstile && (
-        <div className="absolute top-4 right-4 z-50 animate-fade-in">
+        <div className="absolute top-4 right-4 z-50">
           <div className="px-3 py-1.5 rounded-full bg-amber-500/20 border border-amber-500/30 backdrop-blur-sm">
             <span className="text-xs font-medium text-amber-500">
               🛠️ {language === 'fr' ? 'Mode Dev - Captcha désactivé' : 'Dev Mode - Captcha disabled'}
@@ -364,9 +364,9 @@ const Auth: React.FC = () => {
       {/* Animated Background */}
       <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-profit/5" />
       
-      {/* Floating orbs with animation */}
-      <div className="absolute top-1/4 left-1/4 w-64 h-64 md:w-96 md:h-96 bg-primary/10 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '4s' }} />
-      <div className="absolute bottom-1/4 right-1/4 w-64 h-64 md:w-96 md:h-96 bg-profit/10 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '5s', animationDelay: '1s' }} />
+      {/* Floating orbs - static now */}
+      <div className="absolute top-1/4 left-1/4 w-64 h-64 md:w-96 md:h-96 bg-primary/10 rounded-full blur-3xl" />
+      <div className="absolute bottom-1/4 right-1/4 w-64 h-64 md:w-96 md:h-96 bg-profit/10 rounded-full blur-3xl" />
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gradient-radial from-primary/5 to-transparent rounded-full pointer-events-none" />
       
       {/* Grid pattern overlay */}
@@ -385,11 +385,11 @@ const Auth: React.FC = () => {
           {language === 'fr' ? 'Retour à l\'accueil' : 'Back to home'}
         </Link>
 
-        {/* Logo with enhanced animation */}
-        <div className="text-center mb-8 animate-fade-in" style={{ animationDelay: '100ms' }}>
+        {/* Logo */}
+        <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
             <div className="relative">
-              <div className="absolute inset-0 bg-primary/30 rounded-2xl blur-xl animate-pulse" style={{ animationDuration: '3s' }} />
+              <div className="absolute inset-0 bg-primary/30 rounded-2xl blur-xl" />
               <img 
                 src="/assets/app-logo.jpg" 
                 alt="Smart Trade Tracker" 
@@ -403,8 +403,8 @@ const Auth: React.FC = () => {
           <p className="text-primary text-sm font-medium mt-1 tracking-widest">ALPHA FX</p>
         </div>
 
-        {/* Auth Card with enhanced styling */}
-        <div className="relative glass-card p-8 animate-fade-in overflow-hidden" style={{ animationDelay: '200ms' }}>
+        {/* Auth Card */}
+        <div className="relative glass-card p-8 overflow-hidden">
           {/* Animated border gradient */}
           <div className="absolute inset-0 rounded-xl p-[1px] bg-gradient-to-br from-primary/50 via-transparent to-profit/50 opacity-50" />
           
@@ -619,7 +619,7 @@ const Auth: React.FC = () => {
 
           <form onSubmit={handleSubmit} className="space-y-5">
             {!isLogin && !isForgotPassword && (
-              <div className="space-y-2 animate-fade-in" style={{ animationDelay: '50ms' }}>
+              <div className="space-y-2">
                 <Label htmlFor="nickname" className="text-foreground text-sm font-medium">
                   {t('nickname')}
                 </Label>
@@ -635,7 +635,7 @@ const Auth: React.FC = () => {
                   />
                 </div>
                 {errors.nickname && (
-                  <p className="text-loss text-xs animate-fade-in flex items-center gap-1">
+                  <p className="text-loss text-xs flex items-center gap-1">
                     <span className="w-1 h-1 rounded-full bg-loss" />
                     {errors.nickname}
                   </p>
@@ -643,7 +643,7 @@ const Auth: React.FC = () => {
               </div>
             )}
 
-            <div className="space-y-2 animate-fade-in" style={{ animationDelay: '100ms' }}>
+            <div className="space-y-2">
               <Label htmlFor="email" className="text-foreground text-sm font-medium">Email</Label>
               <div className="relative group">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground transition-colors group-focus-within:text-primary" />
@@ -657,7 +657,7 @@ const Auth: React.FC = () => {
                 />
               </div>
               {errors.email && (
-                <p className="text-loss text-xs animate-fade-in flex items-center gap-1">
+                <p className="text-loss text-xs flex items-center gap-1">
                   <span className="w-1 h-1 rounded-full bg-loss" />
                   {errors.email}
                 </p>
@@ -665,7 +665,7 @@ const Auth: React.FC = () => {
             </div>
 
             {!isForgotPassword && (
-              <div className="space-y-2 animate-fade-in" style={{ animationDelay: '150ms' }}>
+              <div className="space-y-2">
                 <Label htmlFor="password" className="text-foreground text-sm font-medium">
                   {t('password')}
                 </Label>
@@ -688,7 +688,7 @@ const Auth: React.FC = () => {
                   </button>
                 </div>
                 {errors.password && (
-                  <p className="text-loss text-xs animate-fade-in flex items-center gap-1">
+                  <p className="text-loss text-xs flex items-center gap-1">
                     <span className="w-1 h-1 rounded-full bg-loss" />
                     {errors.password}
                   </p>
@@ -778,15 +778,15 @@ const Auth: React.FC = () => {
           )}
         </div>
 
-        {/* Footer with enhanced styling */}
-        <div className="text-center mt-8 animate-fade-in" style={{ animationDelay: '400ms' }}>
+        {/* Footer */}
+        <div className="text-center mt-8">
           <p className="text-xs text-muted-foreground">
             {t('slogan')}
           </p>
           <div className="flex justify-center gap-1 mt-2">
-            <span className="w-1 h-1 rounded-full bg-primary/50 animate-pulse" style={{ animationDelay: '0s' }} />
-            <span className="w-1 h-1 rounded-full bg-primary/50 animate-pulse" style={{ animationDelay: '0.2s' }} />
-            <span className="w-1 h-1 rounded-full bg-primary/50 animate-pulse" style={{ animationDelay: '0.4s' }} />
+            <span className="w-1 h-1 rounded-full bg-primary/50" />
+            <span className="w-1 h-1 rounded-full bg-primary/50" />
+            <span className="w-1 h-1 rounded-full bg-primary/50" />
           </div>
         </div>
       </div>

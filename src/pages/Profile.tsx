@@ -351,7 +351,7 @@ const Profile: React.FC = () => {
       </div>
 
       {/* Profile Card */}
-      <div className="glass-card p-8 animate-fade-in relative">
+      <div className="glass-card p-8 relative">
         <div className="flex flex-col items-center text-center space-y-6">
           {/* Avatar */}
           <div className="relative">
@@ -444,7 +444,18 @@ const Profile: React.FC = () => {
             )}
             <div className="flex items-center justify-center gap-2 text-muted-foreground">
               <Mail className="w-4 h-4" />
-              <span className="text-sm">{user?.email}</span>
+              <span className="text-sm">
+                {isAdmin 
+                  ? user?.email 
+                  : user?.email 
+                    ? (() => {
+                        const [local, domain] = user.email.split('@');
+                        if (local.length <= 2) return `${local[0] || ''}****@${domain}`;
+                        return `${local[0]}****${local[local.length - 1]}@${domain}`;
+                      })()
+                    : ''
+                }
+              </span>
             </div>
             {user?.created_at && (
               <button
@@ -480,7 +491,7 @@ const Profile: React.FC = () => {
       </div>
 
       {/* Export Data Card */}
-      <div className="glass-card p-6 animate-fade-in" style={{ animationDelay: '50ms' }}>
+      <div className="glass-card p-6">
         <div className="flex items-center gap-2 mb-4">
           <Download className="w-5 h-5 text-primary" />
           <h3 className="font-display font-semibold text-foreground">
@@ -518,13 +529,13 @@ const Profile: React.FC = () => {
       </div>
 
       {/* MetaTrader Import Card */}
-      <div className="glass-card p-6 animate-fade-in" style={{ animationDelay: '75ms' }}>
+      <div className="glass-card p-6">
         <MTTradeImporter />
       </div>
 
 
       {/* Danger Zone */}
-      <div className="glass-card p-6 animate-fade-in border-loss/30" style={{ animationDelay: '200ms' }}>
+      <div className="glass-card p-6 border-loss/30">
         <div className="flex items-center gap-2 mb-4">
           <AlertTriangle className="w-5 h-5 text-loss" />
           <h3 className="font-display font-semibold text-loss">
