@@ -103,8 +103,9 @@ const CRYPTOCURRENCIES: Asset[] = [
 
 const ALL_ASSETS: Asset[] = [...FIAT_CURRENCIES, ...CRYPTOCURRENCIES];
 
-const CACHE_KEY = 'crypto-fiat-rates-cache-v2';
-const CACHE_DURATION = 5 * 60 * 1000;
+const CACHE_KEY = 'crypto-fiat-rates-cache-v3';
+const CACHE_DURATION = 2 * 60 * 1000; // 2 minutes for more frequent updates
+const AUTO_REFRESH_INTERVAL = 60 * 1000; // Auto-refresh every 60 seconds
 
 interface ConversionSlot {
   id: number;
@@ -142,63 +143,84 @@ const CurrencyConversion: React.FC = () => {
     };
   }, []);
 
-  // Fetch rates
-  const fetchRates = useCallback(async () => {
+  // Fetch rates from multiple reliable APIs
+  const fetchRates = useCallback(async (forceRefresh = false) => {
     setIsLoading(true);
 
     try {
-      const cached = localStorage.getItem(CACHE_KEY);
-      if (cached) {
-        const { rates: cachedRates, priceChanges: cachedChanges, timestamp } = JSON.parse(cached);
-        const cacheAge = Date.now() - timestamp;
-        
-        if (cacheAge < CACHE_DURATION && Object.keys(cachedRates).length > 5) {
-          setRates(cachedRates);
-          setPriceChanges(cachedChanges || {});
-          setLastUpdated(new Date(timestamp));
-          setIsLoading(false);
-          return;
+      // Check cache first (skip if force refresh)
+      if (!forceRefresh) {
+        const cached = localStorage.getItem(CACHE_KEY);
+        if (cached) {
+          const { rates: cachedRates, priceChanges: cachedChanges, timestamp } = JSON.parse(cached);
+          const cacheAge = Date.now() - timestamp;
+          
+          if (cacheAge < CACHE_DURATION && Object.keys(cachedRates).length > 10) {
+            setRates(cachedRates);
+            setPriceChanges(cachedChanges || {});
+            setLastUpdated(new Date(timestamp));
+            setIsLoading(false);
+            return;
+          }
         }
       }
 
       let fiatRates: Record<string, number> = { USD: 1 };
       
-      // Fetch fiat rates
+      // Primary API: ExchangeRate-API (free, reliable, 1500 requests/month)
       try {
-        const fiatResponse = await fetch('https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/usd.json');
+        const fiatResponse = await fetch('https://open.er-api.com/v6/latest/USD');
         if (fiatResponse.ok) {
           const fiatData = await fiatResponse.json();
-          if (fiatData?.usd) {
+          if (fiatData?.rates) {
             FIAT_CURRENCIES.forEach(currency => {
-              const code = currency.code.toLowerCase();
-              if (code === 'usd') {
+              const code = currency.code.toUpperCase();
+              if (code === 'USD') {
                 fiatRates[currency.code] = 1;
-              } else if (code === 'xaf' || code === 'xof') {
-                const eurRate = fiatData.usd.eur || 0.92;
+              } else if (code === 'XAF' || code === 'XOF') {
+                // XAF/XOF are pegged to EUR at 655.957
+                const eurRate = fiatData.rates['EUR'] || 0.92;
                 fiatRates[currency.code] = eurRate * 655.957;
-              } else if (fiatData.usd[code]) {
-                fiatRates[currency.code] = fiatData.usd[code];
+              } else if (fiatData.rates[code]) {
+                fiatRates[currency.code] = fiatData.rates[code];
               }
             });
           }
         }
       } catch (e) {
-        console.log('Fiat API failed, using fallback:', e);
-        // Add fallback rates
-        fiatRates = {
-          USD: 1, EUR: 0.92, GBP: 0.79, JPY: 149.5, CHF: 0.88,
-          CAD: 1.36, AUD: 1.53, NZD: 1.64, CNY: 7.24, HKD: 7.82,
-          SGD: 1.34, XAF: 603.5, XOF: 603.5, ZAR: 18.5, NGN: 1550,
-        };
+        console.log('Primary fiat API failed, trying fallback:', e);
+        // Fallback: fawazahmed0 currency API
+        try {
+          const fallbackResponse = await fetch('https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/usd.json');
+          if (fallbackResponse.ok) {
+            const fallbackData = await fallbackResponse.json();
+            if (fallbackData?.usd) {
+              FIAT_CURRENCIES.forEach(currency => {
+                const code = currency.code.toLowerCase();
+                if (code === 'usd') {
+                  fiatRates[currency.code] = 1;
+                } else if (code === 'xaf' || code === 'xof') {
+                  const eurRate = fallbackData.usd.eur || 0.92;
+                  fiatRates[currency.code] = eurRate * 655.957;
+                } else if (fallbackData.usd[code]) {
+                  fiatRates[currency.code] = fallbackData.usd[code];
+                }
+              });
+            }
+          }
+        } catch (fallbackError) {
+          console.log('Fallback fiat API also failed:', fallbackError);
+        }
       }
 
-      // Fetch crypto rates  
+      // Fetch crypto rates from CoinGecko (free, 30 calls/min)
       let cryptoPricesInUsd: Record<string, number> = {};
       let changes: Record<string, number> = {};
       
       try {
+        const cryptoIds = 'bitcoin,ethereum,tether,usd-coin,binancecoin,solana,ripple,cardano,dogecoin,tron,matic-network,litecoin,polkadot,avalanche-2,chainlink,shiba-inu,the-open-network,near';
         const cryptoResponse = await fetch(
-          `https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,tether,usd-coin,binancecoin,solana,ripple,cardano,dogecoin,tron,matic-network,litecoin,polkadot,avalanche-2,chainlink,shiba-inu,the-open-network,near&vs_currencies=usd&include_24hr_change=true`
+          `https://api.coingecko.com/api/v3/simple/price?ids=${cryptoIds}&vs_currencies=usd&include_24hr_change=true`
         );
         
         if (cryptoResponse.ok) {
@@ -223,18 +245,10 @@ const CurrencyConversion: React.FC = () => {
           });
         }
       } catch (e) {
-        console.log('Crypto API failed, using fallback:', e);
-        // Add fallback crypto prices in USD
-        cryptoPricesInUsd = {
-          BTC: 97000, ETH: 3400, USDT: 1, USDC: 1,
-          BNB: 710, SOL: 200, XRP: 2.3, ADA: 1.0,
-          DOGE: 0.35, LTC: 105, DOT: 7.5, AVAX: 40,
-          LINK: 22, SHIB: 0.000022, TON: 5.5, NEAR: 5.2
-        };
+        console.log('Crypto API failed, using cached or fallback:', e);
       }
 
-      // Build final rates object
-      // All rates are "1 USD = X units"
+      // Build final rates object - all rates are "1 USD = X units"
       const allRates: Record<string, number> = { ...fiatRates };
       
       // For crypto: 1 USD = 1/price crypto units
@@ -272,6 +286,13 @@ const CurrencyConversion: React.FC = () => {
 
   useEffect(() => {
     fetchRates();
+    
+    // Auto-refresh rates every minute
+    const intervalId = setInterval(() => {
+      fetchRates(true);
+    }, AUTO_REFRESH_INTERVAL);
+    
+    return () => clearInterval(intervalId);
   }, [fetchRates]);
 
   // Get asset data
@@ -416,7 +437,7 @@ const CurrencyConversion: React.FC = () => {
             <Button
               variant="ghost"
               size="icon"
-              onClick={fetchRates}
+              onClick={() => fetchRates(true)}
               disabled={isLoading}
               className="text-foreground"
             >

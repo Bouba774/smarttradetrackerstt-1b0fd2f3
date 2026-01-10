@@ -59,6 +59,14 @@ const Landing = () => {
   const [wordIndex, setWordIndex] = useState(0);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // Add landing-page class to body to enable animations on this page
+  useEffect(() => {
+    document.body.classList.add('landing-page');
+    return () => {
+      document.body.classList.remove('landing-page');
+    };
+  }, []);
+
   // Memoize words array to prevent recreating on each render
   const words = useMemo(() => [
     t('landingWordDiscipline'),
