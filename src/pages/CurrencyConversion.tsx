@@ -152,19 +152,24 @@ const CurrencyConversion: React.FC = () => {
       if (!forceRefresh) {
         const cached = localStorage.getItem(CACHE_KEY);
         if (cached) {
-          const { rates: cachedRates, priceChanges: cachedChanges, timestamp } = JSON.parse(cached);
-          const cacheAge = Date.now() - timestamp;
-          
-          if (cacheAge < CACHE_DURATION && Object.keys(cachedRates).length > 10) {
-            setRates(cachedRates);
-            setPriceChanges(cachedChanges || {});
-            setLastUpdated(new Date(timestamp));
-            setIsLoading(false);
-            return;
+          try {
+            const { rates: cachedRates, priceChanges: cachedChanges, timestamp } = JSON.parse(cached);
+            const cacheAge = Date.now() - timestamp;
+            
+            if (cacheAge < CACHE_DURATION && cachedRates && Object.keys(cachedRates).length > 10) {
+              setRates(cachedRates);
+              setPriceChanges(cachedChanges || {});
+              setLastUpdated(new Date(timestamp));
+              setIsLoading(false);
+              return;
+            }
+          } catch (e) {
+            console.log('Cache parse error, fetching fresh rates');
           }
         }
       }
 
+      // All rates will be stored as "1 USD = X units"
       let fiatRates: Record<string, number> = { USD: 1 };
       
       // Primary API: ExchangeRate-API (free, reliable, 1500 requests/month)
@@ -252,22 +257,27 @@ const CurrencyConversion: React.FC = () => {
       const allRates: Record<string, number> = { ...fiatRates };
       
       // For crypto: 1 USD = 1/price crypto units
+      // If BTC = $100,000, then 1 USD = 0.00001 BTC
       Object.entries(cryptoPricesInUsd).forEach(([code, usdPrice]) => {
-        if (usdPrice > 0) {
+        if (usdPrice && usdPrice > 0) {
           allRates[code] = 1 / usdPrice;
         }
       });
 
-      // Cache the results
-      localStorage.setItem(CACHE_KEY, JSON.stringify({
-        rates: allRates,
-        priceChanges: changes,
-        timestamp: Date.now(),
-      }));
+      // Only cache if we have valid rates
+      if (Object.keys(allRates).length > 5) {
+        localStorage.setItem(CACHE_KEY, JSON.stringify({
+          rates: allRates,
+          priceChanges: changes,
+          timestamp: Date.now(),
+        }));
 
-      setRates(allRates);
-      setPriceChanges(changes);
-      setLastUpdated(new Date());
+        setRates(allRates);
+        setPriceChanges(changes);
+        setLastUpdated(new Date());
+      } else {
+        console.log('Not enough rates fetched, keeping existing');
+      }
     } catch (err) {
       console.error('Rate fetch error:', err);
       
@@ -307,50 +317,33 @@ const CurrencyConversion: React.FC = () => {
     return language === 'fr' ? asset.nameFr : asset.name;
   }, [getAsset, language]);
 
-  // Convert amount
+  // Convert amount - All rates are stored as "1 USD = X units"
   const convertAmount = useCallback((amount: number, fromCode: string, toCode: string): number => {
-    if (amount === 0 || !amount) return 0;
+    if (amount === 0 || !amount || isNaN(amount)) return 0;
     if (fromCode === toCode) return amount;
     
-    const fromAsset = getAsset(fromCode);
-    const toAsset = getAsset(toCode);
-    
-    // Get the rates - rates are stored as "1 USD = X units"
+    // Get the rates - all rates are "1 USD = X units"
     const fromRate = rates[fromCode];
     const toRate = rates[toCode];
     
-    // Debug - if rates are missing, return 0
-    if (fromRate === undefined || toRate === undefined) {
-      console.log('Missing rates:', { fromCode, fromRate, toCode, toRate });
+    // If rates are missing, return 0
+    if (!fromRate || !toRate || fromRate === 0) {
+      console.log('Missing or invalid rates:', { fromCode, fromRate, toCode, toRate });
       return 0;
     }
     
-    // For fiat: rates[EUR] = 0.92 means 1 USD = 0.92 EUR, so EUR in USD = 1/0.92
-    // For crypto: rates[BTC] = 0.000015 means 1 USD = 0.000015 BTC
+    // Step 1: Convert source amount to USD
+    // If fromRate = 0.92 (EUR), it means 1 USD = 0.92 EUR
+    // So to convert EUR to USD: amount / 0.92
+    const amountInUsd = amount / fromRate;
     
-    let amountInUsd: number;
-    
-    // Convert source to USD
-    if (fromAsset?.type === 'crypto') {
-      // For crypto, rate is 1/price, so to get USD: amount / rate = amount * price
-      amountInUsd = fromRate > 0 ? amount / fromRate : 0;
-    } else {
-      // For fiat, rate is direct (1 USD = X units), so USD = amount / rate
-      amountInUsd = fromRate > 0 ? amount / fromRate : 0;
-    }
-    
-    // Convert USD to target
-    let result: number;
-    if (toAsset?.type === 'crypto') {
-      // For crypto, multiply by rate (which is 1/price)
-      result = amountInUsd * toRate;
-    } else {
-      // For fiat, multiply by rate
-      result = amountInUsd * toRate;
-    }
+    // Step 2: Convert USD to target currency
+    // If toRate = 655 (XAF), it means 1 USD = 655 XAF
+    // So to convert USD to XAF: amountInUsd * 655
+    const result = amountInUsd * toRate;
     
     return result;
-  }, [rates, getAsset]);
+  }, [rates]);
 
   // Format number with proper decimals and spacing
   const formatNumber = useCallback((num: number, decimals: number = 4): string => {
