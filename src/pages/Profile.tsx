@@ -445,15 +445,18 @@ const Profile: React.FC = () => {
             <div className="flex items-center justify-center gap-2 text-muted-foreground">
               <Mail className="w-4 h-4" />
               <span className="text-sm">
-                {isAdmin 
-                  ? user?.email 
-                  : user?.email 
-                    ? (() => {
-                        const [local, domain] = user.email.split('@');
+                {user?.email 
+                  ? isAdmin 
+                    ? user.email 
+                    : (() => {
+                        const parts = user.email.split('@');
+                        if (parts.length !== 2) return '****@****';
+                        const local = parts[0];
+                        const domain = parts[1];
                         if (local.length <= 2) return `${local[0] || ''}****@${domain}`;
                         return `${local[0]}****${local[local.length - 1]}@${domain}`;
                       })()
-                    : ''
+                  : ''
                 }
               </span>
             </div>
