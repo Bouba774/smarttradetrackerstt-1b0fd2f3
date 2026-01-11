@@ -253,27 +253,25 @@
 }
 
 /* 
- * Disable animations globally EXCEPT on landing page and loader
+ * Disable ALL animations and transitions globally EXCEPT on landing page and loader
  * Landing page animations are preserved via .landing-page class
  */
-body:not(.landing-page) .animate-fade-in,
-body:not(.landing-page) .animate-pulse:not(.animate-spin),
-body:not(.landing-page) .animate-float,
-body:not(.landing-page) .animate-glow,
-body:not(.landing-page) .animate-bounce-gentle,
-body:not(.landing-page) .floating-animation,
-body:not(.landing-page) .pulse-glow,
-body:not(.landing-page) .slide-in,
-body:not(.landing-page) .fade-in,
-body:not(.landing-page) .scale-in {
-  animation: none !important;
-  opacity: 1 !important;
-  transform: none !important;
+body:not(.landing-page) * {
+  animation-duration: 0s !important;
+  animation-delay: 0s !important;
+  transition-duration: 0s !important;
+  transition-delay: 0s !important;
 }
 
-/* Keep loader animations working */
-.animate-spin {
+/* Preserve loader spin animation */
+body:not(.landing-page) .animate-spin {
   animation: spin 1s linear infinite !important;
+}
+
+/* Preserve landing page animations */
+body.landing-page * {
+  animation-duration: unset;
+  transition-duration: unset;
 }
 
 @keyframes spin {

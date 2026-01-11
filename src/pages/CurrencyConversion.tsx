@@ -157,6 +157,7 @@ const CurrencyConversion: React.FC = () => {
             const cacheAge = Date.now() - timestamp;
             
             if (cacheAge < CACHE_DURATION && cachedRates && Object.keys(cachedRates).length > 10) {
+              console.log('Using cached rates:', cachedRates);
               setRates(cachedRates);
               setPriceChanges(cachedChanges || {});
               setLastUpdated(new Date(timestamp));
@@ -171,21 +172,35 @@ const CurrencyConversion: React.FC = () => {
 
       // All rates will be stored as "1 USD = X units"
       let fiatRates: Record<string, number> = { USD: 1 };
+      let fetchedFromAPI = false;
       
       // Primary API: ExchangeRate-API (free, reliable, 1500 requests/month)
       try {
         const fiatResponse = await fetch('https://open.er-api.com/v6/latest/USD');
         if (fiatResponse.ok) {
           const fiatData = await fiatResponse.json();
+          console.log('API Response:', fiatData);
           if (fiatData?.rates) {
+            fetchedFromAPI = true;
             FIAT_CURRENCIES.forEach(currency => {
               const code = currency.code.toUpperCase();
               if (code === 'USD') {
-                fiatRates[currency.code] = 1;
+                fiatRates['USD'] = 1;
               } else if (code === 'XAF' || code === 'XOF') {
-                // XAF/XOF are pegged to EUR at 655.957
-                const eurRate = fiatData.rates['EUR'] || 0.92;
-                fiatRates[currency.code] = eurRate * 655.957;
+                // XAF/XOF are pegged to EUR at 655.957 CFA per EUR
+                // API returns "1 USD = X EUR", we need "1 USD = X XAF"
+                // So: 1 USD = (1 USD in EUR) * 655.957 = rates.EUR * 655.957
+                // But wait - if EUR rate is 0.92, that means 1 USD = 0.92 EUR
+                // And 1 EUR = 655.957 XAF
+                // So 1 USD = 0.92 * 655.957 = ~603 XAF (incorrect!)
+                // Actually: 1 EUR = 655.957 XAF and 1 USD = 1/0.92 EUR
+                // So 1 USD = 655.957/0.92 XAF
+                const eurRate = fiatData.rates['EUR'];
+                if (eurRate && eurRate > 0) {
+                  fiatRates[currency.code] = 655.957 / eurRate;
+                } else {
+                  fiatRates[currency.code] = 600; // Fallback
+                }
               } else if (fiatData.rates[code]) {
                 fiatRates[currency.code] = fiatData.rates[code];
               }
@@ -194,21 +209,25 @@ const CurrencyConversion: React.FC = () => {
         }
       } catch (e) {
         console.log('Primary fiat API failed, trying fallback:', e);
-        // Fallback: fawazahmed0 currency API
+      }
+      
+      // Fallback if primary API failed
+      if (!fetchedFromAPI) {
         try {
           const fallbackResponse = await fetch('https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/usd.json');
           if (fallbackResponse.ok) {
             const fallbackData = await fallbackResponse.json();
             if (fallbackData?.usd) {
+              fetchedFromAPI = true;
               FIAT_CURRENCIES.forEach(currency => {
                 const code = currency.code.toLowerCase();
                 if (code === 'usd') {
-                  fiatRates[currency.code] = 1;
+                  fiatRates['USD'] = 1;
                 } else if (code === 'xaf' || code === 'xof') {
                   const eurRate = fallbackData.usd.eur || 0.92;
-                  fiatRates[currency.code] = eurRate * 655.957;
+                  fiatRates[currency.code.toUpperCase()] = 655.957 / eurRate;
                 } else if (fallbackData.usd[code]) {
-                  fiatRates[currency.code] = fallbackData.usd[code];
+                  fiatRates[currency.code.toUpperCase()] = fallbackData.usd[code];
                 }
               });
             }
@@ -216,6 +235,22 @@ const CurrencyConversion: React.FC = () => {
         } catch (fallbackError) {
           console.log('Fallback fiat API also failed:', fallbackError);
         }
+      }
+      
+      // If all APIs failed, use hardcoded fallback rates
+      if (!fetchedFromAPI) {
+        console.log('Using hardcoded fallback rates');
+        fiatRates = {
+          USD: 1, EUR: 0.92, GBP: 0.79, JPY: 149.5, CHF: 0.88,
+          CAD: 1.36, AUD: 1.54, NZD: 1.68, CNY: 7.24, HKD: 7.82,
+          SGD: 1.34, XAF: 600, XOF: 600, ZAR: 18.5, NGN: 1550,
+          GHS: 15.5, KES: 153, EGP: 49, MAD: 10, AED: 3.67,
+          SAR: 3.75, INR: 83.5, KRW: 1340, THB: 35.5, MYR: 4.7,
+          IDR: 15800, PHP: 56.5, VND: 24500, SEK: 10.5, NOK: 10.8,
+          DKK: 6.9, PLN: 4.0, CZK: 23.5, HUF: 365, RON: 4.6,
+          RUB: 92, UAH: 38, TRY: 32, MXN: 17.2, BRL: 5.0,
+          ARS: 900, CLP: 950, COP: 4000, PEN: 3.75
+        };
       }
 
       // Fetch crypto rates from CoinGecko (free, 30 calls/min)
@@ -250,21 +285,31 @@ const CurrencyConversion: React.FC = () => {
           });
         }
       } catch (e) {
-        console.log('Crypto API failed, using cached or fallback:', e);
+        console.log('Crypto API failed, using fallback:', e);
+        // Fallback crypto prices
+        cryptoPricesInUsd = {
+          BTC: 95000, ETH: 3400, USDT: 1, USDC: 1,
+          BNB: 690, SOL: 200, XRP: 2.3, ADA: 1.0,
+          DOGE: 0.35, TRX: 0.25, MATIC: 0.5, LTC: 100,
+          DOT: 7.5, AVAX: 40, LINK: 23, SHIB: 0.000023,
+          TON: 5.5, NEAR: 5.2
+        };
       }
 
       // Build final rates object - all rates are "1 USD = X units"
       const allRates: Record<string, number> = { ...fiatRates };
       
       // For crypto: 1 USD = 1/price crypto units
-      // If BTC = $100,000, then 1 USD = 0.00001 BTC
+      // If BTC = $95,000, then 1 USD = 1/95000 = 0.00001053 BTC
       Object.entries(cryptoPricesInUsd).forEach(([code, usdPrice]) => {
         if (usdPrice && usdPrice > 0) {
           allRates[code] = 1 / usdPrice;
         }
       });
 
-      // Only cache if we have valid rates
+      console.log('Final rates:', allRates);
+
+      // Always cache if we have valid rates
       if (Object.keys(allRates).length > 5) {
         localStorage.setItem(CACHE_KEY, JSON.stringify({
           rates: allRates,
@@ -319,28 +364,36 @@ const CurrencyConversion: React.FC = () => {
 
   // Convert amount - All rates are stored as "1 USD = X units"
   const convertAmount = useCallback((amount: number, fromCode: string, toCode: string): number => {
-    if (amount === 0 || !amount || isNaN(amount)) return 0;
+    if (!amount || isNaN(amount)) return 0;
     if (fromCode === toCode) return amount;
     
     // Get the rates - all rates are "1 USD = X units"
     const fromRate = rates[fromCode];
     const toRate = rates[toCode];
     
+    // Debug log
+    console.log('Converting:', { amount, fromCode, toCode, fromRate, toRate, allRates: rates });
+    
     // If rates are missing, return 0
-    if (!fromRate || !toRate || fromRate === 0) {
-      console.log('Missing or invalid rates:', { fromCode, fromRate, toCode, toRate });
+    if (fromRate === undefined || toRate === undefined) {
+      console.log('Missing rates:', { fromCode, fromRate, toCode, toRate });
       return 0;
     }
     
+    // Both rates are "1 USD = X units"
+    // fromRate: 1 USD = fromRate units of fromCode
+    // toRate: 1 USD = toRate units of toCode
+    
     // Step 1: Convert source amount to USD
-    // If fromRate = 0.92 (EUR), it means 1 USD = 0.92 EUR
-    // So to convert EUR to USD: amount / 0.92
-    const amountInUsd = amount / fromRate;
+    // If fromRate = 1 (USD), amountInUsd = amount / 1 = amount
+    // If fromRate = 655.957 (XAF), amountInUsd = amount / 655.957
+    const amountInUsd = fromRate === 0 ? 0 : amount / fromRate;
     
     // Step 2: Convert USD to target currency
-    // If toRate = 655 (XAF), it means 1 USD = 655 XAF
-    // So to convert USD to XAF: amountInUsd * 655
+    // If toRate = 655.957 (XAF), result = amountInUsd * 655.957
     const result = amountInUsd * toRate;
+    
+    console.log('Conversion result:', { amountInUsd, result });
     
     return result;
   }, [rates]);
