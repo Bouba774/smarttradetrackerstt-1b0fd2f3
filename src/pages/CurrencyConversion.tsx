@@ -7,7 +7,9 @@ import {
   SelectContent, 
   SelectItem, 
   SelectTrigger, 
-  SelectValue 
+  SelectValue,
+  SelectGroup,
+  SelectLabel
 } from '@/components/ui/select';
 import { 
   RefreshCw, 
@@ -16,7 +18,10 @@ import {
   TrendingUp,
   TrendingDown,
   Wifi,
-  WifiOff
+  WifiOff,
+  Coins,
+  Banknote,
+  LayoutGrid
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
@@ -153,6 +158,19 @@ const CurrencyConversion: React.FC = () => {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [editingSlotId, setEditingSlotId] = useState<number | null>(1);
+  const [assetFilter, setAssetFilter] = useState<'all' | 'fiat' | 'crypto'>('all');
+
+  // Filtered assets based on filter selection
+  const filteredAssets = useMemo(() => {
+    switch (assetFilter) {
+      case 'fiat':
+        return FIAT_CURRENCIES;
+      case 'crypto':
+        return CRYPTOCURRENCIES;
+      default:
+        return ALL_ASSETS;
+    }
+  }, [assetFilter]);
 
   // Handle online/offline status
   useEffect(() => {
@@ -562,8 +580,49 @@ const CurrencyConversion: React.FC = () => {
                         </div>
                       </SelectValue>
                     </SelectTrigger>
-                    <SelectContent className="max-h-[400px]">
-                      {ALL_ASSETS.map((a) => (
+                    <SelectContent className="max-h-[400px] bg-background border border-border">
+                      {/* Filter tabs */}
+                      <div className="flex gap-1 p-2 border-b border-border sticky top-0 bg-background z-10">
+                        <Button
+                          size="sm"
+                          variant={assetFilter === 'all' ? 'default' : 'ghost'}
+                          className="h-7 text-xs flex-1"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setAssetFilter('all');
+                          }}
+                        >
+                          <LayoutGrid className="w-3 h-3 mr-1" />
+                          {language === 'fr' ? 'Tout' : 'All'}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant={assetFilter === 'fiat' ? 'default' : 'ghost'}
+                          className="h-7 text-xs flex-1"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setAssetFilter('fiat');
+                          }}
+                        >
+                          <Banknote className="w-3 h-3 mr-1" />
+                          Fiat
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant={assetFilter === 'crypto' ? 'default' : 'ghost'}
+                          className="h-7 text-xs flex-1"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setAssetFilter('crypto');
+                          }}
+                        >
+                          <Coins className="w-3 h-3 mr-1" />
+                          Crypto
+                        </Button>
+                      </div>
+                      
+                      {/* Asset list */}
+                      {filteredAssets.map((a) => (
                         <SelectItem key={a.code} value={a.code}>
                           <div className="flex items-center gap-3">
                             <span className="text-xl">{a.flag}</span>
