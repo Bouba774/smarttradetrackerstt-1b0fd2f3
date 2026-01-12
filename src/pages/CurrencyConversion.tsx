@@ -188,18 +188,14 @@ const CurrencyConversion: React.FC = () => {
                 fiatRates['USD'] = 1;
               } else if (code === 'XAF' || code === 'XOF') {
                 // XAF/XOF are pegged to EUR at 655.957 CFA per EUR
-                // API returns "1 USD = X EUR", we need "1 USD = X XAF"
-                // So: 1 USD = (1 USD in EUR) * 655.957 = rates.EUR * 655.957
-                // But wait - if EUR rate is 0.92, that means 1 USD = 0.92 EUR
-                // And 1 EUR = 655.957 XAF
-                // So 1 USD = 0.92 * 655.957 = ~603 XAF (incorrect!)
-                // Actually: 1 EUR = 655.957 XAF and 1 USD = 1/0.92 EUR
-                // So 1 USD = 655.957/0.92 XAF
+                // API returns EUR rate where 1 USD = X EUR (e.g., 0.92)
+                // 1 EUR = 655.957 XAF
+                // So: 1 USD = eurRate EUR × 655.957 XAF/EUR = eurRate × 655.957 XAF
                 const eurRate = fiatData.rates['EUR'];
                 if (eurRate && eurRate > 0) {
-                  fiatRates[currency.code] = 655.957 / eurRate;
+                  fiatRates[currency.code] = eurRate * 655.957;
                 } else {
-                  fiatRates[currency.code] = 600; // Fallback
+                  fiatRates[currency.code] = 603; // Fallback based on ~0.92 EUR rate
                 }
               } else if (fiatData.rates[code]) {
                 fiatRates[currency.code] = fiatData.rates[code];
@@ -224,8 +220,9 @@ const CurrencyConversion: React.FC = () => {
                 if (code === 'usd') {
                   fiatRates['USD'] = 1;
                 } else if (code === 'xaf' || code === 'xof') {
+                  // eurRate is "1 USD = X EUR", so 1 USD = eurRate × 655.957 XAF
                   const eurRate = fallbackData.usd.eur || 0.92;
-                  fiatRates[currency.code.toUpperCase()] = 655.957 / eurRate;
+                  fiatRates[currency.code.toUpperCase()] = eurRate * 655.957;
                 } else if (fallbackData.usd[code]) {
                   fiatRates[currency.code.toUpperCase()] = fallbackData.usd[code];
                 }
