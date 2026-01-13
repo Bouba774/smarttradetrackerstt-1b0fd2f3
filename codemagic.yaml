@@ -5,7 +5,7 @@ workflows:
 
     environment:
       vars:
-        WEB_APP_URL: "https://smarttradetrackerstt.lovable.app"
+        WEB_APP_URL: "https://smarttradetracker.lovable.app"
 
       android_signing:
         - keystore_reference: smart_trade_tracker_keystore
