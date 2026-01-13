@@ -11,11 +11,11 @@ workflows:
         - android_keystore
 
       android_signing:
-        keystore:
-          path: android/app/keystore/smart_trade_tracker.jks
-          password: $ANDROID_KEYSTORE_PASSWORD
-          alias: $ANDROID_KEY_ALIAS
-          key_password: $ANDROID_KEY_PASSWORD
+        - keystore:
+            path: android/app/keystore/smart_trade_tracker.jks
+            password: $ANDROID_KEYSTORE_PASSWORD
+            alias: $ANDROID_KEY_ALIAS
+            key_password: $ANDROID_KEY_PASSWORD
 
     triggering:
       events:
