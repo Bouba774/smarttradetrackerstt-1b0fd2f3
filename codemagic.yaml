@@ -7,11 +7,15 @@ workflows:
       vars:
         WEB_APP_URL: "https://smarttradetracker.lovable.app"
 
-      android_signing:
-        - keystore_reference: smart_trade_tracker_keystore
-
       groups:
         - android_keystore
+
+      android_signing:
+        keystore:
+          path: android/app/keystore/smart_trade_tracker.jks
+          password: $ANDROID_KEYSTORE_PASSWORD
+          alias: $ANDROID_KEY_ALIAS
+          key_password: $ANDROID_KEY_PASSWORD
 
     triggering:
       events:
@@ -21,32 +25,20 @@ workflows:
           include: true
 
     scripts:
-      - name: Set up Android SDK
-        script: |
-          echo "Using Codemagic Android environment"
-
       - name: Decode keystore
         script: |
           mkdir -p android/app/keystore
-          echo $ANDROID_KEYSTORE_BASE64 | base64 --decode > android/app/keystore/smart_trade_tracker.jks
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/keystore/smart_trade_tracker.jks
 
       - name: Grant Gradle permission
         script: |
           chmod +x android/gradlew
 
-      - name: Build signed APK
+      - name: Build signed APK & AAB
         script: |
           cd android
-          ./gradlew assembleRelease
+          ./gradlew assembleRelease bundleRelease
 
     artifacts:
       - android/app/build/outputs/**/*.apk
       - android/app/build/outputs/**/*.aab
-
-    publishing:
-      email:
-        recipients:
-          - maximemoreau087@gmail.com
-        notify:
-          success: true
-          failure: true
