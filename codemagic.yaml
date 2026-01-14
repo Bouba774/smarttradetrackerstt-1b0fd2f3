@@ -1,11 +1,15 @@
 workflows:
-  android-workflow:
-    name: Smart Trade Tracker Android APK Build
+  android-apk-build:
+    name: Smart Trade Tracker APK Build
     max_build_duration: 60
+    instance_type: linux  # Android build peut se faire sur Linux
     environment:
       java: 17
+      groups:
+        - google_play
       vars:
-        KEYSTORE_BASE64:"<MIIK+gIBAzCCCqQGCSqGSIb3DQEHAaCCCpUEggqRMIIKjTCCBdQGCSqGSIb3DQEHAaCCBcUEggXB
+        # === KEYS & PASSWORDS ===
+        KEYSTORE_BASE64: "MIIK+gIBAzCCCqQGCSqGSIb3DQEHAaCCCpUEggqRMIIKjTCCBdQGCSqGSIb3DQEHAaCCBcUEggXB
 MIIFvTCCBbkGCyqGSIb3DQEMCgECoIIFQDCCBTwwZgYJKoZIhvcNAQUNMFkwOAYJKoZIhvcNAQUM
 MCsEFDWSD83z/x/psM2LDYzkp8Uz0U3hAgInEAIBIDAMBggqhkiG9w0CCQUAMB0GCWCGSAFlAwQB
 KgQQXJaAzBR1Wgnbb8xD1Xm2MwSCBNAuwcO0Yij1xq8puHF1n1YuAr6q575StkxOsmHr4d1YRgVv
@@ -54,23 +58,24 @@ bAyKad5kd6UxCZ7RndPPZbSzivN7p3U+qeANv+TOKUsfrlqMD2bkn+9bpasE33SzSKDg9IhWvMN0
 F6ukTbFdtOMA6I1/KFQbX4ADna30CUqLLFRbGdB+/EhUwLjqX8uZkTYwrhIy7SX52q0hbwcWQ5ku
 m9EqlRkAsydcIc6cm6nKTVtR5fsS++lM7h0cg6+4fEY0uM44EwCg2q1Ygu5ubSAI67m1GfCKjSgw
 TTAxMA0GCWCGSAFlAwQCAQUABCDXzwH4Qc1ktucs7BrQ1HakGWpySI6zCEhxxfwYtsP0hwQUPaai
-I7p4leGjtp+LOweR2saWeLsCAicQ>"
-        KEYSTORE_PASSWORD: "<@Bouba2006>"
-        KEY_ALIAS: "<bouba>"
-        KEY_PASSWORD: "<AlphaFx>"
+I7p4leGjtp+LOweR2saWeLsCAic"  # remplace par ton keystore encodé en Base64
+        KEYSTORE_PASSWORD: "@Bouba2006"
+        KEY_ALIAS: "bouba"
+        KEY_PASSWORD: "AlphaFx"
+
     scripts:
+      - name: Set Gradle executable permission
+        script: chmod +x ./android/gradlew
+
       - name: Decode keystore
         script: |
-          echo $KEYSTORE_BASE64 | base64 --decode > smart_trade_tracker.keystore
+          printf "%s" "$KEYSTORE_BASE64" | base64 --decode > android/smart_trade_tracker.keystore
 
-      - name: Set executable permission
-        script: chmod +x ./gradlew
-
-      - name: Build APK
+      - name: Build APK Release
         script: |
           cd android
-          ./gradlew clean assembleRelease \
-            -Pandroid.injected.signing.store.file=../smart_trade_tracker.keystore \
+          ./gradlew assembleRelease \
+            -Pandroid.injected.signing.store.file=smart_trade_tracker.keystore \
             -Pandroid.injected.signing.store.password=$KEYSTORE_PASSWORD \
             -Pandroid.injected.signing.key.alias=$KEY_ALIAS \
             -Pandroid.injected.signing.key.password=$KEY_PASSWORD
@@ -81,4 +86,4 @@ I7p4leGjtp+LOweR2saWeLsCAicQ>"
     publishing:
       email:
         recipients:
-          - maximemoreau087@gmail.com
+          - boubamefire@gmail.com
