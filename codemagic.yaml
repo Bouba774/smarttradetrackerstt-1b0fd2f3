@@ -1,15 +1,18 @@
 workflows:
   android-apk:
-    name: Android APK Build
+    name: Smart Trade Tracker APK
     max_build_duration: 60
     instance_type: linux_x2
+
     environment:
       java: 17
+
     scripts:
       - name: Build APK
         script: |
           cd android-app
           chmod +x gradlew
-          ./gradlew assembleDebug
+          ./gradlew assembleRelease
+
     artifacts:
-      - android-app/app/build/outputs/apk/debug/app-debug.apk
+      - android-app/app/build/outputs/**/*.apk
