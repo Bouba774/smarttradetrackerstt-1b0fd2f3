@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,8 +8,6 @@ import {
   SelectItem, 
   SelectTrigger, 
   SelectValue,
-  SelectGroup,
-  SelectLabel
 } from '@/components/ui/select';
 import { 
   RefreshCw, 
@@ -21,7 +19,9 @@ import {
   WifiOff,
   Coins,
   Banknote,
-  LayoutGrid
+  LayoutGrid,
+  Search,
+  X
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
@@ -131,15 +131,30 @@ const CRYPTOCURRENCIES: Asset[] = [
 
 const ALL_ASSETS: Asset[] = [...FIAT_CURRENCIES, ...CRYPTOCURRENCIES];
 
-const CACHE_KEY = 'crypto-fiat-rates-cache-v3';
-const CACHE_DURATION = 2 * 60 * 1000; // 2 minutes for more frequent updates
-const AUTO_REFRESH_INTERVAL = 60 * 1000; // Auto-refresh every 60 seconds
+const CACHE_KEY = 'crypto-fiat-rates-cache-v4';
+const CACHE_DURATION = 30 * 1000; // 30 seconds cache
+const AUTO_REFRESH_INTERVAL = 30 * 1000; // Auto-refresh every 30 seconds
 
 interface ConversionSlot {
   id: number;
   assetCode: string;
   isEditing: boolean;
 }
+
+// Memoized asset item component for performance
+const AssetItem = React.memo(({ asset, language }: { asset: Asset; language: string }) => (
+  <div className="flex items-center gap-3">
+    <span className="text-xl">{asset.flag}</span>
+    <div>
+      <span className="font-medium">{asset.code}</span>
+      <span className="text-muted-foreground ml-2 text-sm">
+        {language === 'fr' ? asset.nameFr : asset.name}
+      </span>
+    </div>
+  </div>
+));
+
+AssetItem.displayName = 'AssetItem';
 
 const CurrencyConversion: React.FC = () => {
   const { language } = useLanguage();
@@ -159,18 +174,35 @@ const CurrencyConversion: React.FC = () => {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [editingSlotId, setEditingSlotId] = useState<number | null>(1);
   const [assetFilter, setAssetFilter] = useState<'all' | 'fiat' | 'crypto'>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  
+  const fetchControllerRef = useRef<AbortController | null>(null);
+  const isMountedRef = useRef(true);
 
-  // Filtered assets based on filter selection
+  // Filtered and searched assets - memoized for performance
   const filteredAssets = useMemo(() => {
+    let assets: Asset[];
     switch (assetFilter) {
       case 'fiat':
-        return FIAT_CURRENCIES;
+        assets = FIAT_CURRENCIES;
+        break;
       case 'crypto':
-        return CRYPTOCURRENCIES;
+        assets = CRYPTOCURRENCIES;
+        break;
       default:
-        return ALL_ASSETS;
+        assets = ALL_ASSETS;
     }
-  }, [assetFilter]);
+    
+    if (!searchQuery.trim()) return assets;
+    
+    const query = searchQuery.toLowerCase().trim();
+    return assets.filter(a => 
+      a.code.toLowerCase().includes(query) ||
+      a.name.toLowerCase().includes(query) ||
+      a.nameFr.toLowerCase().includes(query)
+    );
+  }, [assetFilter, searchQuery]);
 
   // Handle online/offline status
   useEffect(() => {
@@ -184,9 +216,30 @@ const CurrencyConversion: React.FC = () => {
     };
   }, []);
 
-  // Fetch rates from multiple reliable APIs
-  const fetchRates = useCallback(async (forceRefresh = false) => {
-    setIsLoading(true);
+  // Cleanup on unmount
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      if (fetchControllerRef.current) {
+        fetchControllerRef.current.abort();
+      }
+    };
+  }, []);
+
+  // Optimized fetch rates function
+  const fetchRates = useCallback(async (forceRefresh = false, silent = false) => {
+    // Cancel any pending request
+    if (fetchControllerRef.current) {
+      fetchControllerRef.current.abort();
+    }
+    fetchControllerRef.current = new AbortController();
+    const signal = fetchControllerRef.current.signal;
+
+    if (!silent) {
+      setIsLoading(true);
+    }
+    setIsRefreshing(true);
 
     try {
       // Check cache first (skip if force refresh)
@@ -198,86 +251,58 @@ const CurrencyConversion: React.FC = () => {
             const cacheAge = Date.now() - timestamp;
             
             if (cacheAge < CACHE_DURATION && cachedRates && Object.keys(cachedRates).length > 10) {
-              console.log('Using cached rates:', cachedRates);
-              setRates(cachedRates);
-              setPriceChanges(cachedChanges || {});
-              setLastUpdated(new Date(timestamp));
-              setIsLoading(false);
+              if (isMountedRef.current) {
+                setRates(cachedRates);
+                setPriceChanges(cachedChanges || {});
+                setLastUpdated(new Date(timestamp));
+                setIsLoading(false);
+                setIsRefreshing(false);
+              }
               return;
             }
-          } catch (e) {
-            console.log('Cache parse error, fetching fresh rates');
+          } catch {
+            // Cache parse error, continue to fetch
           }
         }
       }
 
-      // All rates will be stored as "1 USD = X units"
+      // Fetch fiat and crypto rates in parallel for speed
+      const [fiatResult, cryptoResult] = await Promise.allSettled([
+        // Fiat API
+        fetch('https://open.er-api.com/v6/latest/USD', { signal })
+          .then(r => r.ok ? r.json() : null)
+          .catch(() => null),
+        // Crypto API
+        fetch(
+          'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,tether,usd-coin,binancecoin,solana,ripple,cardano,dogecoin,tron,matic-network,litecoin,polkadot,avalanche-2,chainlink,shiba-inu,the-open-network,near,pepe,floki,arbitrum,optimism,aptos,sui,injective-protocol,fantom,cosmos,uniswap,aave,maker,crypto-com-chain,algorand,stellar,vechain,filecoin,internet-computer,render-token,the-graph,immutable-x,dogwifcoin,bonk&vs_currencies=usd&include_24hr_change=true',
+          { signal }
+        ).then(r => r.ok ? r.json() : null).catch(() => null),
+      ]);
+
+      if (signal.aborted || !isMountedRef.current) return;
+
+      // Process fiat rates
       let fiatRates: Record<string, number> = { USD: 1 };
-      let fetchedFromAPI = false;
+      const fiatData = fiatResult.status === 'fulfilled' ? fiatResult.value : null;
       
-      // Primary API: ExchangeRate-API (free, reliable, 1500 requests/month)
-      try {
-        const fiatResponse = await fetch('https://open.er-api.com/v6/latest/USD');
-        if (fiatResponse.ok) {
-          const fiatData = await fiatResponse.json();
-          console.log('API Response:', fiatData);
-          if (fiatData?.rates) {
-            fetchedFromAPI = true;
-            FIAT_CURRENCIES.forEach(currency => {
-              const code = currency.code.toUpperCase();
-              if (code === 'USD') {
-                fiatRates['USD'] = 1;
-              } else if (code === 'XAF' || code === 'XOF') {
-                // XAF/XOF are pegged to EUR at 655.957 CFA per EUR
-                // API returns EUR rate where 1 USD = X EUR (e.g., 0.92)
-                // 1 EUR = 655.957 XAF
-                // So: 1 USD = eurRate EUR × 655.957 XAF/EUR = eurRate × 655.957 XAF
-                const eurRate = fiatData.rates['EUR'];
-                if (eurRate && eurRate > 0) {
-                  fiatRates[currency.code] = eurRate * 655.957;
-                } else {
-                  fiatRates[currency.code] = 603; // Fallback based on ~0.92 EUR rate
-                }
-              } else if (fiatData.rates[code]) {
-                fiatRates[currency.code] = fiatData.rates[code];
-              }
-            });
-          }
-        }
-      } catch (e) {
-        console.log('Primary fiat API failed, trying fallback:', e);
-      }
-      
-      // Fallback if primary API failed
-      if (!fetchedFromAPI) {
-        try {
-          const fallbackResponse = await fetch('https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/usd.json');
-          if (fallbackResponse.ok) {
-            const fallbackData = await fallbackResponse.json();
-            if (fallbackData?.usd) {
-              fetchedFromAPI = true;
-              FIAT_CURRENCIES.forEach(currency => {
-                const code = currency.code.toLowerCase();
-                if (code === 'usd') {
-                  fiatRates['USD'] = 1;
-                } else if (code === 'xaf' || code === 'xof') {
-                  // eurRate is "1 USD = X EUR", so 1 USD = eurRate × 655.957 XAF
-                  const eurRate = fallbackData.usd.eur || 0.92;
-                  fiatRates[currency.code.toUpperCase()] = eurRate * 655.957;
-                } else if (fallbackData.usd[code]) {
-                  fiatRates[currency.code.toUpperCase()] = fallbackData.usd[code];
-                }
-              });
+      if (fiatData?.rates) {
+        FIAT_CURRENCIES.forEach(currency => {
+          const code = currency.code.toUpperCase();
+          if (code === 'USD') {
+            fiatRates['USD'] = 1;
+          } else if (code === 'XAF' || code === 'XOF') {
+            const eurRate = fiatData.rates['EUR'];
+            if (eurRate && eurRate > 0) {
+              fiatRates[currency.code] = eurRate * 655.957;
+            } else {
+              fiatRates[currency.code] = 603;
             }
+          } else if (fiatData.rates[code]) {
+            fiatRates[currency.code] = fiatData.rates[code];
           }
-        } catch (fallbackError) {
-          console.log('Fallback fiat API also failed:', fallbackError);
-        }
-      }
-      
-      // If all APIs failed, use hardcoded fallback rates
-      if (!fetchedFromAPI) {
-        console.log('Using hardcoded fallback rates');
+        });
+      } else {
+        // Fallback fiat rates
         fiatRates = {
           USD: 1, EUR: 0.92, GBP: 0.79, JPY: 149.5, CHF: 0.88,
           CAD: 1.36, AUD: 1.54, NZD: 1.68, CNY: 7.24, HKD: 7.82,
@@ -291,45 +316,36 @@ const CurrencyConversion: React.FC = () => {
         };
       }
 
-      // Fetch crypto rates from CoinGecko (free, 30 calls/min)
+      // Process crypto rates
       let cryptoPricesInUsd: Record<string, number> = {};
       let changes: Record<string, number> = {};
+      const cryptoData = cryptoResult.status === 'fulfilled' ? cryptoResult.value : null;
       
-      try {
-        const cryptoIds = 'bitcoin,ethereum,tether,usd-coin,binancecoin,solana,ripple,cardano,dogecoin,tron,matic-network,litecoin,polkadot,avalanche-2,chainlink,shiba-inu,the-open-network,near,pepe,floki,arbitrum,optimism,aptos,sui,injective-protocol,fantom,cosmos,uniswap,aave,maker,crypto-com-chain,algorand,stellar,vechain,filecoin,internet-computer,render-token,the-graph,immutable-x,dogwifcoin,bonk';
-        const cryptoResponse = await fetch(
-          `https://api.coingecko.com/api/v3/simple/price?ids=${cryptoIds}&vs_currencies=usd&include_24hr_change=true`
-        );
-        
-        if (cryptoResponse.ok) {
-          const cryptoData = await cryptoResponse.json();
-          
-          const idToCode: Record<string, string> = {
-            'bitcoin': 'BTC', 'ethereum': 'ETH', 'tether': 'USDT', 'usd-coin': 'USDC',
-            'binancecoin': 'BNB', 'solana': 'SOL', 'ripple': 'XRP', 'cardano': 'ADA',
-            'dogecoin': 'DOGE', 'tron': 'TRX', 'matic-network': 'MATIC', 'litecoin': 'LTC',
-            'polkadot': 'DOT', 'avalanche-2': 'AVAX', 'chainlink': 'LINK',
-            'shiba-inu': 'SHIB', 'the-open-network': 'TON', 'near': 'NEAR',
-            'pepe': 'PEPE', 'floki': 'FLOKI', 'arbitrum': 'ARB', 'optimism': 'OP',
-            'aptos': 'APT', 'sui': 'SUI', 'injective-protocol': 'INJ', 'fantom': 'FTM',
-            'cosmos': 'ATOM', 'uniswap': 'UNI', 'aave': 'AAVE', 'maker': 'MKR',
-            'crypto-com-chain': 'CRO', 'algorand': 'ALGO', 'stellar': 'XLM', 'vechain': 'VET',
-            'filecoin': 'FIL', 'internet-computer': 'ICP', 'render-token': 'RENDER',
-            'the-graph': 'GRT', 'immutable-x': 'IMX', 'dogwifcoin': 'WIF', 'bonk': 'BONK'
-          };
+      if (cryptoData) {
+        const idToCode: Record<string, string> = {
+          'bitcoin': 'BTC', 'ethereum': 'ETH', 'tether': 'USDT', 'usd-coin': 'USDC',
+          'binancecoin': 'BNB', 'solana': 'SOL', 'ripple': 'XRP', 'cardano': 'ADA',
+          'dogecoin': 'DOGE', 'tron': 'TRX', 'matic-network': 'MATIC', 'litecoin': 'LTC',
+          'polkadot': 'DOT', 'avalanche-2': 'AVAX', 'chainlink': 'LINK',
+          'shiba-inu': 'SHIB', 'the-open-network': 'TON', 'near': 'NEAR',
+          'pepe': 'PEPE', 'floki': 'FLOKI', 'arbitrum': 'ARB', 'optimism': 'OP',
+          'aptos': 'APT', 'sui': 'SUI', 'injective-protocol': 'INJ', 'fantom': 'FTM',
+          'cosmos': 'ATOM', 'uniswap': 'UNI', 'aave': 'AAVE', 'maker': 'MKR',
+          'crypto-com-chain': 'CRO', 'algorand': 'ALGO', 'stellar': 'XLM', 'vechain': 'VET',
+          'filecoin': 'FIL', 'internet-computer': 'ICP', 'render-token': 'RENDER',
+          'the-graph': 'GRT', 'immutable-x': 'IMX', 'dogwifcoin': 'WIF', 'bonk': 'BONK'
+        };
 
-          Object.entries(cryptoData).forEach(([id, data]: [string, any]) => {
-            const code = idToCode[id];
-            if (code && data.usd) {
-              cryptoPricesInUsd[code] = data.usd;
-              if (data.usd_24h_change !== undefined) {
-                changes[code] = data.usd_24h_change;
-              }
+        Object.entries(cryptoData).forEach(([id, data]: [string, any]) => {
+          const code = idToCode[id];
+          if (code && data.usd) {
+            cryptoPricesInUsd[code] = data.usd;
+            if (data.usd_24h_change !== undefined) {
+              changes[code] = data.usd_24h_change;
             }
-          });
-        }
-      } catch (e) {
-        console.log('Crypto API failed, using fallback:', e);
+          }
+        });
+      } else {
         // Fallback crypto prices
         cryptoPricesInUsd = {
           BTC: 95000, ETH: 3400, USDT: 1, USDC: 1,
@@ -345,21 +361,16 @@ const CurrencyConversion: React.FC = () => {
         };
       }
 
-      // Build final rates object - all rates are "1 USD = X units"
+      // Build final rates object
       const allRates: Record<string, number> = { ...fiatRates };
-      
-      // For crypto: 1 USD = 1/price crypto units
-      // If BTC = $95,000, then 1 USD = 1/95000 = 0.00001053 BTC
       Object.entries(cryptoPricesInUsd).forEach(([code, usdPrice]) => {
         if (usdPrice && usdPrice > 0) {
           allRates[code] = 1 / usdPrice;
         }
       });
 
-      console.log('Final rates:', allRates);
-
-      // Always cache if we have valid rates
-      if (Object.keys(allRates).length > 5) {
+      // Update state and cache
+      if (Object.keys(allRates).length > 5 && isMountedRef.current) {
         localStorage.setItem(CACHE_KEY, JSON.stringify({
           rates: allRates,
           priceChanges: changes,
@@ -369,37 +380,38 @@ const CurrencyConversion: React.FC = () => {
         setRates(allRates);
         setPriceChanges(changes);
         setLastUpdated(new Date());
-      } else {
-        console.log('Not enough rates fetched, keeping existing');
       }
     } catch (err) {
-      console.error('Rate fetch error:', err);
+      if ((err as Error).name === 'AbortError') return;
       
       // Try to use cached data
       const cached = localStorage.getItem(CACHE_KEY);
-      if (cached) {
+      if (cached && isMountedRef.current) {
         const { rates: cachedRates, priceChanges: cachedChanges, timestamp } = JSON.parse(cached);
         setRates(cachedRates);
         setPriceChanges(cachedChanges || {});
         setLastUpdated(new Date(timestamp));
       }
     } finally {
-      setIsLoading(false);
+      if (isMountedRef.current) {
+        setIsLoading(false);
+        setIsRefreshing(false);
+      }
     }
   }, []);
 
   useEffect(() => {
     fetchRates();
     
-    // Auto-refresh rates every minute
+    // Auto-refresh rates every 30 seconds (silent refresh)
     const intervalId = setInterval(() => {
-      fetchRates(true);
+      fetchRates(true, true);
     }, AUTO_REFRESH_INTERVAL);
     
     return () => clearInterval(intervalId);
   }, [fetchRates]);
 
-  // Get asset data
+  // Get asset data - memoized
   const getAsset = useCallback((code: string): Asset | undefined => {
     return ALL_ASSETS.find(a => a.code === code);
   }, []);
@@ -411,43 +423,21 @@ const CurrencyConversion: React.FC = () => {
     return language === 'fr' ? asset.nameFr : asset.name;
   }, [getAsset, language]);
 
-  // Convert amount - All rates are stored as "1 USD = X units"
+  // Convert amount - optimized
   const convertAmount = useCallback((amount: number, fromCode: string, toCode: string): number => {
-    if (!amount || isNaN(amount)) return 0;
-    if (fromCode === toCode) return amount;
+    if (!amount || isNaN(amount) || fromCode === toCode) return amount || 0;
     
-    // Get the rates - all rates are "1 USD = X units"
     const fromRate = rates[fromCode];
     const toRate = rates[toCode];
     
-    // Debug log
-    console.log('Converting:', { amount, fromCode, toCode, fromRate, toRate, allRates: rates });
-    
-    // If rates are missing, return 0
-    if (fromRate === undefined || toRate === undefined) {
-      console.log('Missing rates:', { fromCode, fromRate, toCode, toRate });
+    if (fromRate === undefined || toRate === undefined || fromRate === 0) {
       return 0;
     }
     
-    // Both rates are "1 USD = X units"
-    // fromRate: 1 USD = fromRate units of fromCode
-    // toRate: 1 USD = toRate units of toCode
-    
-    // Step 1: Convert source amount to USD
-    // If fromRate = 1 (USD), amountInUsd = amount / 1 = amount
-    // If fromRate = 655.957 (XAF), amountInUsd = amount / 655.957
-    const amountInUsd = fromRate === 0 ? 0 : amount / fromRate;
-    
-    // Step 2: Convert USD to target currency
-    // If toRate = 655.957 (XAF), result = amountInUsd * 655.957
-    const result = amountInUsd * toRate;
-    
-    console.log('Conversion result:', { amountInUsd, result });
-    
-    return result;
+    return (amount / fromRate) * toRate;
   }, [rates]);
 
-  // Format number with proper decimals and spacing
+  // Format number with proper decimals
   const formatNumber = useCallback((num: number, decimals: number = 4): string => {
     if (num === 0) return '0';
     
@@ -478,14 +468,15 @@ const CurrencyConversion: React.FC = () => {
     setSlots(prev => prev.map(slot => 
       slot.id === slotId ? { ...slot, assetCode: newAssetCode } : slot
     ));
+    setSearchQuery('');
   }, []);
 
-  // Get the base slot (the one being edited)
+  // Get the base slot
   const baseSlot = useMemo(() => {
     return slots.find(s => s.id === editingSlotId) || slots[0];
   }, [slots, editingSlotId]);
 
-  // Calculate converted values
+  // Calculate converted values - memoized
   const getConvertedValue = useCallback((slotId: number): number => {
     const slot = slots.find(s => s.id === slotId);
     if (!slot || slot.id === editingSlotId) return parseFloat(baseAmount) || 0;
@@ -494,16 +485,20 @@ const CurrencyConversion: React.FC = () => {
     return convertAmount(amount, baseSlot.assetCode, slot.assetCode);
   }, [slots, baseAmount, editingSlotId, baseSlot, convertAmount]);
 
-  // Handle slot click to edit
+  // Handle slot click
   const handleSlotClick = useCallback((slotId: number) => {
     const slot = slots.find(s => s.id === slotId);
     if (!slot) return;
     
-    // Calculate the new base amount based on current conversion
     const currentValue = getConvertedValue(slotId);
     setBaseAmount(currentValue.toString());
     setEditingSlotId(slotId);
   }, [slots, getConvertedValue]);
+
+  // Clear search
+  const clearSearch = useCallback(() => {
+    setSearchQuery('');
+  }, []);
 
   return (
     <div className="min-h-screen bg-background">
@@ -533,10 +528,10 @@ const CurrencyConversion: React.FC = () => {
               variant="ghost"
               size="icon"
               onClick={() => fetchRates(true)}
-              disabled={isLoading}
+              disabled={isRefreshing}
               className="text-foreground"
             >
-              <RefreshCw className={cn("w-5 h-5", isLoading && "animate-spin")} />
+              <RefreshCw className={cn("w-5 h-5", isRefreshing && "animate-spin")} />
             </Button>
           </div>
         </div>
@@ -555,7 +550,7 @@ const CurrencyConversion: React.FC = () => {
               <div
                 key={slot.id}
                 className={cn(
-                  "flex items-center justify-between py-5 px-3 cursor-pointer transition-colors",
+                  "flex items-center justify-between py-5 px-3 cursor-pointer",
                   isEditing && "bg-primary/5"
                 )}
                 onClick={() => !isEditing && handleSlotClick(slot.id)}
@@ -581,8 +576,33 @@ const CurrencyConversion: React.FC = () => {
                       </SelectValue>
                     </SelectTrigger>
                     <SelectContent className="max-h-[400px] bg-background border border-border">
+                      {/* Search bar */}
+                      <div className="p-2 border-b border-border sticky top-0 bg-background z-20">
+                        <div className="relative">
+                          <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                          <Input
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            placeholder={language === 'fr' ? 'Rechercher...' : 'Search...'}
+                            className="h-8 pl-8 pr-8 text-sm"
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                          {searchQuery && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                clearSearch();
+                              }}
+                              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                      
                       {/* Filter tabs */}
-                      <div className="flex gap-1 p-2 border-b border-border sticky top-0 bg-background z-10">
+                      <div className="flex gap-1 p-2 border-b border-border sticky top-[52px] bg-background z-10">
                         <Button
                           size="sm"
                           variant={assetFilter === 'all' ? 'default' : 'ghost'}
@@ -622,19 +642,17 @@ const CurrencyConversion: React.FC = () => {
                       </div>
                       
                       {/* Asset list */}
-                      {filteredAssets.map((a) => (
-                        <SelectItem key={a.code} value={a.code}>
-                          <div className="flex items-center gap-3">
-                            <span className="text-xl">{a.flag}</span>
-                            <div>
-                              <span className="font-medium">{a.code}</span>
-                              <span className="text-muted-foreground ml-2 text-sm">
-                                {language === 'fr' ? a.nameFr : a.name}
-                              </span>
-                            </div>
-                          </div>
-                        </SelectItem>
-                      ))}
+                      {filteredAssets.length === 0 ? (
+                        <div className="p-4 text-center text-muted-foreground text-sm">
+                          {language === 'fr' ? 'Aucun résultat' : 'No results'}
+                        </div>
+                      ) : (
+                        filteredAssets.map((a) => (
+                          <SelectItem key={a.code} value={a.code}>
+                            <AssetItem asset={a} language={language} />
+                          </SelectItem>
+                        ))
+                      )}
                     </SelectContent>
                   </Select>
                   
@@ -659,6 +677,7 @@ const CurrencyConversion: React.FC = () => {
                   {isEditing ? (
                     <Input
                       type="text"
+                      inputMode="decimal"
                       value={baseAmount}
                       onChange={(e) => {
                         const val = e.target.value.replace(/[^0-9.,]/g, '');
@@ -689,6 +708,11 @@ const CurrencyConversion: React.FC = () => {
           <span className="text-xs text-muted-foreground">
             {language === 'fr' ? 'Dernière mise à jour: ' : 'Last updated: '}
             {lastUpdated.toLocaleTimeString()}
+            {isRefreshing && (
+              <span className="ml-2 text-primary">
+                {language === 'fr' ? '(actualisation...)' : '(refreshing...)'}
+              </span>
+            )}
           </span>
         </div>
       )}
