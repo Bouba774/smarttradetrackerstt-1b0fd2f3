@@ -1,89 +1,15 @@
 workflows:
-  android-apk-build:
-    name: Smart Trade Tracker APK Build
+  android-apk:
+    name: Android APK Build
     max_build_duration: 60
-    instance_type: linux  # Android build peut se faire sur Linux
+    instance_type: linux_x2
     environment:
       java: 17
-      groups:
-        - google_play
-      vars:
-        # === KEYS & PASSWORDS ===
-        KEYSTORE_BASE64: "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
-I7p4leGjtp+LOweR2saWeLsCAic"  # remplace par ton keystore encodé en Base64
-        KEYSTORE_PASSWORD: "@Bouba2006"
-        KEY_ALIAS: "bouba"
-        KEY_PASSWORD: "AlphaFx"
-
     scripts:
-      - name: Set Gradle executable permission
-        script: chmod +x ./android/gradlew
-
-      - name: Decode keystore
+      - name: Build APK
         script: |
-          printf "%s" "$KEYSTORE_BASE64" | base64 --decode > android/smart_trade_tracker.keystore
-
-      - name: Build APK Release
-        script: |
-          cd android
-          ./gradlew assembleRelease \
-            -Pandroid.injected.signing.store.file=smart_trade_tracker.keystore \
-            -Pandroid.injected.signing.store.password=$KEYSTORE_PASSWORD \
-            -Pandroid.injected.signing.key.alias=$KEY_ALIAS \
-            -Pandroid.injected.signing.key.password=$KEY_PASSWORD
-
+          cd android-app
+          chmod +x gradlew
+          ./gradlew assembleDebug
     artifacts:
-      - android/app/build/outputs/**/*.apk
-
-    publishing:
-      email:
-        recipients:
-          - maximemoreau087@gmail.com
+      - android-app/app/build/outputs/apk/debug/app-debug.apk
