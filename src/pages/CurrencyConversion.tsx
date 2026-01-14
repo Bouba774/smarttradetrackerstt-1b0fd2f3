@@ -131,9 +131,9 @@ const CRYPTOCURRENCIES: Asset[] = [
 
 const ALL_ASSETS: Asset[] = [...FIAT_CURRENCIES, ...CRYPTOCURRENCIES];
 
-const CACHE_KEY = 'crypto-fiat-rates-cache-v4';
-const CACHE_DURATION = 30 * 1000; // 30 seconds cache
-const AUTO_REFRESH_INTERVAL = 30 * 1000; // Auto-refresh every 30 seconds
+const CACHE_KEY = 'crypto-fiat-rates-cache-v5';
+const CACHE_DURATION = 60 * 1000; // 60 seconds cache - increased for better performance
+const AUTO_REFRESH_INTERVAL = 60 * 1000; // Auto-refresh every 60 seconds - reduced frequency
 
 interface ConversionSlot {
   id: number;
@@ -403,12 +403,42 @@ const CurrencyConversion: React.FC = () => {
   useEffect(() => {
     fetchRates();
     
-    // Auto-refresh rates every 30 seconds (silent refresh)
-    const intervalId = setInterval(() => {
-      fetchRates(true, true);
-    }, AUTO_REFRESH_INTERVAL);
+    // Auto-refresh rates every 60 seconds (silent refresh) - only when page is visible
+    let intervalId: ReturnType<typeof setInterval> | null = null;
     
-    return () => clearInterval(intervalId);
+    const startInterval = () => {
+      if (!intervalId) {
+        intervalId = setInterval(() => {
+          if (document.visibilityState === 'visible') {
+            fetchRates(true, true);
+          }
+        }, AUTO_REFRESH_INTERVAL);
+      }
+    };
+    
+    const stopInterval = () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+        intervalId = null;
+      }
+    };
+    
+    // Handle visibility change to pause/resume refresh
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        startInterval();
+      } else {
+        stopInterval();
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    startInterval();
+    
+    return () => {
+      stopInterval();
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, [fetchRates]);
 
   // Get asset data - memoized
