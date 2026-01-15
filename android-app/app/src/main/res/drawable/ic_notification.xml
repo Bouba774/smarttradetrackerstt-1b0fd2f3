@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    
+    <!-- Trading chart notification icon -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M3,17 L3,13 L7,15 L11,9 L15,13 L21,7 L21,17 Z"/>
+    
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M2,18 L22,18"
+        android:strokeWidth="2"
+        android:strokeColor="#FFFFFF"/>
+        
+</vector>

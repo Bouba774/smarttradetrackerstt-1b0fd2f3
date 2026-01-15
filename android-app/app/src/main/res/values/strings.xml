@@ -7,4 +7,6 @@
     <string name="loading">Chargement…</string>
     <string name="cannot_open_link">Impossible d\'ouvrir ce lien</string>
     <string name="ssl_error">Erreur de sécurité SSL</string>
+    <string name="default_notification_channel_id">smart_trade_tracker_notifications</string>
+    <string name="notification_permission_required">Les notifications sont nécessaires pour recevoir les alertes de trading</string>
 </resources>
