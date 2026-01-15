@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Smart Trade Tracker</string>
+    <string name="no_internet">Pas de connexion Internet</string>
+    <string name="check_connection">Vérifiez votre connexion et réessayez</string>
+    <string name="retry">Réessayer</string>
+    <string name="loading">Chargement…</string>
+    <string name="cannot_open_link">Impossible d\'ouvrir ce lien</string>
+    <string name="ssl_error">Erreur de sécurité SSL</string>
+</resources>
